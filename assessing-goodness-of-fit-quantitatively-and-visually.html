@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Assessing Goodness-of-Fit Quantitatively and Visually - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/assessing-goodness-of-fit-quantitatively-and-visually.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Statistical Modeling,Python" />
+        <meta name="description" content="Assessing goodness of fit using scipy and matplotlib" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Assessing Goodness-of-Fit Quantitatively and Visually"/>
+        <meta property="og:url" content="https://jtrive84.github.io/assessing-goodness-of-fit-quantitatively-and-visually.html"/>
+        <meta property="og:description" content="Assessing goodness of fit using scipy and matplotlib"/>
+        <meta property="article:published_time" content="2018-12-30" />
+            <meta property="article:section" content="Statistical Modeling" />
+            <meta property="article:tag" content="Statistical Modeling" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/statistical-modeling.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Statistical Modeling ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/assessing-goodness-of-fit-quantitatively-and-visually.html"
+                       rel="bookmark"
+                       title="Permalink to Assessing Goodness-of-Fit Quantitatively and Visually">
+                        Assessing Goodness-of-Fit Quantitatively and&nbsp;Visually
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-12-30T00:00:00-06:00"> 2018-12-30</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical Modeling</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/statistical-modeling.html">Statistical Modeling</a>
+        /
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>This article explores techniques that can be used to assess how well a 
+parametric model fits an empirical dataset. Specifically, we’ll demonstrate 
+how to produce the following visualizations:                  </p>
+<ul>
+<li><strong>Q-Q Plot</strong> Compares two probability distributions by plotting their quantiles against each other.      </li>
+<li><strong>P-P Plot</strong> Compares two cumulative distribution functions against each other.          </li>
+<li><strong>Histogram</strong> Plot density histogram with parametric distribution overlay.    </li>
+</ul>
+<p>And run the following tests:</p>
+<ul>
+<li><strong>Kolmogorov-Smirnov Test</strong> Test the equality of continuous, one-dimensional probability distributions.        </li>
+<li><strong>Anderson-Darling Test</strong> Test whether a given sample is drawn from a given probability distribution.     </li>
+<li><strong>Shapiro-Wilk Test</strong> Test the null hypothesis that the data is drawn from a normal distribution.</li>
+</ul>
+<p>For ease of exposition, the same dataset will be used in each example, which 
+is given as a Python list below:   </p>
+<div class=highlight><pre><span></span>dat_init = [
+    62.55976, -14.71019, -20.67025, -35.43758, -10.65457,  21.55292, 
+    41.26359,   0.33537, -14.43599, -40.66612,   6.45701, -40.39694, 
+     55.1221,  24.50901,   6.61822, -29.10305,   6.21494,  15.25862,  
+    13.54446,   2.48212,  -2.34573, -21.47846,   -5.0777,  26.48881, 
+    -8.68764,  -5.49631,  42.58039,  -6.59111, -23.08169,  19.09755, 
+   -21.35046,   0.24064,  -3.16365, -37.43091,  24.48556,    2.6263,  
+    31.14471,   5.75287,  -46.8529, -14.26814,   8.41045,  18.11071, 
+   -30.46438,  12.22195, -31.83203,  -8.09629,  52.06456, -24.30986, 
+   -25.62359,   2.86882,  15.77073,  31.17838, -22.04998
+    ]
+</pre></div>
+
+
+<p>The task is to assess how well our data fits a normal distribution 
+parameterized with mean and variance computed as:</p>
+<div class=math>$$
+\begin{align*} 
+\bar{x} &amp;= \frac{1}{n}\sum_{i=1}^{n} x_{i} \\
+s^{2} &amp;= \frac{1}{n-1}\sum_{i=1}^{n} (x_{i} - \bar{x})^2
+\end{align*} 
+$$</div>
+<p>Keep in mind that although we’re testing how well our data can be approximated 
+by a normal distribution, many of the tests we highlight in the forthcoming 
+examples (with the exception of Shapiro-Wilk)  can assess the quality of fit 
+for many different parametric models.          </p>
+<p>We start with assessing goodness-of-fit visually. </p>
+<h2>Q-Q Plot</h2>
+<p>The Q-Q plot compares two probability distributions by plotting their 
+quantiles against each other. We compare standard normal quantiles (x-axis) 
+against the empirical quantiles from <code>dat</code> (y-axis). If the two distributions 
+being compared are similar, the points in the Q-Q plot will approximately lie 
+on a straight line. There isn’t a hard and fast rule to determine how much 
+deviation from the straight line is too much, but if the distributions under 
+comparison are very different, it will be obvious in the Q-Q plot. We can 
+construct a Q-Q plot from scratch using matplotlib as follows:</p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>Q-Q plot construction - Compare theoretical quantiles (x-axis)</span>
+<span class=sd>against empirical quantiles (y-axis). </span>
+<span class=sd>"""</span>
+<span class=kn>import</span> <span class=nn>numpy</span> <span class=kn>as</span> <span class=nn>np</span>
+<span class=kn>from</span> <span class=nn>scipy</span> <span class=kn>import</span> <span class=n>stats</span>
+<span class=kn>import</span> <span class=nn>matplotlib</span>
+<span class=kn>import</span> <span class=nn>matplotlib.pyplot</span> <span class=kn>as</span> <span class=nn>plt</span>
+
+<span class=n>np</span><span class=o>.</span><span class=n>set_printoptions</span><span class=p>(</span>
+    <span class=n>suppress</span><span class=o>=</span><span class=bp>True</span><span class=p>,</span> <span class=n>nanstr</span><span class=o>=</span><span class=s1>'NaN'</span><span class=p>,</span> <span class=n>infstr</span><span class=o>=</span><span class=s1>'Inf'</span><span class=p>,</span> <span class=n>precision</span><span class=o>=</span><span class=mi>8</span>
+    <span class=p>)</span>
+
+<span class=n>plt</span><span class=o>.</span><span class=n>rcParams</span><span class=p>[</span><span class=s2>"axes.edgecolor"</span><span class=p>]</span> <span class=o>=</span> <span class=s2>"#000000"</span>
+<span class=n>plt</span><span class=o>.</span><span class=n>rcParams</span><span class=p>[</span><span class=s2>"axes.linewidth"</span><span class=p>]</span> <span class=o>=</span> <span class=mi>1</span>
+<span class=n>plt</span><span class=o>.</span><span class=n>style</span><span class=o>.</span><span class=n>use</span><span class=p>(</span><span class=s2>"ggplot"</span><span class=p>)</span>
+
+
+<span class=n>dat_init</span> <span class=o>=</span> <span class=p>[</span>
+    <span class=mf>62.55976</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.71019</span><span class=p>,</span> <span class=o>-</span><span class=mf>20.67025</span><span class=p>,</span> <span class=o>-</span><span class=mf>35.43758</span><span class=p>,</span> <span class=o>-</span><span class=mf>10.65457</span><span class=p>,</span>  <span class=mf>21.55292</span><span class=p>,</span> 
+    <span class=mf>41.26359</span><span class=p>,</span>   <span class=mf>0.33537</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.43599</span><span class=p>,</span> <span class=o>-</span><span class=mf>40.66612</span><span class=p>,</span>   <span class=mf>6.45701</span><span class=p>,</span> <span class=o>-</span><span class=mf>40.39694</span><span class=p>,</span> 
+     <span class=mf>55.1221</span><span class=p>,</span>  <span class=mf>24.50901</span><span class=p>,</span>   <span class=mf>6.61822</span><span class=p>,</span> <span class=o>-</span><span class=mf>29.10305</span><span class=p>,</span>   <span class=mf>6.21494</span><span class=p>,</span>  <span class=mf>15.25862</span><span class=p>,</span>  
+    <span class=mf>13.54446</span><span class=p>,</span>   <span class=mf>2.48212</span><span class=p>,</span>  <span class=o>-</span><span class=mf>2.34573</span><span class=p>,</span> <span class=o>-</span><span class=mf>21.47846</span><span class=p>,</span>   <span class=o>-</span><span class=mf>5.0777</span><span class=p>,</span>  <span class=mf>26.48881</span><span class=p>,</span> 
+    <span class=o>-</span><span class=mf>8.68764</span><span class=p>,</span>  <span class=o>-</span><span class=mf>5.49631</span><span class=p>,</span>  <span class=mf>42.58039</span><span class=p>,</span>  <span class=o>-</span><span class=mf>6.59111</span><span class=p>,</span> <span class=o>-</span><span class=mf>23.08169</span><span class=p>,</span>  <span class=mf>19.09755</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>21.35046</span><span class=p>,</span>   <span class=mf>0.24064</span><span class=p>,</span>  <span class=o>-</span><span class=mf>3.16365</span><span class=p>,</span> <span class=o>-</span><span class=mf>37.43091</span><span class=p>,</span>  <span class=mf>24.48556</span><span class=p>,</span>    <span class=mf>2.6263</span><span class=p>,</span>  
+    <span class=mf>31.14471</span><span class=p>,</span>   <span class=mf>5.75287</span><span class=p>,</span>  <span class=o>-</span><span class=mf>46.8529</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.26814</span><span class=p>,</span>   <span class=mf>8.41045</span><span class=p>,</span>  <span class=mf>18.11071</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>30.46438</span><span class=p>,</span>  <span class=mf>12.22195</span><span class=p>,</span> <span class=o>-</span><span class=mf>31.83203</span><span class=p>,</span>  <span class=o>-</span><span class=mf>8.09629</span><span class=p>,</span>  <span class=mf>52.06456</span><span class=p>,</span> <span class=o>-</span><span class=mf>24.30986</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>25.62359</span><span class=p>,</span>   <span class=mf>2.86882</span><span class=p>,</span>  <span class=mf>15.77073</span><span class=p>,</span>  <span class=mf>31.17838</span><span class=p>,</span> <span class=o>-</span><span class=mf>22.04998</span>
+    <span class=p>]</span>
+
+
+<span class=n>dat</span>      <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>dat</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>float_</span><span class=p>);</span> <span class=n>dat</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+<span class=n>datcdf</span>   <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>dat</span><span class=o>.</span><span class=n>size</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=n>dat</span><span class=o>.</span><span class=n>size</span>
+<span class=n>dat_mean</span> <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+<span class=n>dat_stdv</span> <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=n>ddof</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+<span class=n>ndist</span>    <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+<span class=n>theo</span>     <span class=o>=</span> <span class=n>ndist</span><span class=o>.</span><span class=n>ppf</span><span class=p>(</span><span class=n>datcdf</span><span class=p>)</span>
+
+<span class=c1># Remove observations containing np.Inf.</span>
+<span class=n>pairs</span> <span class=o>=</span> <span class=nb>zip</span><span class=p>(</span><span class=n>theo</span><span class=p>,</span> <span class=n>dat</span><span class=p>)</span>
+<span class=n>pairs</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>pairs</span> <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>Inf</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>i</span><span class=p>]</span>
+<span class=n>x</span><span class=p>,</span> <span class=n>y</span>  <span class=o>=</span> <span class=nb>zip</span><span class=p>(</span><span class=o>*</span><span class=n>pairs</span><span class=p>)</span>
+
+<span class=c1># Generate Q-Q plot.</span>
+<span class=n>fig</span> <span class=o>=</span> <span class=n>plt</span><span class=o>.</span><span class=n>figure</span><span class=p>()</span>
+<span class=n>fig</span><span class=o>.</span><span class=n>set_size_inches</span><span class=p>(</span><span class=mi>11</span><span class=p>,</span> <span class=mi>8</span><span class=p>)</span>
+<span class=n>ax</span>  <span class=o>=</span> <span class=n>fig</span><span class=o>.</span><span class=n>add_subplot</span><span class=p>(</span><span class=mi>111</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>scatter</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#FFFFFF"</span><span class=p>,</span> <span class=n>s</span><span class=o>=</span><span class=mi>61</span><span class=p>,</span> <span class=n>edgecolor</span><span class=o>=</span><span class=s2>"#000000"</span><span class=p>,</span> <span class=n>marker</span><span class=o>=</span><span class=s2>"o"</span><span class=p>,</span> <span class=n>linewidths</span><span class=o>=</span><span class=mf>1.03</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_title</span><span class=p>(</span><span class=s2>"Q-Q Plot: Empricial Data vs. Standard Normal Distribution"</span><span class=p>,</span> 
+             <span class=n>fontsize</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span><span class=n>loc</span><span class=o>=</span><span class=s2>"left"</span><span class=p>,</span><span class=n>color</span><span class=o>=</span><span class=s2>"#FF6666"</span><span class=p>,</span><span class=n>weight</span><span class=o>=</span><span class=s2>"bold"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_ylabel</span><span class=p>(</span><span class=s2>"Empirical Quantiles"</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=mi>14</span><span class=p>,</span><span class=n>color</span><span class=o>=</span><span class=s2>"#000000"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_xlabel</span><span class=p>(</span><span class=s2>"Standard Normal Quantiles"</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=mi>14</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#000000"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>grid</span><span class=p>(</span><span class=bp>True</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_facecolor</span><span class=p>(</span><span class=bp>None</span><span class=p>)</span> <span class=c1># change background color</span>
+<span class=n>fig</span><span class=o>.</span><span class=n>tight_layout</span><span class=p>()</span>
+<span class=n>plt</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
+</pre></div>
+
+
+<p>Running the code produces the following scatterplot:       </p>
+<p><br>
+</p><p align=center> 
+<img alt=qqplot src="/images/qqplot.png">
+</p> <br>
+<br><p></p>
+<p>The points seem to mostly follow a straight line, but there are observations 
+that deviate from strict linearity. But there’s nothing here that disqualifies 
+our dataset from being modeled with normal distribution.        </p>
+<h2>P-P Plot</h2>
+<p>The P-P plot compares two cumulative distribution functions against each 
+other. To produce a P-P plot, we plot the theoretical percentiles (x-axis) 
+against empirical percentiles (y-axis), so that each axis ranges from 0-1. The 
+comparison line is the 45 degree line from (0,0) to (1,1). The distributions 
+are equal if and only if the plot falls on this line: any deviation indicates 
+a difference between the distributions. The code to produce a P-P plot is 
+given below (assume the same library imports and configuration settings in the 
+Q-Q plot example):    </p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>P-P Plot of empirical data vs. standard normal distribution.</span>
+<span class=sd>"""</span>
+<span class=c1># Standardize dat.</span>
+<span class=n>dat_mean</span> <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+<span class=n>dat_stdv</span> <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=n>ddof</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+<span class=n>sdat</span>     <span class=o>=</span> <span class=p>(</span><span class=n>dat</span> <span class=o>-</span> <span class=n>dat_mean</span><span class=p>)</span> <span class=o>/</span> <span class=n>dat_stdv</span>
+<span class=n>sdatcdf</span>  <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>sdat</span><span class=o>.</span><span class=n>size</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=n>sdat</span><span class=o>.</span><span class=n>size</span>
+<span class=n>ndist</span>    <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+<span class=n>theocdf</span>  <span class=o>=</span> <span class=n>ndist</span><span class=o>.</span><span class=n>cdf</span><span class=p>(</span><span class=n>sdat</span><span class=p>)</span>
+
+<span class=c1># Remove any observations containing np.Inf.</span>
+<span class=n>pairs</span> <span class=o>=</span> <span class=nb>zip</span><span class=p>(</span><span class=n>theocdf</span><span class=p>,</span> <span class=n>sdatcdf</span><span class=p>)</span>
+<span class=n>pairs</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>pairs</span> <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>Inf</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>i</span><span class=p>]</span>
+<span class=n>x</span><span class=p>,</span> <span class=n>y</span>  <span class=o>=</span> <span class=nb>zip</span><span class=p>(</span><span class=o>*</span><span class=n>pairs</span><span class=p>)</span>
+
+<span class=c1># Generate P-P plot.</span>
+<span class=n>fig</span> <span class=o>=</span> <span class=n>plt</span><span class=o>.</span><span class=n>figure</span><span class=p>()</span>
+<span class=n>ax</span>  <span class=o>=</span> <span class=n>fig</span><span class=o>.</span><span class=n>add_subplot</span><span class=p>(</span><span class=mi>111</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>scatter</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#FFFFFF"</span><span class=p>,</span> <span class=n>s</span><span class=o>=</span><span class=mi>61</span><span class=p>,</span> <span class=n>edgecolor</span><span class=o>=</span><span class=s2>"#000000"</span><span class=p>,</span> <span class=n>marker</span><span class=o>=</span><span class=s2>"o"</span><span class=p>,</span> <span class=n>linewidths</span><span class=o>=</span><span class=mf>1.03</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>plot</span><span class=p>([</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>],</span> <span class=p>[</span><span class=mi>0</span><span class=p>,</span> <span class=mi>1</span><span class=p>],</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#F64D54"</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=mf>2.5</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=.</span><span class=mi>85</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_title</span><span class=p>(</span><span class=s2>"P-P Plot: Empricial CDF vs. Standard Normal CDF"</span><span class=p>,</span> 
+             <span class=n>fontsize</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>loc</span><span class=o>=</span><span class=s2>"left"</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#FF6666"</span><span class=p>,</span> <span class=n>weight</span><span class=o>=</span><span class=s2>"bold"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_ylabel</span><span class=p>(</span><span class=s2>"Empirical Cumulative Distribution"</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=mi>14</span><span class=p>,</span><span class=n>color</span><span class=o>=</span><span class=s2>"#000000"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_xlabel</span><span class=p>(</span><span class=s2>"Standard Normal Distribution"</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=mi>14</span><span class=p>,</span><span class=n>color</span><span class=o>=</span><span class=s2>"#000000"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>grid</span><span class=p>(</span><span class=bp>True</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_facecolor</span><span class=p>(</span><span class=bp>None</span><span class=p>)</span> <span class=c1># changes background color to blue</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_xlim</span><span class=p>(</span><span class=o>-</span><span class=mf>0.1</span><span class=p>,</span> <span class=mf>1.1</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_ylim</span><span class=p>(</span><span class=o>-</span><span class=mf>0.1</span><span class=p>,</span> <span class=mf>1.1</span><span class=p>)</span>
+<span class=n>fig</span><span class=o>.</span><span class=n>tight_layout</span><span class=p>()</span>
+<span class=n>plt</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
+</pre></div>
+
+
+<p>The resulting visualization:</p>
+<p><br>
+</p><p align=center> 
+<img alt=qqplot src="/images/ppplot.png">
+</p> <br>
+<br><p></p>
+<p>There is some deviation from <span class=math>\(y=x\)</span>, but again, nothing to conclusively 
+discount the possibility of our data arising from a normal population. We 
+expect some deviation from the expected normal percentiles, which we see in 
+this diagnostic. </p>
+<h3>Histogram with Parametric Model Overlay</h3>
+<p>This visualization is exactly as the section title suggests: A histogram 
+representing the density of the empirical data overlaid with a parameterized 
+normal distribution. Depending on the number of observations in your dataset, 
+you might need to experiment with the number of bins to use. Also, be sure to 
+set <code>density=True</code> in <code>ax.hist</code>:</p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>Plot histogram with best-fit normal distribution overlay.</span>
+<span class=sd>"""</span>
+<span class=n>endpoint</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>([</span><span class=n>np</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>dat</span><span class=o>.</span><span class=n>min</span><span class=p>()),</span> <span class=n>np</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>dat</span><span class=o>.</span><span class=n>max</span><span class=p>())])</span>
+<span class=n>xvals</span>    <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>linspace</span><span class=p>(</span><span class=o>-</span><span class=n>endpoint</span> <span class=o>-</span> <span class=mi>10</span><span class=p>,</span> <span class=n>endpoint</span> <span class=o>+</span> <span class=mi>10</span><span class=p>,</span> <span class=mi>1000</span><span class=p>)</span>
+<span class=n>dat_mean</span> <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+<span class=n>dat_stdv</span> <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=n>ddof</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+<span class=n>fitnorm</span>  <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=n>dat_mean</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=n>dat_stdv</span><span class=p>)</span>
+<span class=n>yvals</span>    <span class=o>=</span> <span class=n>fitnorm</span><span class=o>.</span><span class=n>pdf</span><span class=p>(</span><span class=n>xvals</span><span class=p>)</span>
+
+<span class=c1># Remove any observations containing np.Inf.</span>
+<span class=n>pairs</span> <span class=o>=</span> <span class=nb>zip</span><span class=p>(</span><span class=n>xvals</span><span class=p>,</span> <span class=n>yvals</span><span class=p>)</span>
+<span class=n>pairs</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>pairs</span> <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>Inf</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>i</span><span class=p>]</span>
+<span class=n>x</span><span class=p>,</span> <span class=n>y</span>  <span class=o>=</span> <span class=nb>zip</span><span class=p>(</span><span class=o>*</span><span class=n>pairs</span><span class=p>)</span>
+
+<span class=c1># Generate histogram with parametric model overlay.</span>
+<span class=n>fig</span> <span class=o>=</span> <span class=n>plt</span><span class=o>.</span><span class=n>figure</span><span class=p>()</span>
+<span class=n>fig</span><span class=o>.</span><span class=n>set_size_inches</span><span class=p>(</span><span class=mi>9</span><span class=p>,</span> <span class=mi>6</span><span class=p>)</span>
+<span class=n>ax</span>  <span class=o>=</span> <span class=n>fig</span><span class=o>.</span><span class=n>add_subplot</span><span class=p>(</span><span class=mi>111</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>hist</span><span class=p>(</span><span class=n>dat</span><span class=p>,</span> <span class=mi>18</span><span class=p>,</span> <span class=n>density</span><span class=o>=</span><span class=bp>True</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=.</span><span class=mi>995</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#FFFFFF"</span><span class=p>,</span> <span class=n>edgecolor</span><span class=o>=</span><span class=s2>"black"</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=mf>1.1</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>plot</span><span class=p>(</span><span class=n>x</span><span class=p>,</span> <span class=n>y</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#F64D54"</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=mf>3.</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_title</span><span class=p>(</span><span class=s2>"Distribution of Empirical Data"</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> 
+             <span class=n>loc</span><span class=o>=</span><span class=s2>"left"</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#FF6666"</span><span class=p>,</span> <span class=n>weight</span><span class=o>=</span><span class=s2>"bold"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_ylabel</span><span class=p>(</span><span class=s2>"Density"</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=mi>14</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#000000"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>grid</span><span class=p>(</span><span class=bp>True</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_facecolor</span><span class=p>(</span><span class=bp>None</span><span class=p>)</span>
+<span class=n>fig</span><span class=o>.</span><span class=n>tight_layout</span><span class=p>()</span>
+<span class=n>plt</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
+</pre></div>
+
+
+<p>This code produces:    </p>
+<p><br>
+</p><p align=center> 
+<img alt=qqplot src="/images/histovr.png">
+</p> <br>
+<br><p></p>
+<p>We see that the parametric overlay approximately agrees with the density 
+histogram, save for one larger-than-expected bin between x-axis points 
+(0, 20). However, this may be a function of the number of bins selected (18 
+in this case), but is nonetheless worth keeping in mind as we move on to 
+quantitative goodness-of-fit tests.      </p>
+<h2>Kolmogorov-Smirnov Test</h2>
+<p>Suppose that we have a set of empirical data that we assume originates from a 
+distribution <span class=math>\(F\)</span>. The Kolmogorov-Smirnov statistic is used to test:    </p>
+<p><span class=math>\(H_{0}\)</span>: the samples come from <span class=math>\(F\)</span>.   </p>
+<p>against:</p>
+<p><span class=math>\(H_{1}\)</span>: The samples do not come from <span class=math>\(F\)</span>.</p>
+<p>We want to compare the empirical distribution function of the data, <span class=math>\(F_{obs}\)</span>, 
+with the cumulative distribution function associated with the null hypothesis, 
+<span class=math>\(F_{exp}\)</span> (the expected <span class=caps>CDF</span>).   </p>
+<p>The Kolmogorov-Smirnov statistic is given by        </p>
+<div class=math>$$
+D_{n} = max|F_{exp}(x) - F_{obs}(x)|,
+$$</div>
+<p>Assuming the data are ordered, <span class=math>\(x_{1}\)</span> being the least and <span class=math>\(x_{n}\)</span> being the 
+largest, we represent the empirical <span class=caps>CDF</span> as:  </p>
+<div class=math>$$
+F_{obs}(x_{i}) = \frac{i}{n},
+$$</div>
+<p>Where <span class=math>\(n\)</span> is the number of empirical data observations. </p>
+<p>For each observation, compute the absolute differences between <span class=math>\(F_{exp}(x)\)</span> 
+and <span class=math>\(F_{obs}(x)\)</span>. The Kolmogorov-Smirnov statistic <span class=math>\(D_{n}\)</span> is the maximum 
+value in the array of absolute differences. This value represents the maximum 
+absolute distance between the expected and observed distribution functions. 
+<span class=math>\(D_{n}\)</span> is them compared to a table of critical values to assess whether to 
+reject or fail to reject the <span class=math>\(H_{0}\)</span> on the basis of <span class=math>\(D_{n}\)</span>.   </p>
+<p>The Kolmogorov-Smirnov test can be visualized by plotting the expected <span class=caps>CDF</span> vs. 
+the empirical <span class=caps>CDF</span> as a step function:      </p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>K-S plot of empirical CDF vrs. theoretical distribution function. x-axis represents </span>
+<span class=sd>standard normal quantiles, the vertical axis the cumulative CDF ranging from [0,1].</span>
+<span class=sd>"""</span>
+<span class=n>dat_mean</span>  <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+<span class=n>dat_std</span>   <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>std</span><span class=p>(</span><span class=n>ddof</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>axis</span><span class=o>=</span><span class=mi>0</span><span class=p>)</span>
+<span class=n>sdat</span>      <span class=o>=</span> <span class=p>(</span><span class=n>dat</span> <span class=o>-</span> <span class=n>dat_mean</span><span class=p>)</span> <span class=o>/</span> <span class=n>dat_std</span> <span class=c1># standardized empirical data</span>
+<span class=n>sdatcdf</span>   <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>sdat</span><span class=o>.</span><span class=n>size</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=n>sdat</span><span class=o>.</span><span class=n>size</span>
+<span class=n>ndist</span>     <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=mi>0</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+
+<span class=c1># Remove any observations containing np.Inf; generate theoretical cdf.</span>
+<span class=n>emprpairs</span> <span class=o>=</span> <span class=nb>zip</span><span class=p>(</span><span class=n>sdat</span><span class=p>,</span> <span class=n>sdatcdf</span><span class=p>)</span>
+<span class=n>emprpairs</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>emprpairs</span> <span class=k>if</span> <span class=n>np</span><span class=o>.</span><span class=n>Inf</span> <span class=ow>not</span> <span class=ow>in</span> <span class=n>i</span><span class=p>]</span>
+<span class=n>sdatfin</span><span class=p>,</span> <span class=n>sdatcdffin</span> <span class=o>=</span> <span class=nb>zip</span><span class=p>(</span><span class=o>*</span><span class=n>emprpairs</span><span class=p>)</span>
+<span class=n>theocdf</span>  <span class=o>=</span> <span class=n>ndist</span><span class=o>.</span><span class=n>cdf</span><span class=p>(</span><span class=n>sdatfin</span><span class=p>)</span>
+<span class=n>endpoint</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>max</span><span class=p>([</span><span class=n>np</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>sdat</span><span class=o>.</span><span class=n>min</span><span class=p>()),</span> <span class=n>np</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>sdat</span><span class=o>.</span><span class=n>max</span><span class=p>())])</span>
+
+<span class=c1># Generate Kolmogorov-Smirnov comparison plot.</span>
+<span class=n>fig</span> <span class=o>=</span> <span class=n>plt</span><span class=o>.</span><span class=n>figure</span><span class=p>()</span>
+<span class=n>fig</span><span class=o>.</span><span class=n>set_size_inches</span><span class=p>(</span><span class=mi>9</span><span class=p>,</span> <span class=mi>6</span><span class=p>)</span>
+<span class=n>ax</span> <span class=o>=</span> <span class=n>fig</span><span class=o>.</span><span class=n>add_subplot</span><span class=p>(</span><span class=mi>111</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>step</span><span class=p>(</span><span class=n>sdatfin</span><span class=p>,</span> <span class=n>sdatcdffin</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#F64D54"</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=mf>2.5</span><span class=p>,</span> <span class=n>where</span><span class=o>=</span><span class=s2>"pre"</span><span class=p>,</span> <span class=n>label</span><span class=o>=</span><span class=s2>"Empirical CDF"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>plot</span><span class=p>(</span><span class=n>sdat</span><span class=p>,</span> <span class=n>theocdf</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#FFFFFF"</span><span class=p>,</span> <span class=n>linewidth</span><span class=o>=</span><span class=mf>2.5</span><span class=p>,</span> <span class=n>alpha</span><span class=o>=.</span><span class=mi>975</span><span class=p>,</span> <span class=n>label</span><span class=o>=</span><span class=s2>"Std. Normal CDF"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_title</span><span class=p>(</span><span class=s2>"Kolmogorov–Smirnov Test Illustration"</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=mi>16</span><span class=p>,</span> <span class=n>loc</span><span class=o>=</span><span class=s2>"left"</span><span class=p>,</span> 
+             <span class=n>color</span><span class=o>=</span><span class=s2>"#FF6666"</span><span class=p>,</span> <span class=n>weight</span><span class=o>=</span><span class=s2>"bold"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_xlabel</span><span class=p>(</span><span class=s2>"Standard Normal Quantiles"</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=mi>14</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#000000"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_ylabel</span><span class=p>(</span><span class=s2>"Cumulative Distribution"</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=mi>14</span><span class=p>,</span> <span class=n>color</span><span class=o>=</span><span class=s2>"#000000"</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>grid</span><span class=p>(</span><span class=bp>True</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_facecolor</span><span class=p>(</span><span class=bp>None</span><span class=p>)</span> <span class=c1># change background color to blue</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_xlim</span><span class=p>(</span><span class=o>-</span><span class=n>endpoint</span><span class=p>,</span> <span class=n>endpoint</span> <span class=o>+</span> <span class=o>.</span><span class=mi>5</span><span class=p>)</span>
+<span class=n>ax</span><span class=o>.</span><span class=n>set_ylim</span><span class=p>(</span><span class=o>-</span><span class=mf>0.1</span><span class=p>,</span> <span class=mf>1.1</span><span class=p>)</span>
+
+<span class=c1># Legend handler</span>
+<span class=n>legend</span> <span class=o>=</span> <span class=n>plt</span><span class=o>.</span><span class=n>legend</span><span class=p>(</span><span class=n>frameon</span><span class=o>=</span><span class=mi>1</span><span class=p>,</span> <span class=n>loc</span><span class=o>=</span><span class=mi>4</span><span class=p>,</span> <span class=n>fontsize</span><span class=o>=</span><span class=s2>"large"</span><span class=p>,</span> <span class=n>fancybox</span><span class=o>=</span><span class=bp>True</span><span class=p>,</span> <span class=n>framealpha</span><span class=o>=</span><span class=mi>1</span><span class=p>)</span>
+<span class=n>frame</span>  <span class=o>=</span> <span class=n>legend</span><span class=o>.</span><span class=n>get_frame</span><span class=p>()</span>
+<span class=n>frame</span><span class=o>.</span><span class=n>set_color</span><span class=p>(</span><span class=s2>"#E0E0E0"</span><span class=p>)</span>
+<span class=n>frame</span><span class=o>.</span><span class=n>set_facecolor</span><span class=p>(</span><span class=s2>"#DCDCDC"</span><span class=p>)</span>
+<span class=n>frame</span><span class=o>.</span><span class=n>set_edgecolor</span><span class=p>(</span><span class=s2>"#000000"</span><span class=p>)</span>
+
+<span class=c1>#ax.legend(loc=4)</span>
+<span class=n>fig</span><span class=o>.</span><span class=n>tight_layout</span><span class=p>()</span>
+<span class=n>plt</span><span class=o>.</span><span class=n>show</span><span class=p>()</span>
+</pre></div>
+
+
+<p>The rendered comparison:</p>
+<p><br>
+</p><p align=center> 
+<img alt=qqplot src="/images/kstest.png">
+</p> <br>
+<br><p></p>
+<p>The Kolmogorov-Smirnov statistic is simply the  greatest absolute distance 
+between the empirical and expected CDFs. We can easily implement logic to 
+perform this comparison from scratch:      </p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>Computing the Kolmogorov-Smirnov statistic from scratch.</span>
+<span class=sd>"""</span>
+<span class=kn>import</span> <span class=nn>numpy</span> <span class=kn>as</span> <span class=nn>np</span>
+<span class=kn>from</span> <span class=nn>scipy</span> <span class=kn>import</span> <span class=n>stats</span>
+
+
+<span class=n>dat_init</span> <span class=o>=</span> <span class=p>[</span>
+    <span class=mf>62.55976</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.71019</span><span class=p>,</span> <span class=o>-</span><span class=mf>20.67025</span><span class=p>,</span> <span class=o>-</span><span class=mf>35.43758</span><span class=p>,</span> <span class=o>-</span><span class=mf>10.65457</span><span class=p>,</span>  <span class=mf>21.55292</span><span class=p>,</span> 
+    <span class=mf>41.26359</span><span class=p>,</span>   <span class=mf>0.33537</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.43599</span><span class=p>,</span> <span class=o>-</span><span class=mf>40.66612</span><span class=p>,</span>   <span class=mf>6.45701</span><span class=p>,</span> <span class=o>-</span><span class=mf>40.39694</span><span class=p>,</span> 
+     <span class=mf>55.1221</span><span class=p>,</span>  <span class=mf>24.50901</span><span class=p>,</span>   <span class=mf>6.61822</span><span class=p>,</span> <span class=o>-</span><span class=mf>29.10305</span><span class=p>,</span>   <span class=mf>6.21494</span><span class=p>,</span>  <span class=mf>15.25862</span><span class=p>,</span>  
+    <span class=mf>13.54446</span><span class=p>,</span>   <span class=mf>2.48212</span><span class=p>,</span>  <span class=o>-</span><span class=mf>2.34573</span><span class=p>,</span> <span class=o>-</span><span class=mf>21.47846</span><span class=p>,</span>   <span class=o>-</span><span class=mf>5.0777</span><span class=p>,</span>  <span class=mf>26.48881</span><span class=p>,</span> 
+    <span class=o>-</span><span class=mf>8.68764</span><span class=p>,</span>  <span class=o>-</span><span class=mf>5.49631</span><span class=p>,</span>  <span class=mf>42.58039</span><span class=p>,</span>  <span class=o>-</span><span class=mf>6.59111</span><span class=p>,</span> <span class=o>-</span><span class=mf>23.08169</span><span class=p>,</span>  <span class=mf>19.09755</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>21.35046</span><span class=p>,</span>   <span class=mf>0.24064</span><span class=p>,</span>  <span class=o>-</span><span class=mf>3.16365</span><span class=p>,</span> <span class=o>-</span><span class=mf>37.43091</span><span class=p>,</span>  <span class=mf>24.48556</span><span class=p>,</span>    <span class=mf>2.6263</span><span class=p>,</span>  
+    <span class=mf>31.14471</span><span class=p>,</span>   <span class=mf>5.75287</span><span class=p>,</span>  <span class=o>-</span><span class=mf>46.8529</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.26814</span><span class=p>,</span>   <span class=mf>8.41045</span><span class=p>,</span>  <span class=mf>18.11071</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>30.46438</span><span class=p>,</span>  <span class=mf>12.22195</span><span class=p>,</span> <span class=o>-</span><span class=mf>31.83203</span><span class=p>,</span>  <span class=o>-</span><span class=mf>8.09629</span><span class=p>,</span>  <span class=mf>52.06456</span><span class=p>,</span> <span class=o>-</span><span class=mf>24.30986</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>25.62359</span><span class=p>,</span>   <span class=mf>2.86882</span><span class=p>,</span>  <span class=mf>15.77073</span><span class=p>,</span>  <span class=mf>31.17838</span><span class=p>,</span> <span class=o>-</span><span class=mf>22.04998</span>
+    <span class=p>]</span>
+
+<span class=n>dat</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>dat_init</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>float_</span><span class=p>)</span>
+<span class=n>dat</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+<span class=n>datcdf</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>arange</span><span class=p>(</span><span class=mi>1</span><span class=p>,</span> <span class=n>dat</span><span class=o>.</span><span class=n>size</span> <span class=o>+</span> <span class=mi>1</span><span class=p>)</span> <span class=o>/</span> <span class=n>dat</span><span class=o>.</span><span class=n>size</span>
+<span class=n>dat_mean</span> <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>mean</span><span class=p>()</span>
+<span class=n>dat_stdv</span> <span class=o>=</span> <span class=n>dat</span><span class=o>.</span><span class=n>std</span><span class=p>()</span>
+
+<span class=c1># Parameterized expected normal distribution.</span>
+<span class=n>expnorm</span> <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>norm</span><span class=p>(</span><span class=n>loc</span><span class=o>=</span><span class=n>dat_mean</span><span class=p>,</span> <span class=n>scale</span><span class=o>=</span><span class=n>dat_stdv</span><span class=p>)</span>
+<span class=n>expcdf</span>  <span class=o>=</span> <span class=n>expnorm</span><span class=o>.</span><span class=n>cdf</span><span class=p>(</span><span class=n>dat</span><span class=p>)</span>
+
+<span class=c1># Compute difference between datcdf and expcdf.</span>
+<span class=n>absdiffs</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>abs</span><span class=p>(</span><span class=n>datcdf</span> <span class=o>-</span> <span class=n>expcdf</span><span class=p>)</span>
+<span class=n>D0</span> <span class=o>=</span> <span class=n>absdiffs</span><span class=o>.</span><span class=n>max</span><span class=p>()</span>
+<span class=c1># D0: 0.0741554221610411</span>
+</pre></div>
+
+
+<p>We can compare our value of D with the value obtained from 
+<code>scipy.stats.kstest</code>, which takes for arguments the empirical dataset and a 
+callable representing the <span class=caps>CDF</span> of the expected distribution, and returns the 
+D-statistic as well as the p-value associated with the computed D-statistic 
+(note that critical values depend on the number of observations). Our computed 
+result is given by <code>D0</code>, the result returned from <code>scipy.stats.kstest</code> by 
+<code>D1</code>:         </p>
+<div class=highlight><pre><span></span><span class=o>&gt;&gt;&gt;</span> <span class=n>D1</span><span class=p>,</span> <span class=n>p1</span> <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>kstest</span><span class=p>(</span><span class=n>dat</span><span class=p>,</span> <span class=n>expnorm</span><span class=o>.</span><span class=n>cdf</span><span class=p>)</span>
+<span class=o>&gt;&gt;&gt;</span> <span class=k>print</span><span class=p>(</span><span class=n>f</span><span class=s2>"Manual D: {D0}."</span><span class=p>)</span>
+<span class=mf>0.0741554221610411</span>
+<span class=o>&gt;&gt;&gt;</span> <span class=k>print</span><span class=p>(</span><span class=n>f</span><span class=s2>"kstest D: {D1}."</span><span class=p>)</span>
+<span class=mf>0.0741554221610411</span>
+</pre></div>
+
+
+<p>The results are identical.      </p>
+<p>The p-value (the second element of the 2-tuple returned by 
+<code>scipy.stats.kstest</code>) is 0.9326339000931222. How should this result be interpreted?              </p>
+<p>For the Kolmogorov-Smirnov test, the null hypothesis is that <em>the 
+distributions are the same</em>. Thus, the lower the p-value the greater the 
+statistical evidence you have to reject the null hypothesis and conclude the 
+distributions are different. The test only lets you speak of your confidence 
+that the distributions are different, not the same, since the test is designed 
+to find the probability of Type I error. Therefore, if <span class=math>\(D\)</span> is less than the 
+critical value, we do not reject the null hypothesis (corresponds to a large 
+p-value). If <span class=math>\(D\)</span> is greater than the critical value, we reject the null 
+hypothesis (corresponds to a small p-value).       </p>
+<p>Given our p-value of 0.9326339000931222, we do not have sufficient evidence to 
+reject the null hypothesis that the distributions are the same. </p>
+<p>A table of Kolmogorov-Smirnov critical values can be downloaded <a href="https://jtrive84.github.io/docs/K_S_Critical_Values.pdf">here</a>.</p>
+<h2>The Anderson-Darling Test</h2>
+<p>We briefly describe the Anderson-Darling test and how to run it in Scipy.</p>
+<p>The Anderson-Darling tests the null hypothesis that a sample is drawn from a 
+population that follows a particular distribution<sup id=sf-assessing-goodness-of-fit-quantitatively-and-visually-1-back><a href=#sf-assessing-goodness-of-fit-quantitatively-and-visually-1 class=simple-footnote title="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.anderson.html">1</a></sup>. 
+It makes use of the fact that, when given a hypothesized underlying 
+distribution and assuming the data does arise from this distribution, the 
+cumulative distribution function (<span class=caps>CDF</span>) of the data can be assumed to follow a 
+uniform distribution. The statistic itself can be expressed as:     </p>
+<div class=math>$$
+\begin{align*} 
+A^{2} &amp;= -n - S, \hspace{2mm} \text{where} \\
+S &amp;= \sum_{i=1}^{n} \frac{2i-1}{n} \Big[Ln(F(y_{i})) + Ln(1 - F(y_{n+1-i})) \Big]
+\end{align*}
+$$</div>
+<p>The function <code>scipy.stats.anderson</code> takes as arguments the empirical dataset 
+and a distribution to test against (one of “norm”, “expon”, “logistic”, 
+“gumbel”, “gumbel_l” or “gumbel_rexponential”), and returns the 
+Anderson-Darling test statistic, the critical values for the specified 
+distribution and the significance levels for the corresponding critical 
+values. For example, to test whether <code>dat</code> follows a normal distribution, we 
+run the following:     </p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>Demonstration of Anderson-Darling Test in scipy.stats.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span> <span class=nn>scipy</span> <span class=kn>import</span> <span class=n>stats</span>
+
+<span class=n>dat_init</span> <span class=o>=</span> <span class=p>[</span>
+    <span class=mf>62.55976</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.71019</span><span class=p>,</span> <span class=o>-</span><span class=mf>20.67025</span><span class=p>,</span> <span class=o>-</span><span class=mf>35.43758</span><span class=p>,</span> <span class=o>-</span><span class=mf>10.65457</span><span class=p>,</span>  <span class=mf>21.55292</span><span class=p>,</span> 
+    <span class=mf>41.26359</span><span class=p>,</span>   <span class=mf>0.33537</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.43599</span><span class=p>,</span> <span class=o>-</span><span class=mf>40.66612</span><span class=p>,</span>   <span class=mf>6.45701</span><span class=p>,</span> <span class=o>-</span><span class=mf>40.39694</span><span class=p>,</span> 
+     <span class=mf>55.1221</span><span class=p>,</span>  <span class=mf>24.50901</span><span class=p>,</span>   <span class=mf>6.61822</span><span class=p>,</span> <span class=o>-</span><span class=mf>29.10305</span><span class=p>,</span>   <span class=mf>6.21494</span><span class=p>,</span>  <span class=mf>15.25862</span><span class=p>,</span>  
+    <span class=mf>13.54446</span><span class=p>,</span>   <span class=mf>2.48212</span><span class=p>,</span>  <span class=o>-</span><span class=mf>2.34573</span><span class=p>,</span> <span class=o>-</span><span class=mf>21.47846</span><span class=p>,</span>   <span class=o>-</span><span class=mf>5.0777</span><span class=p>,</span>  <span class=mf>26.48881</span><span class=p>,</span> 
+    <span class=o>-</span><span class=mf>8.68764</span><span class=p>,</span>  <span class=o>-</span><span class=mf>5.49631</span><span class=p>,</span>  <span class=mf>42.58039</span><span class=p>,</span>  <span class=o>-</span><span class=mf>6.59111</span><span class=p>,</span> <span class=o>-</span><span class=mf>23.08169</span><span class=p>,</span>  <span class=mf>19.09755</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>21.35046</span><span class=p>,</span>   <span class=mf>0.24064</span><span class=p>,</span>  <span class=o>-</span><span class=mf>3.16365</span><span class=p>,</span> <span class=o>-</span><span class=mf>37.43091</span><span class=p>,</span>  <span class=mf>24.48556</span><span class=p>,</span>    <span class=mf>2.6263</span><span class=p>,</span>  
+    <span class=mf>31.14471</span><span class=p>,</span>   <span class=mf>5.75287</span><span class=p>,</span>  <span class=o>-</span><span class=mf>46.8529</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.26814</span><span class=p>,</span>   <span class=mf>8.41045</span><span class=p>,</span>  <span class=mf>18.11071</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>30.46438</span><span class=p>,</span>  <span class=mf>12.22195</span><span class=p>,</span> <span class=o>-</span><span class=mf>31.83203</span><span class=p>,</span>  <span class=o>-</span><span class=mf>8.09629</span><span class=p>,</span>  <span class=mf>52.06456</span><span class=p>,</span> <span class=o>-</span><span class=mf>24.30986</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>25.62359</span><span class=p>,</span>   <span class=mf>2.86882</span><span class=p>,</span>  <span class=mf>15.77073</span><span class=p>,</span>  <span class=mf>31.17838</span><span class=p>,</span> <span class=o>-</span><span class=mf>22.04998</span>
+    <span class=p>]</span>
+
+<span class=n>dat</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>dat_init</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>float_</span><span class=p>)</span>
+<span class=n>dat</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+
+<span class=c1># Perform Anderson-Darling test.</span>
+<span class=n>A</span><span class=p>,</span> <span class=n>crit</span><span class=p>,</span> <span class=n>sig</span> <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>anderson</span><span class=p>(</span><span class=n>dat</span><span class=p>,</span> <span class=n>dist</span><span class=o>=</span><span class=s2>"norm"</span><span class=p>)</span>
+
+<span class=c1># A: 0.22442637404651578</span>
+<span class=c1># crit: [0.54  0.615 0.738 0.861 1.024]</span>
+<span class=c1># sig: [15.  10.   5.   2.5  1. ]</span>
+</pre></div>
+
+
+<p>According to the <code>stats.anderson</code> <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.anderson.html">documentation</a>, 
+if the returned statistic is larger than the critical values, then for the 
+corresponding significance level the null hypothesis (that the data come from 
+the chosen distribution) can be rejected. Since our statistic 
+0.22442637404651578 is smaller than all critical values, we do not have 
+sufficient evidence to reject the null hypothesis that the data come from a 
+normal distribution.                     </p>
+<p>A table of Anderson-Darling critical values can be found <a href="https://en.wikipedia.org/wiki/Anderson%E2%80%93Darling_test#Test_for_normality">here</a>.</p>
+<h2>Shapiro–Wilk Test</h2>
+<p>The Shapiro–Wilk test null hypothesis is that the sample is drawn from a 
+normally distributed population. The function <code>scipy.stats.shapiro</code> takes the 
+empirical dataset as it’s sole argument, and similar to <code>scipy.stats.kstest</code> 
+returns a 2-tuple containing the test statistic and p-value. </p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>Demonstration of Shapiro-Wilk Test in scipy.stats.</span>
+<span class=sd>"""</span>
+<span class=kn>from</span> <span class=nn>scipy</span> <span class=kn>import</span> <span class=n>stats</span>
+
+<span class=n>dat_init</span> <span class=o>=</span> <span class=p>[</span>
+    <span class=mf>62.55976</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.71019</span><span class=p>,</span> <span class=o>-</span><span class=mf>20.67025</span><span class=p>,</span> <span class=o>-</span><span class=mf>35.43758</span><span class=p>,</span> <span class=o>-</span><span class=mf>10.65457</span><span class=p>,</span>  <span class=mf>21.55292</span><span class=p>,</span> 
+    <span class=mf>41.26359</span><span class=p>,</span>   <span class=mf>0.33537</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.43599</span><span class=p>,</span> <span class=o>-</span><span class=mf>40.66612</span><span class=p>,</span>   <span class=mf>6.45701</span><span class=p>,</span> <span class=o>-</span><span class=mf>40.39694</span><span class=p>,</span> 
+     <span class=mf>55.1221</span><span class=p>,</span>  <span class=mf>24.50901</span><span class=p>,</span>   <span class=mf>6.61822</span><span class=p>,</span> <span class=o>-</span><span class=mf>29.10305</span><span class=p>,</span>   <span class=mf>6.21494</span><span class=p>,</span>  <span class=mf>15.25862</span><span class=p>,</span>  
+    <span class=mf>13.54446</span><span class=p>,</span>   <span class=mf>2.48212</span><span class=p>,</span>  <span class=o>-</span><span class=mf>2.34573</span><span class=p>,</span> <span class=o>-</span><span class=mf>21.47846</span><span class=p>,</span>   <span class=o>-</span><span class=mf>5.0777</span><span class=p>,</span>  <span class=mf>26.48881</span><span class=p>,</span> 
+    <span class=o>-</span><span class=mf>8.68764</span><span class=p>,</span>  <span class=o>-</span><span class=mf>5.49631</span><span class=p>,</span>  <span class=mf>42.58039</span><span class=p>,</span>  <span class=o>-</span><span class=mf>6.59111</span><span class=p>,</span> <span class=o>-</span><span class=mf>23.08169</span><span class=p>,</span>  <span class=mf>19.09755</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>21.35046</span><span class=p>,</span>   <span class=mf>0.24064</span><span class=p>,</span>  <span class=o>-</span><span class=mf>3.16365</span><span class=p>,</span> <span class=o>-</span><span class=mf>37.43091</span><span class=p>,</span>  <span class=mf>24.48556</span><span class=p>,</span>    <span class=mf>2.6263</span><span class=p>,</span>  
+    <span class=mf>31.14471</span><span class=p>,</span>   <span class=mf>5.75287</span><span class=p>,</span>  <span class=o>-</span><span class=mf>46.8529</span><span class=p>,</span> <span class=o>-</span><span class=mf>14.26814</span><span class=p>,</span>   <span class=mf>8.41045</span><span class=p>,</span>  <span class=mf>18.11071</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>30.46438</span><span class=p>,</span>  <span class=mf>12.22195</span><span class=p>,</span> <span class=o>-</span><span class=mf>31.83203</span><span class=p>,</span>  <span class=o>-</span><span class=mf>8.09629</span><span class=p>,</span>  <span class=mf>52.06456</span><span class=p>,</span> <span class=o>-</span><span class=mf>24.30986</span><span class=p>,</span> 
+   <span class=o>-</span><span class=mf>25.62359</span><span class=p>,</span>   <span class=mf>2.86882</span><span class=p>,</span>  <span class=mf>15.77073</span><span class=p>,</span>  <span class=mf>31.17838</span><span class=p>,</span> <span class=o>-</span><span class=mf>22.04998</span>
+    <span class=p>]</span>
+
+<span class=n>dat</span> <span class=o>=</span> <span class=n>np</span><span class=o>.</span><span class=n>array</span><span class=p>(</span><span class=n>dat_init</span><span class=p>,</span> <span class=n>dtype</span><span class=o>=</span><span class=n>np</span><span class=o>.</span><span class=n>float_</span><span class=p>)</span>
+<span class=n>dat</span><span class=o>.</span><span class=n>sort</span><span class=p>()</span>
+
+<span class=n>W</span><span class=p>,</span> <span class=n>p</span> <span class=o>=</span> <span class=n>stats</span><span class=o>.</span><span class=n>shapiro</span><span class=p>(</span><span class=n>dat</span><span class=p>)</span>
+
+<span class=c1># W: 0.9804515242576599</span>
+<span class=c1># p: 0.5324678421020508</span>
+</pre></div>
+
+
+<p>If the p-value is less than the chosen alpha level, then the null hypothesis 
+is rejected, and there is evidence that the data tested are not normally 
+distributed. If the p-value is greater than the chosen alpha level, then the 
+null hypothesis that the data came from a normally distributed population can 
+not be rejected (e.g., for an alpha level of 0.05, a data set with a p-value 
+of 0.05 rejects the null hypothesis that the data are from a normally 
+distributed population <sup id=sf-assessing-goodness-of-fit-quantitatively-and-visually-2-back><a href=#sf-assessing-goodness-of-fit-quantitatively-and-visually-2 class=simple-footnote title="https://en.wikipedia.org/wiki/Shapiro%E2%80%93Wilk_test#Interpretation">2</a></sup>.   </p>
+<p>The Shapiro-Wilk p-value computed on <code>dat</code> is 0.5324678421020508, therefore we 
+cannot reject the null hypothesis that the data came from a normally 
+distributed population.</p>
+<p>A table of Shapiro-Wilk critical values can be downloaded <a href="https://www.ine.pt/revstat/pdf/rs160105.pdf">here</a>.</p>
+<h2>Conclusion</h2>
+<p>In this post we introduced multiple test that can be used to assess how well 
+empirical data fits a parametric distribution. Keep in mind that even though 
+none of the tests rejected outright the hypothesis that <code>dat</code> originated from 
+a normal population, this is not confirmation that our dataset is actually 
+normal. The difference is subtle, but important.    </p>
+<p>Until next time, happy coding!</p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script><ol class=simple-footnotes><li id=sf-assessing-goodness-of-fit-quantitatively-and-visually-1>https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.anderson.html <a href=#sf-assessing-goodness-of-fit-quantitatively-and-visually-1-back class=simple-footnote-back>↩</a></li><li id=sf-assessing-goodness-of-fit-quantitatively-and-visually-2>https://en.wikipedia.org/wiki/Shapiro%E2%80%93Wilk_test#Interpretation <a href=#sf-assessing-goodness-of-fit-quantitatively-and-visually-2-back class=simple-footnote-back>↩</a></li></ol>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

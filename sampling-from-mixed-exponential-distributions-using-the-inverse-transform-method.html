@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Sampling from Mixed Exponential Distributions using the Inverse Transform Method - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/sampling-from-mixed-exponential-distributions-using-the-inverse-transform-method.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="R" />
+        <meta name="description" content="A method for obtaining mixed exponential distirbution quantiles for statistical analysis" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Sampling from Mixed Exponential Distributions using the Inverse Transform Method"/>
+        <meta property="og:url" content="https://jtrive84.github.io/sampling-from-mixed-exponential-distributions-using-the-inverse-transform-method.html"/>
+        <meta property="og:description" content="A method for obtaining mixed exponential distirbution quantiles for statistical analysis"/>
+        <meta property="article:published_time" content="2017-10-28" />
+            <meta property="article:section" content="Statistical Modeling" />
+            <meta property="article:tag" content="R" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/statistical-modeling.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Statistical Modeling ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/sampling-from-mixed-exponential-distributions-using-the-inverse-transform-method.html"
+                       rel="bookmark"
+                       title="Permalink to Sampling from Mixed Exponential Distributions using the Inverse Transform Method">
+                        Sampling from Mixed Exponential Distributions using the Inverse Transform&nbsp;Method
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-10-28T00:00:00-05:00"> 2017-10-28</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical Modeling</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/r.html">R</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p><br>    </p>
+<p>The exponential mixture distribution is a semi-parametric distribution used in Actuarial Loss 
+Modeling to fit collections of similiar losses. The exponential mixture has a decreasing hazard rate, 
+increasing Mean Residual Life and has a thicker tail than the usual single parameter exponential 
+<a href="https://cran.r-project.org/web/packages/Renext/Renext.pdf">1</a>. According to Keatinge <a href="https://www.casact.org/pubs/proceed/proceed99/99578.pdf">2</a>, the exponential mixture is considered semi-parametric 
+because no parametric assumption is made about the form of the mixing distribution.
+<br>   <br>
+The R library <a href="https://cran.r-project.org/web/packages/Renext/Renext.pdf">Renext</a> exposes the <code>MixExp2</code> 
+function, which makes available the standard <code>d</code>, <code>p</code>, <code>q</code> and <code>r</code>-prefixed statistical functions to 
+determine the density, distribution, quantile or generate a random draw from a 2-component exponential 
+mixture model, but for exponential mixtures comprised of more than two terms, there&#8217;s suprisingly little 
+available.           <br>
+In this post, we&#8217;ll demonstrate a method for calculating quantiles from exponential mixture models with any 
+number of terms using inverse transform sampling. We&#8217;ll leverage the Newton-Raphson method to obtain quantiles, 
+assuming the mean and weight for each component have already been determined. 
+In a future post, we&#8217;ll demonstrate how to use maximum likelihood and <span class="caps">MCMC</span> techniques to arrive at the optimal 
+weight distribution across terms based on the dataset of interest. 
+<br></p>
+<h2>Background</h2>
+<p>The distribution function of an exponential mixture model follows the form:    <br>
+<br>
+</p>
+<div class="math">$$
+F(x) = 1 - w_{1}e^{-\lambda_{1}x} - w_{2}e^{-\lambda_{2}x} - \cdots - w_{n}e^{-\lambda_{n}x}
+$$</div>
+<p>
+<br>
+Where <span class="math">\(\sum_{i}^{n}w_{i} = 1\)</span>, and <span class="math">\(\lambda_{i}\)</span> is the inverse of the expected value for 
+the <span class="math">\(i^{th}\)</span> component in the mixture.
+<br>
+In order to use the Newton-Raphson method to find roots for an exponential mixture model 
+with an arbitrary number of components, we need to arrange the <span class="caps">CDF</span> such that all terms on 
+one side are set identically to zero. Rearranging yields:   <br>
+<br>
+</p>
+<div class="math">$$
+w_{1}e^{-\lambda_{1}x} + w_{2}e^{-\lambda_{2}x} + \cdots + w_{n}e^{-\lambda_{n}x} - (1 - F(x)) = 0
+$$</div>
+<p>
+<br>
+The Newton-Raphson update expression can be represented as:    <br>
+<br>
+</p>
+<div class="math">$$
+x_{n+1} = x_{n} - \frac{f(x)}{f^{\prime}(x)}
+$$</div>
+<p>
+<br>   </p>
+<p>With successive iterations providing better approximations of the root until a sufficiently 
+accurate value is&nbsp;obtained.       </p>
+<p>For our purposes, the rearranged <span class="caps">CDF</span> expression will serve as <span class="math">\(f(x)\)</span>. <span class="math">\(f^{\prime}(x)\)</span> 
+will be the derivative of the rearranged <span class="caps">CDF</span>,&nbsp;specifically:</p>
+<p><br>
+</p>
+<div class="math">$$
+f^{\prime}(x) = -\lambda_{1}w_{1}e^{-\lambda_{1}x} -\lambda_{2}w_{2}e^{-\lambda_{2}x} - \cdots -\lambda_{n}w_{n}e^{-\lambda_{n}x}
+$$</div>
+<p>
+<br>   </p>
+<p>We can commence iteration at <span class="math">\(x_{0} = 0\)</span> in all cases, and don&#8217;t need to concern ourselves 
+with searching for a optimal initialization point since the mixture is monotonic.        <br>
+<br>  </p>
+<h2>Implementation</h2>
+<p><br>
+What follows is an implementation of the Newton-Raphson algorithm written in R. It takes as arguments 
+a starting point (which defaults to 0), a function <code>f</code> and the function&#8217;s derivative <code>f_prime</code>. <code>epsilon</code> 
+and <code>maxiters</code> represent the threshold below which a root is assumed to have been located and signals 
+for iteration to cease, and the maximum number of iterations to carry out as a safeguard against 
+divergence (respectively):   <br>
+<br>  </p>
+<div class="highlight"><pre><span></span>newtonRaphson <span class="o">=</span> <span class="kr">function</span><span class="p">(</span>
+    x_init<span class="o">=</span><span class="m">0</span><span class="p">,</span> f<span class="p">,</span> f_prime<span class="p">,</span> epsilon<span class="o">=</span><span class="m">.000001</span><span class="p">,</span> 
+    maxiters<span class="o">=</span><span class="m">1000</span><span class="p">,</span> returniters<span class="o">=</span><span class="kc">FALSE</span><span class="p">)</span> <span class="p">{</span>
+
+    root <span class="o">=</span> <span class="kc">NULL</span>
+    x_i <span class="o">=</span> x_init
+    tolerance <span class="o">=</span> <span class="m">1</span>
+    itervals <span class="o">=</span> <span class="kt">vector</span><span class="p">()</span>
+    itercntr <span class="o">=</span> <span class="m">0</span>    <span class="c1"># ensure `maxiters` is not exceeded</span>
+
+    <span class="kr">while</span> <span class="p">(</span><span class="kc">TRUE</span><span class="p">)</span> <span class="p">{</span>
+
+        itercntr <span class="o">=</span> itercntr <span class="o">+</span> <span class="m">1</span>
+        itervals<span class="p">[[</span>itercntr<span class="p">]]</span> <span class="o">=</span> x_i
+
+        <span class="kr">if</span> <span class="p">((</span>itercntr<span class="o">&gt;=</span>maxiters<span class="p">)</span> <span class="o">||</span> <span class="p">(</span>tolerance<span class="o">&lt;=</span>epsilon<span class="p">))</span>  <span class="p">{</span>
+            root <span class="o">=</span> itervals<span class="p">[[</span><span class="kp">length</span><span class="p">(</span>itervals<span class="p">)]]</span>
+            <span class="kr">break</span>
+
+        <span class="p">}</span> <span class="kr">else</span> <span class="p">{</span>
+            x_n <span class="o">=</span> <span class="p">(</span>x_i <span class="o">-</span> <span class="p">(</span>f<span class="p">(</span>x_i<span class="p">)</span><span class="o">/</span>f_prime<span class="p">(</span>x_i<span class="p">)))</span>
+            tolerance <span class="o">=</span> <span class="kp">abs</span><span class="p">(</span>x_n <span class="o">-</span> x_i<span class="p">)</span>
+            x_i <span class="o">=</span> x_n 
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    resList <span class="o">=</span> <span class="kt">list</span><span class="p">(</span>iterations<span class="o">=</span>itercntr<span class="p">,</span> root<span class="o">=</span>root<span class="p">,</span> approx_seq<span class="o">=</span>itervals<span class="p">)</span>
+    <span class="kr">if</span> <span class="p">(</span>returniters<span class="o">==</span><span class="kc">FALSE</span><span class="p">)</span> resList<span class="o">$</span>approx_seq <span class="o">=</span> <span class="kc">NULL</span>
+    <span class="kr">return</span><span class="p">(</span>resList<span class="p">)</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p><br></p>
+<p><code>newtonRaphson</code> returns a list with three&nbsp;components:</p>
+<ul>
+<li><code>iterations</code> is the number of Newton-Raphson approximations           <br>
+<br>   </li>
+<li><code>root</code> is the value along the x-axis at which the minimum of the function is obtained         <br>
+<br>       </li>
+<li><code>approx_seq</code> is a vector of length equal to <code>iterations</code> of successive root approximations    <br>
+<br></li>
+</ul>
+<p>Next we&#8217;ll walkthrough an example demonstrating the use of <code>newtonRaphson</code>.      <br>
+<br></p>
+<h3>Numerical&nbsp;Example</h3>
+<p>Assume we&#8217;re interested in determining quantiles for an exponential mixture model with 
+weights = (.60,.30,.10) and means = (10,50,100).    <br>
+<br>
+The corresponding distribution function is therefore:   <br>
+<br>
+</p>
+<div class="math">$$
+F(x) = 1 - .60e^{-x/10} - .30e^{-x/50} - .10e^{-x/100},
+$$</div>
+<p>
+<br>
+Where the hazard rate for each term is the inverse of the term&#8217;s mean.       <br>
+<br>
+As a sanity check, let&#8217;s evaluate <span class="math">\(F(x)\)</span> at a few points to determine the <span class="caps">CDF</span>, which will serve as 
+a stand-in for the uniform random variates we&#8217;ll be sampling when the algorithm is used in practice.   <br>
+<br>
+Let&#8217;s find the associated percentiles for inputs 10, 25, 75 and 200. This is straightforward in R:
+<br></p>
+<div class="highlight"><pre><span></span>mixtureCDF <span class="o">=</span> <span class="kr">function</span><span class="p">(</span>x<span class="p">)</span> <span class="p">{</span>
+    <span class="kr">return</span><span class="p">(</span><span class="m">1</span> <span class="o">-</span> <span class="m">.60</span> <span class="o">*</span> <span class="kp">exp</span><span class="p">(</span><span class="o">-</span>x<span class="o">/</span><span class="m">10</span><span class="p">)</span> <span class="o">-</span> <span class="m">.30</span> <span class="o">*</span> <span class="kp">exp</span><span class="p">(</span><span class="o">-</span>x<span class="o">/</span><span class="m">50</span><span class="p">)</span> <span class="o">-</span> <span class="m">.10</span> <span class="o">*</span> <span class="kp">exp</span><span class="p">(</span><span class="o">-</span>x<span class="o">/</span><span class="m">100</span><span class="p">))</span>
+<span class="p">}</span>
+
+mixtureCDF<span class="p">(</span><span class="m">10</span><span class="p">)</span>    <span class="c1">#  0.4431693676</span>
+mixtureCDF<span class="p">(</span><span class="m">25</span><span class="p">)</span>    <span class="c1">#  0.6909097246</span>
+mixtureCDF<span class="p">(</span><span class="m">75</span><span class="p">)</span>    <span class="c1">#  0.8854924461</span>
+mixtureCDF<span class="p">(</span><span class="m">200</span><span class="p">)</span>   <span class="c1">#  0.9809717788</span>
+</pre></div>
+
+
+<p><br>
+These percentiles, 0.4431693676, etc&#8230; represent the uniform random numbers that will be passed 
+to the simulation framework in practice. The goal is upon being passed a random number such as 
+0.6909097246 (corresponding to the mixture model evaluated at 25), the function will return 
+<strong>25</strong>. 
+<br> <br>
+We need one additional piece of functionality to complete the framework: A function that wraps <code>newtonRaphson</code> 
+and takes for arguments a vector of means, a vector of weights and returns another function which can then 
+be passed a uniform random variate, which ultimately returns the corresponding quantile. This logic is 
+encapsulated in <code>invertCDF</code>:   <br>
+<br></p>
+<div class="highlight"><pre><span></span>invertCDF <span class="o">=</span> <span class="kr">function</span><span class="p">(</span>weights<span class="p">,</span> means<span class="p">)</span> <span class="p">{</span>
+
+    rates <span class="o">=</span> <span class="m">1.0</span><span class="o">/</span>means
+
+    <span class="kr">function</span><span class="p">(</span>urand<span class="p">)</span> <span class="p">{</span>
+        <span class="c1"># initialize numerator and denominator functional</span>
+        <span class="c1"># components for Newton-Raphson iteration =&gt;</span>
+        f <span class="o">=</span> <span class="kr">function</span><span class="p">(</span>x<span class="p">)</span> <span class="p">{</span>
+            func <span class="o">=</span> <span class="m">0</span>
+            <span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">1</span><span class="o">:</span><span class="kp">length</span><span class="p">(</span>rates<span class="p">))</span> <span class="p">{</span>
+                iterrate   <span class="o">=</span> rates<span class="p">[</span>i<span class="p">]</span>
+                iterweight <span class="o">=</span> weights<span class="p">[</span>i<span class="p">]</span>
+                iter_func  <span class="o">=</span>  iterweight <span class="o">*</span> <span class="kp">exp</span><span class="p">(</span><span class="o">-</span>iterrate <span class="o">*</span> x<span class="p">)</span>
+                func <span class="o">=</span> func <span class="o">+</span> iter_func
+            <span class="p">}</span>
+            <span class="kr">return</span><span class="p">(</span>func <span class="o">-</span> <span class="p">(</span><span class="m">1</span> <span class="o">-</span> urand<span class="p">))</span>
+        <span class="p">}</span>
+
+        f_prime <span class="o">=</span> <span class="kr">function</span><span class="p">(</span>x<span class="p">)</span> <span class="p">{</span>
+            func_prime <span class="o">=</span> <span class="m">0</span>
+            <span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">1</span><span class="o">:</span><span class="kp">length</span><span class="p">(</span>rates<span class="p">))</span> <span class="p">{</span>
+                iterrate         <span class="o">=</span> rates<span class="p">[</span>i<span class="p">]</span>
+                iterweight       <span class="o">=</span> weights<span class="p">[</span>i<span class="p">]</span>
+                iter_func_prime  <span class="o">=</span>  <span class="o">-</span><span class="p">((</span>iterweight <span class="o">*</span> iterrate<span class="p">)</span> <span class="o">*</span> <span class="kp">exp</span><span class="p">(</span><span class="o">-</span>iterrate <span class="o">*</span> x<span class="p">))</span>
+                func_prime <span class="o">=</span> func_prime <span class="o">+</span> iter_func_prime
+            <span class="p">}</span>
+            <span class="kr">return</span><span class="p">(</span>func_prime<span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="c1"># call newtonRaphson to back-out quantile from mixed exponential</span>
+        <span class="c1"># distribution corresponding to CDF value of urand =&gt;</span>
+        result <span class="o">=</span> newtonRaphson<span class="p">(</span>x_init<span class="o">=</span><span class="m">0</span><span class="p">,</span> f<span class="o">=</span>f<span class="p">,</span> f_prime<span class="o">=</span>f_prime<span class="p">)</span>
+        <span class="kr">return</span><span class="p">(</span>result<span class="o">$</span>root<span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p><br></p>
+<p>Finally, we demonstrate using <code>invertCDF</code> to find quantiles from the sample exponential mixture <span class="caps">CDF</span>, 
+<span class="math">\(F(x) = 1 - .60e^{-x/10} - .30e^{-x/50} - .10e^{-x/100}\)</span>. Let&#8217;s assume our sample uniform random 
+draws are 0.4431693676, 0.6909097246, 0.8854924461 and 0.9809717788, which correspond to values 10, 25, 75 and 200. 
+Put another way, if we pass 0.4431693676, 0.6909097246, 0.8854924461 and 0.9809717788 to our simulation framework, 
+we&#8217;d expect the values 10, 25, 75 and 200 to be returned. This serves as verification that the framework is 
+functioning as expected:      <br>
+<br></p>
+<div class="highlight"><pre><span></span>weights <span class="o">=</span> <span class="kt">c</span><span class="p">(</span><span class="m">.60</span><span class="p">,</span> <span class="m">.30</span><span class="p">,</span> <span class="m">.10</span><span class="p">)</span>
+means <span class="o">=</span> <span class="kt">c</span><span class="p">(</span><span class="m">10</span><span class="p">,</span> <span class="m">50</span><span class="p">,</span> <span class="m">100</span><span class="p">)</span>
+random_draws <span class="o">=</span> <span class="kt">c</span><span class="p">(</span><span class="m">0.4431693676</span><span class="p">,</span> <span class="m">0.6909097246</span><span class="p">,</span> <span class="m">0.8854924461</span><span class="p">,</span> <span class="m">0.9809717788</span><span class="p">)</span>  
+
+<span class="c1"># call invertCDF, which returns a function =&gt;</span>
+inverter <span class="o">=</span> invertCDF<span class="p">(</span>weights<span class="o">=</span>weights<span class="p">,</span> means<span class="o">=</span>means<span class="p">)</span>
+
+<span class="c1">#pass random_draws to inverter, and obtain the estimated percentiles =&gt;</span>
+result <span class="o">=</span> <span class="kp">sapply</span><span class="p">(</span>random_draws<span class="p">,</span> inverter<span class="p">,</span> simplify<span class="o">=</span><span class="kc">TRUE</span><span class="p">)</span>
+
+<span class="c1"># print values of `result` =&gt;</span>
+<span class="kp">print</span><span class="p">(</span>result<span class="p">)</span>
+
+<span class="p">[</span><span class="m">1</span><span class="p">]</span>  <span class="m">10.00000000</span>  <span class="m">25.00000000</span>  <span class="m">75.00000002</span> <span class="m">200.00000011</span>
+</pre></div>
+
+
+<p><br></p>
+<p>Below are plots of the exponential mixture model, along with the shaded area under the 
+curve that corresponds to the quantiles found&nbsp;above:</p>
+<p><br>
+<p align="center"> 
+<img alt="em44" src="/images/em44.png">
+</p> <br>
+<br>
+<p align="center"> 
+<img alt="em69" src="/images/em69.png">
+</p> <br>
+<br>
+<p align="center"> 
+<img alt="em86" src="/images/em86.png">
+</p> <br>
+<br>
+<p align="center"> 
+<img alt="em98" src="/images/em98.png">
+</p> <br>
+<br></p>
+<p>These plots were created with <code>ggplot2</code> and the following specification:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># Logic to create highlighted AUC plots with ggplot2 =&gt;</span>
+<span class="kn">library</span><span class="p">(</span>ggplot2<span class="p">)</span>
+
+f <span class="o">=</span> <span class="kr">function</span><span class="p">(</span>x<span class="p">)</span> <span class="p">{</span>
+    <span class="kr">return</span><span class="p">(</span><span class="m">.06</span><span class="o">*</span><span class="kp">exp</span><span class="p">(</span><span class="o">-</span>x<span class="o">/</span><span class="m">10.</span><span class="p">)</span><span class="m">+.006</span><span class="o">*</span><span class="kp">exp</span><span class="p">(</span><span class="o">-</span>x<span class="o">/</span><span class="m">50.</span><span class="p">)</span><span class="m">+.001</span><span class="o">*</span><span class="kp">exp</span><span class="p">(</span><span class="o">-</span>x<span class="o">/</span><span class="m">100.</span><span class="p">))</span>
+<span class="p">}</span>
+
+x <span class="o">=</span> <span class="kp">seq</span><span class="p">(</span>from<span class="o">=</span><span class="m">0</span><span class="p">,</span>to<span class="o">=</span><span class="m">100</span><span class="p">,</span>by<span class="o">=</span><span class="m">.005</span><span class="p">)</span>
+y <span class="o">=</span> <span class="kp">sapply</span><span class="p">(</span>X<span class="o">=</span>x<span class="p">,</span>FUN<span class="o">=</span>f<span class="p">,</span>simplify<span class="o">=</span><span class="kc">TRUE</span><span class="p">,</span>USE.NAMES<span class="o">=</span><span class="kc">FALSE</span><span class="p">)</span>
+df <span class="o">=</span> <span class="kt">data.frame</span><span class="p">(</span>X<span class="o">=</span>x<span class="p">,</span>Y<span class="o">=</span>y<span class="p">)</span>
+
+ggplot<span class="p">(</span>data<span class="o">=</span>df<span class="p">,</span> mapping<span class="o">=</span>aes<span class="p">(</span>x<span class="o">=</span>X<span class="p">,</span> y<span class="o">=</span>Y<span class="p">))</span> <span class="o">+</span>
+    geom_line<span class="p">()</span><span class="o">+</span>
+    geom_area<span class="p">(</span>mapping<span class="o">=</span>aes<span class="p">(</span>x<span class="o">=</span><span class="kp">ifelse</span><span class="p">(</span>x<span class="o">&gt;</span><span class="m">0</span> <span class="o">&amp;</span> x<span class="o">&lt;</span><span class="m">10</span><span class="p">,</span> x<span class="p">,</span> <span class="m">0</span><span class="p">)),</span> fill<span class="o">=</span><span class="s">&quot;#9898fb&quot;</span><span class="p">,</span> alpha<span class="o">=</span><span class="m">1.</span><span class="p">)</span> <span class="o">+</span>
+    xlim<span class="p">(</span><span class="m">0</span><span class="p">,</span><span class="m">100</span><span class="p">)</span> <span class="o">+</span>
+    ylim<span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="m">.1</span><span class="p">)</span> <span class="o">+</span> 
+    ylab<span class="p">(</span><span class="s">&quot;Exponential Mixture Density&quot;</span><span class="p">)</span> <span class="o">+</span>
+    ggtitle<span class="p">(</span><span class="s">&quot;AUC for Exponential Mixture: ~44th Percentile&quot;</span><span class="p">)</span> <span class="o">+</span>
+    geom_vline<span class="p">(</span>xintercept<span class="o">=</span><span class="m">0</span><span class="p">)</span><span class="o">+</span>
+    geom_hline<span class="p">(</span>yintercept<span class="o">=</span><span class="m">0</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+For each plot, we simply replaced the title and passed the quantile of interest to the generic <code>f</code> function, 
+which encapsulates our sample exponential mixture model.    <br>
+<br></p>
+<h2>Conclusion</h2>
+<p>Exponential mixture models have many desirable properties and offer a degree of flexibility not 
+characteristic of the parametric approach. In a future post, we&#8217;ll demonstrate how to obtain the 
+optimal weighting scheme and mean for each mixture term using maximum likelihood estimation and 
+also using Markov Chain Monte Carlo methods. Until then, happy&nbsp;coding!</p>
+<p><br></p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

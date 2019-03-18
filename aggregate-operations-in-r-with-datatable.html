@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Aggregate Operations in R with data.table - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/aggregate-operations-in-r-with-datatable.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="R" />
+        <meta name="description" content="A demonstration of data aggregation using the data.table library" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Aggregate Operations in R with data.table"/>
+        <meta property="og:url" content="https://jtrive84.github.io/aggregate-operations-in-r-with-datatable.html"/>
+        <meta property="og:description" content="A demonstration of data aggregation using the data.table library"/>
+        <meta property="article:published_time" content="2018-07-08" />
+            <meta property="article:section" content="R" />
+            <meta property="article:tag" content="R" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/r.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out R ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/aggregate-operations-in-r-with-datatable.html"
+                       rel="bookmark"
+                       title="Permalink to Aggregate Operations in R with data.table">
+                        Aggregate Operations in R with&nbsp;data.table
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-07-08T00:00:00-05:00"> 2018-07-08</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/r.html">R</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/r.html">R</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>For the uninitiated, data.table is a third-party package for the R programming 
+language which provides a high-performance version of base R&#8217;s data.frame with 
+syntax and feature enhancements for ease of use, convenience and programming 
+speed <a href="#Footnotes:">1</a>. I was first introduced to data.table when I began my 
+career at <span class="caps">CNA</span>, and as a consequence of working with it on a daily basis for a 
+few of years have become well acquainted with the package and many of its&nbsp;offerings.          </p>
+<p>This post highlights aggregation and aggregate operations within the context 
+of data.table. Even though the syntax is straightforward for the most common 
+aggregate operations, when working with slightly more complex expressions, 
+subtle syntactical variations can result in unexpected result sets. But after 
+working through the examples in this post, you&#8217;ll hopefully be in a position 
+to leverage data.table to tackle all of your data aggregation needs. 
+To follow along with the examples, you should have a relatively recent 
+installation of R, in addition to the following third-party libraries:
+<br>
+<em> data.table   <br>
+</em> CASdatasets (sample insurance datasets)
+<br></p>
+<h2>Aggregation</h2>
+<p>Our sample dataset, <code>nzcathist</code>, can be found in the CASdatasets package and 
+represents 145 catastrophic events that occurred in New Zealand between 
+1968-2014, along with the associated cost in millions originally 
+(<code>LOSS_AMT_ORIG</code>) and adjusted for 2014 dollars (<code>LOSS_AMT_2014</code>). In the 
+pre-processing step, we reduce the dataset down to only the requisite columns 
+(an already pre-processed version of this dataset in .csv format can be 
+downloaded 
+<a href="https://gist.github.com/jtrive84/a317aba9395e0e9bedce3f43aa82cef1">here</a>): </p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span><span class="s">&quot;CASdatasets&quot;</span><span class="p">)</span>
+
+data<span class="p">(</span>nzcathist<span class="p">)</span> <span class="c1"># available in `CASdatasets` package</span>
+
+DFInit         <span class="o">=</span> setDT<span class="p">(</span>nzcathist<span class="p">)</span>
+keepFields    <span class="o">=</span> <span class="kt">c</span><span class="p">(</span><span class="s">&quot;Year&quot;</span><span class="p">,</span> <span class="s">&quot;Quarter&quot;</span><span class="p">,</span> <span class="s">&quot;Type&quot;</span><span class="p">,</span> <span class="s">&quot;Location&quot;</span><span class="p">,</span> <span class="s">&quot;NormCost2014&quot;</span><span class="p">)</span>
+newFieldNames <span class="o">=</span> <span class="kt">c</span><span class="p">(</span><span class="s">&quot;YEAR&quot;</span><span class="p">,</span> <span class="s">&quot;QUARTER&quot;</span><span class="p">,</span> <span class="s">&quot;TYPE&quot;</span><span class="p">,</span> <span class="s">&quot;LOCATION&quot;</span><span class="p">,</span> <span class="s">&quot;LOSS_AMT&quot;</span><span class="p">)</span>
+DF            <span class="o">=</span> DFInit<span class="p">[,</span><span class="m">..</span>keepFields<span class="p">]</span>
+setnames<span class="p">(</span>DF<span class="p">,</span> newFieldNames<span class="p">)</span>
+</pre></div>
+
+
+<p><br> 
+Inspecting the first few records&nbsp;reveals:  </p>
+<div class="highlight"><pre><span></span>&gt; head(DF)
+
+   YEAR QUARTER         TYPE                LOCATION LOSS_AMT_ORIG LOSS_AMT_2014
+1: 2014       4 Power outage                Auckland           2.0          2.00
+2: 2014       2        Flood          Nelson, Tasman           2.7          2.72
+3: 2014       2      Weather North and South Islands          37.6         37.85
+4: 2014       2 Flood, Storm                      NA          55.3         55.67
+5: 2014       1      Cyclone                      NA           3.6          3.63
+6: 2014       1        Storm              Canterbury           4.8          4.84
+</pre></div>
+
+
+<p><br>
+Note that in the pre-processing step, we coerced <code>nzcathist</code>, originally a 
+data.frame, into a data.table by calling the <code>setDT</code> function. <code>setDT</code> 
+coerces data.frames to data.tables by reference, as opposed to using 
+<code>as.data.table</code>, which creates an independent copy of the original 
+data.frame in memory. For smaller datasets, the difference in the two 
+approaches will be negligible. But as the size of the data begins to scale, 
+calling <code>as.data.table</code> may result in serious performance&nbsp;degradation. </p>
+<p><br> <br>
+Before jumping in, I thought it helpful to reproduce a diagram found in the 
+official data.table documentation. It has been  included as a way to 
+introduce/clarify data.table&#8217;s general syntax: <br>
+<br></p>
+<div class="highlight"><pre><span></span>            DT[ i, j, by ] # + extra arguments
+                |  |  |
+                |  |   -------&gt; grouped by what?
+                |   -------&gt; what to do?
+                 ---&gt; on which rows?
+</pre></div>
+
+
+<p><br>
+In the official documentation, beneath the diagram reads <em>Take <span class="caps">DT</span>, subset rows 
+by i, then compute j grouped by by</em>. Throughout the rest of the post, any 
+reference to <em>i</em>, <em>j</em> or <em>by</em> implicitly assumes this context. Also, it should 
+be assumed that all datasets have been coerced to data.table objects, even if 
+not explicitly converted as such within the sample code block.<br>
+<br></p>
+<p>We start with the common task of calculating the sum of values held within a 
+single column. Note that the following returns a&nbsp;scalar: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[,</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_2014<span class="p">)]</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">19977.66</span>
+</pre></div>
+
+
+<p><br>
+To compute the sum of <em>LOSS_AMT_ORIG</em> and <em>LOSS_AMT_2014</em> over all records, we 
+run the following, which returns a single-record data.table with two&nbsp;columns: </p>
+<div class="highlight"><pre><span></span>&gt; DF[,.(LOSS_AMT_ORIG=sum(LOSS_AMT_ORIG),
+        LOSS_AMT_2014=sum(LOSS_AMT_2014))]
+
+   LOSS_AMT_ORIG LOSS_AMT_2014
+1:      18065.72      19977.66
+</pre></div>
+
+
+<p><br>
+<code>.()</code> is shorthand for <code>list</code>. We can replace the expression above with a 
+call to <code>list</code> and an identical result will be&nbsp;obtained: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[,</span><span class="kt">list</span><span class="p">(</span>LOSS_AMT_ORIG<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_ORIG<span class="p">),</span>
+           LOSS_AMT_2014<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_2014<span class="p">))]</span>
+
+   LOSS_AMT_ORIG LOSS_AMT_2014
+<span class="m">1</span><span class="o">:</span>      <span class="m">18065.72</span>      <span class="m">19977.66</span>        
+</pre></div>
+
+
+<p><br></p>
+<p>It may be of interest to calculate the total amounts for <em>LOSS_AMT_ORIG</em> and 
+<em>LOSS_AMT_2014</em> by <em><span class="caps">YEAR</span></em>. This is accomplished with inclusion of <code>by</code>:    </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[,</span><span class="m">.</span><span class="p">(</span>LOSS_AMT_ORIG<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_ORIG<span class="p">),</span>
+        LOSS_AMT_2014<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_2014<span class="p">)),</span> by<span class="o">=</span><span class="s">&quot;YEAR&quot;</span><span class="p">]</span>                   
+
+    YEAR LOSS_AMT_ORIG LOSS_AMT_2014
+ <span class="m">1</span><span class="o">:</span> <span class="m">2014</span>        <span class="m">128.50</span>        <span class="m">129.42</span>
+ <span class="m">2</span><span class="o">:</span> <span class="m">2013</span>        <span class="m">206.40</span>        <span class="m">210.01</span>
+ <span class="m">3</span><span class="o">:</span> <span class="m">2012</span>          <span class="m">8.70</span>          <span class="m">8.95</span>
+ <span class="m">4</span><span class="o">:</span> <span class="m">2011</span>      <span class="m">16557.50</span>      <span class="m">17380.70</span>
+ <span class="m">5</span><span class="o">:</span> <span class="m">2010</span>         <span class="m">68.75</span>         <span class="m">74.66</span>
+ <span class="m">6</span><span class="o">:</span> <span class="m">2009</span>          <span class="m">6.01</span>          <span class="m">6.64</span>
+ <span class="m">7</span><span class="o">:</span> <span class="m">2008</span>         <span class="m">86.26</span>         <span class="m">96.42</span>
+ <span class="m">8</span><span class="o">:</span> <span class="m">2007</span>        <span class="m">125.80</span>        <span class="m">147.40</span>
+ <span class="m">9</span><span class="o">:</span> <span class="m">2006</span>         <span class="m">50.40</span>         <span class="m">60.60</span>
+<span class="m">10</span><span class="o">:</span> <span class="m">2005</span>         <span class="m">60.40</span>         <span class="m">75.88</span>
+<span class="m">11</span><span class="o">:</span> <span class="m">2004</span>        <span class="m">145.15</span>        <span class="m">187.59</span>
+<span class="m">12</span><span class="o">:</span> <span class="m">2003</span>          <span class="m">3.30</span>          <span class="m">4.31</span>
+<span class="m">13</span><span class="o">:</span> <span class="m">2002</span>         <span class="m">25.65</span>         <span class="m">34.34</span>
+<span class="m">14</span><span class="o">:</span> <span class="m">2001</span>          <span class="m">2.60</span>          <span class="m">3.57</span>
+<span class="m">15</span><span class="o">:</span> <span class="m">2000</span>         <span class="m">23.10</span>         <span class="m">32.18</span>
+<span class="m">16</span><span class="o">:</span> <span class="m">1999</span>         <span class="m">55.50</span>         <span class="m">79.86</span>
+<span class="m">17</span><span class="o">:</span> <span class="m">1998</span>         <span class="m">35.20</span>         <span class="m">50.68</span>
+<span class="m">18</span><span class="o">:</span> <span class="m">1997</span>         <span class="m">14.40</span>         <span class="m">21.03</span>
+<span class="m">19</span><span class="o">:</span> <span class="m">1996</span>         <span class="m">11.80</span>         <span class="m">17.34</span>
+<span class="m">20</span><span class="o">:</span> <span class="m">1995</span>         <span class="m">12.60</span>         <span class="m">19.04</span>
+<span class="m">21</span><span class="o">:</span> <span class="m">1994</span>         <span class="m">18.30</span>         <span class="m">28.77</span>
+<span class="m">22</span><span class="o">:</span> <span class="m">1993</span>          <span class="m">7.60</span>         <span class="m">12.06</span>
+<span class="m">23</span><span class="o">:</span> <span class="m">1992</span>          <span class="m">8.10</span>         <span class="m">13.07</span>
+<span class="m">24</span><span class="o">:</span> <span class="m">1991</span>          <span class="m">3.10</span>          <span class="m">5.07</span>
+<span class="m">25</span><span class="o">:</span> <span class="m">1990</span>          <span class="m">1.80</span>          <span class="m">2.99</span>
+<span class="m">26</span><span class="o">:</span> <span class="m">1988</span>         <span class="m">56.10</span>        <span class="m">106.21</span>
+<span class="m">27</span><span class="o">:</span> <span class="m">1987</span>        <span class="m">192.00</span>        <span class="m">398.17</span>
+<span class="m">28</span><span class="o">:</span> <span class="m">1986</span>         <span class="m">19.30</span>         <span class="m">47.34</span>
+<span class="m">29</span><span class="o">:</span> <span class="m">1985</span>         <span class="m">17.20</span>         <span class="m">47.28</span>
+<span class="m">30</span><span class="o">:</span> <span class="m">1984</span>         <span class="m">51.10</span>        <span class="m">160.59</span>
+<span class="m">31</span><span class="o">:</span> <span class="m">1983</span>          <span class="m">5.80</span>         <span class="m">18.86</span>
+<span class="m">32</span><span class="o">:</span> <span class="m">1981</span>          <span class="m">9.00</span>         <span class="m">37.04</span>
+<span class="m">33</span><span class="o">:</span> <span class="m">1980</span>         <span class="m">11.30</span>         <span class="m">53.33</span>
+<span class="m">34</span><span class="o">:</span> <span class="m">1978</span>         <span class="m">10.30</span>         <span class="m">60.96</span>
+<span class="m">35</span><span class="o">:</span> <span class="m">1976</span>          <span class="m">6.20</span>         <span class="m">51.61</span>
+<span class="m">36</span><span class="o">:</span> <span class="m">1975</span>          <span class="m">7.00</span>         <span class="m">63.35</span>
+<span class="m">37</span><span class="o">:</span> <span class="m">1968</span>         <span class="m">13.50</span>        <span class="m">230.34</span>
+    YEAR LOSS_AMT_ORIG LOSS_AMT_2014
+</pre></div>
+
+
+<p><br> </p>
+<p>In order to limit the result to only <em><span class="caps">YEAR</span>&gt;2010</em>, include the condition in 
+<code>i</code>: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[</span>YEAR<span class="o">&gt;</span><span class="m">2010</span><span class="p">,</span><span class="m">.</span><span class="p">(</span>LOSS_AMT_ORIG<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_ORIG<span class="p">),</span>
+                 LOSS_AMT_2014<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_2014<span class="p">)),</span> by<span class="o">=</span><span class="s">&quot;YEAR&quot;</span><span class="p">]</span>           
+
+   YEAR LOSS_AMT_ORIG LOSS_AMT_2014
+<span class="m">1</span><span class="o">:</span> <span class="m">2014</span>         <span class="m">128.5</span>        <span class="m">129.42</span>
+<span class="m">2</span><span class="o">:</span> <span class="m">2013</span>         <span class="m">206.4</span>        <span class="m">210.01</span>
+<span class="m">3</span><span class="o">:</span> <span class="m">2012</span>           <span class="m">8.7</span>          <span class="m">8.95</span>
+<span class="m">4</span><span class="o">:</span> <span class="m">2011</span>       <span class="m">16557.5</span>      <span class="m">17380.70</span>
+</pre></div>
+
+
+<p><br></p>
+<p><code>by</code> can be substituted with <code>keyby</code>. <code>keyby</code> runs <code>setkey()</code> on the 
+specified column(s). Since calling <code>setkey</code> on a data.table results in the 
+data.table being sorted by the specified column(s), <code>keyby</code> can be used if 
+the dataset requires ordering upon return. Notice that our previous result was 
+displayed with <em><span class="caps">YEAR</span></em> in descending order. Using <code>keyby</code> instead arranges 
+the output in ascending order w.r.t. <em><span class="caps">YEAR</span></em>: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[</span>YEAR<span class="o">&gt;</span><span class="m">2010</span><span class="p">,</span><span class="m">.</span><span class="p">(</span>LOSS_AMT_ORIG<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_ORIG<span class="p">),</span>
+                 LOSS_AMT_2014<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_2014<span class="p">)),</span> keyby<span class="o">=</span><span class="s">&quot;YEAR&quot;</span><span class="p">]</span>     
+
+YEAR LOSS_AMT_ORIG LOSS_AMT_2014
+<span class="m">1</span><span class="o">:</span> <span class="m">2011</span>       <span class="m">16557.5</span>      <span class="m">17380.70</span>
+<span class="m">2</span><span class="o">:</span> <span class="m">2012</span>           <span class="m">8.7</span>          <span class="m">8.95</span>
+<span class="m">3</span><span class="o">:</span> <span class="m">2013</span>         <span class="m">206.4</span>        <span class="m">210.01</span>
+<span class="m">4</span><span class="o">:</span> <span class="m">2014</span>         <span class="m">128.5</span>        <span class="m">129.42</span>
+</pre></div>
+
+
+<p><br>
+Note that if the fieldname rebinding is omitted and include only the aggregate 
+operator over the target fields, the same result will be obtained, but the 
+aggregated fields will be assigned arbitrary names, in this case <em>V1</em> and 
+<em>V2</em>: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[</span>YEAR<span class="o">&gt;</span><span class="m">2010</span><span class="p">,</span><span class="m">.</span><span class="p">(</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_ORIG<span class="p">),</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_2014<span class="p">)),</span>by<span class="o">=</span><span class="s">&quot;YEAR&quot;</span><span class="p">]</span>
+
+   YEAR      V1       V2
+<span class="m">1</span><span class="o">:</span> <span class="m">2014</span>   <span class="m">128.5</span>   <span class="m">129.42</span>
+<span class="m">2</span><span class="o">:</span> <span class="m">2013</span>   <span class="m">206.4</span>   <span class="m">210.01</span>
+<span class="m">3</span><span class="o">:</span> <span class="m">2012</span>     <span class="m">8.7</span>     <span class="m">8.95</span>
+<span class="m">4</span><span class="o">:</span> <span class="m">2011</span> <span class="m">16557.5</span> <span class="m">17380.70</span>
+</pre></div>
+
+
+<p><br>   </p>
+<h2>Special Symbols in Aggregate&nbsp;Operations</h2>
+<p>In an earlier post <a href="https://jtrive84.github.io/introduction-to-datatables-special-symbols.html">post</a>, I 
+introduced data.table&#8217;s special symbols, which are read-only symbols that 
+can be used in <code>j</code><a href="#Footnotes:">2</a>. The <code>.SD</code> special symbol is 
+particularly useful for aggregate operations, along with <code>.SDcols</code>, which is 
+used in conjunction with <code>.SD</code>. <code>.SD</code>, <code>.SDcols</code> and <code>by</code> will be used 
+in the sample expressions that follow, and it is therefore instructive to 
+provide a qualitative description of the role each plays within the context of&nbsp;data.table:  </p>
+<p><br>
+<strong>.<span class="caps">SD</span></strong>
+    Stands for <em>subset of data.table</em>. By default gets assigned all columns 
+    except those mentioned in <code>by</code> (or<code>keyby</code>). Can only be used in <code>j</code>. <br>
+<br> <br>
+<strong>.SDcols</strong>
+    Represents the columns that are to be aggregated, which must be numeric. 
+    Fields may be given as a character vector of fieldnames or 
+    column-positional indices.   <br>
+<br>  <br>
+<strong>by</strong>
+    Similar to <span class="caps">SQL</span>&#8217;s <code>GROUP BY</code>. Specifies how the fields in <code>.SDcols</code> 
+    should be aggregated, i.e., over which fields should the aggregate 
+    operation be performed.   <br>
+<br></p>
+<p>Using the special symbol syntax, we can reproduce the output returned in our 
+original examples. First, taking the sum of <em>LOSS_AMT_ORIG</em> and 
+<em>LOSS_AMT_2014</em> over all records without&nbsp;partitioning: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[,</span><span class="kp">lapply</span><span class="p">(</span><span class="m">.</span>SD<span class="p">,</span> <span class="kp">sum</span><span class="p">,</span> na.rm<span class="o">=</span><span class="kc">TRUE</span><span class="p">),</span>
+      <span class="m">.</span>SDcols<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;LOSS_AMT_ORIG&quot;</span><span class="p">,</span> <span class="s">&quot;LOSS_AMT_2014&quot;</span><span class="p">)]</span>
+
+   LOSS_AMT_ORIG LOSS_AMT_2014
+<span class="m">1</span><span class="o">:</span>      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+</pre></div>
+
+
+<p><br>
+Partitioning <em>LOSS_AMT_ORIG</em> and <em>LOSS_AMT_2014</em> by <em><span class="caps">YEAR</span></em>:  </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[,</span><span class="kp">lapply</span><span class="p">(</span><span class="m">.</span>SD<span class="p">,</span> <span class="kp">sum</span><span class="p">,</span> na.rm<span class="o">=</span><span class="kc">TRUE</span><span class="p">),</span>
+      <span class="m">.</span>SDcols<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;LOSS_AMT_ORIG&quot;</span><span class="p">,</span> <span class="s">&quot;LOSS_AMT_2014&quot;</span><span class="p">),</span>
+          by<span class="o">=</span><span class="s">&quot;YEAR&quot;</span><span class="p">]</span>
+
+    YEAR LOSS_AMT_ORIG LOSS_AMT_2014
+ <span class="m">1</span><span class="o">:</span> <span class="m">2014</span>        <span class="m">128.50</span>        <span class="m">129.42</span>
+ <span class="m">2</span><span class="o">:</span> <span class="m">2013</span>        <span class="m">206.40</span>        <span class="m">210.01</span>
+ <span class="m">3</span><span class="o">:</span> <span class="m">2012</span>          <span class="m">8.70</span>          <span class="m">8.95</span>
+ <span class="m">4</span><span class="o">:</span> <span class="m">2011</span>      <span class="m">16557.50</span>      <span class="m">17380.70</span>
+                <span class="m">.</span>
+                <span class="m">.</span>
+                <span class="m">.</span>
+</pre></div>
+
+
+<p><br>
+With only 6 columns in our sample dataset, the convenience of <code>.SD</code> may not 
+be readily apparent. But as the number of columns in our dataset grows, the 
+ability to use <code>.SD</code> as a stand-in for all fields not targeted in the 
+aggregate operation becomes an incredibly useful abstraction.      <br>
+We can perform other aggregate operations over <em>LOSS_AMT_ORIG</em> and 
+<em>LOSS_AMT_2014</em>. Calculating the average loss amounts by <em><span class="caps">TYPE</span></em> is as simple 
+as replacing <em>sum</em> and <em><span class="caps">YEAR</span></em> in the last&nbsp;expression: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[,</span><span class="kp">lapply</span><span class="p">(</span><span class="m">.</span>SD<span class="p">,</span> <span class="kp">mean</span><span class="p">,</span> na.rm<span class="o">=</span><span class="kc">TRUE</span><span class="p">),</span>
+      <span class="m">.</span>SDcols<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;LOSS_AMT_ORIG&quot;</span><span class="p">,</span> <span class="s">&quot;LOSS_AMT_2014&quot;</span><span class="p">),</span>
+          by<span class="o">=</span><span class="s">&quot;TYPE&quot;</span><span class="p">]</span>
+
+            TYPE LOSS_AMT_ORIG LOSS_AMT_2014
+ <span class="m">1</span><span class="o">:</span> Power outage      <span class="m">6.100000</span>      <span class="m">8.350000</span>
+ <span class="m">2</span><span class="o">:</span>        Flood      <span class="m">5.443103</span>     <span class="m">12.133448</span>
+ <span class="m">3</span><span class="o">:</span>      Weather     <span class="m">13.000000</span>     <span class="m">14.680000</span>
+ <span class="m">4</span><span class="o">:</span> Flood<span class="p">,</span> Storm     <span class="m">18.511111</span>     <span class="m">20.683333</span>
+ <span class="m">5</span><span class="o">:</span>      Cyclone     <span class="m">11.350000</span>     <span class="m">20.267500</span>
+ <span class="m">6</span><span class="o">:</span>        Storm     <span class="m">17.932813</span>     <span class="m">24.539062</span>
+ <span class="m">7</span><span class="o">:</span>   Earthquake   <span class="m">2393.618571</span>   <span class="m">2541.094286</span>
+ <span class="m">8</span><span class="o">:</span>      Tornado      <span class="m">3.540000</span>      <span class="m">4.425455</span>
+ <span class="m">9</span><span class="o">:</span>    Hailstorm      <span class="m">5.437500</span>      <span class="m">7.130000</span>
+<span class="m">10</span><span class="o">:</span>        Other      <span class="m">6.220000</span>     <span class="m">25.265000</span>
+</pre></div>
+
+
+<p><br></p>
+<p><code>.SD</code> can also be used to return the first N-records of a particular 
+subgroup. To demonstrate, let&#8217;s say we&#8217;re interested in returning the 3 
+costliest catastrophic events by <em><span class="caps">TYPE</span></em> from our 145 record dataset. With 10 
+distinct event types, we expect 30 records to be returned. In addition, we 
+specify the result must be returned in descending order w.r.t. 
+<em>LOSS_AMT_2014</em>: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[</span><span class="kp">order</span><span class="p">(</span><span class="o">-</span>LOSS_AMT_2014<span class="p">),</span><span class="m">.</span>SD<span class="p">[</span><span class="m">1</span><span class="o">:</span><span class="m">3</span><span class="p">],</span> by<span class="o">=</span><span class="s">&quot;TYPE&quot;</span><span class="p">]</span>
+
+            TYPE YEAR QUARTER                          LOCATION LOSS_AMT_ORIG LOSS_AMT_2014
+ <span class="m">1</span><span class="o">:</span>   Earthquake <span class="m">2011</span>       <span class="m">1</span>                        Canterbury       <span class="m">16500.0</span>      <span class="m">17320.68</span>
+ <span class="m">2</span><span class="o">:</span>   Earthquake <span class="m">1987</span>       <span class="m">1</span>                     Bay of Plenty         <span class="m">192.0</span>        <span class="m">398.17</span>
+ <span class="m">3</span><span class="o">:</span>   Earthquake <span class="m">2007</span>       <span class="m">4</span>                          Gisborne          <span class="m">30.5</span>         <span class="m">35.38</span>
+ <span class="m">4</span><span class="o">:</span>        Other <span class="m">1968</span>       <span class="m">1</span>                            Wahine          <span class="m">10.0</span>        <span class="m">170.62</span>
+ <span class="m">5</span><span class="o">:</span>        Other <span class="m">2005</span>       <span class="m">2</span>             BOP Tauranga <span class="p">,</span> Matata          <span class="m">28.5</span>         <span class="m">35.65</span>
+ <span class="m">6</span><span class="o">:</span>        Other <span class="m">1985</span>       <span class="m">1</span>    Thames <span class="p">,</span> Coromandel <span class="p">,</span> Te Aroha           <span class="m">5.9</span>         <span class="m">16.35</span>
+ <span class="m">7</span><span class="o">:</span>        Storm <span class="m">2004</span>       <span class="m">1</span>                Lower North Island         <span class="m">112.0</span>        <span class="m">145.25</span>
+ <span class="m">8</span><span class="o">:</span>        Storm <span class="m">2013</span>       <span class="m">3</span>                        Nationwide          <span class="m">74.5</span>         <span class="m">75.50</span>
+ <span class="m">9</span><span class="o">:</span>        Storm <span class="m">2007</span>       <span class="m">3</span> Far North <span class="p">,</span> Auckland <span class="p">,</span> Coromandel          <span class="m">60.5</span>         <span class="m">71.01</span>
+<span class="m">10</span><span class="o">:</span>        Flood <span class="m">1984</span>       <span class="m">1</span>          Invercargill <span class="p">,</span> Southland          <span class="m">45.8</span>        <span class="m">143.93</span>
+<span class="m">11</span><span class="o">:</span>        Flood <span class="m">1999</span>       <span class="m">4</span>         Queenstown Lakes District          <span class="m">46.1</span>         <span class="m">66.26</span>
+<span class="m">12</span><span class="o">:</span>        Flood <span class="m">1978</span>       <span class="m">4</span>                             Otago          <span class="m">10.3</span>         <span class="m">60.96</span>
+<span class="m">13</span><span class="o">:</span>      Cyclone <span class="m">1988</span>       <span class="m">1</span>                                <span class="kc">NA</span>          <span class="m">37.0</span>         <span class="m">70.41</span>
+<span class="m">14</span><span class="o">:</span>      Cyclone <span class="m">1997</span>       <span class="m">1</span>                                <span class="kc">NA</span>           <span class="m">3.2</span>          <span class="m">4.69</span>
+<span class="m">15</span><span class="o">:</span>      Cyclone <span class="m">2014</span>       <span class="m">1</span>                                <span class="kc">NA</span>           <span class="m">3.6</span>          <span class="m">3.63</span>
+<span class="m">16</span><span class="o">:</span> Flood<span class="p">,</span> Storm <span class="m">2014</span>       <span class="m">2</span>                                <span class="kc">NA</span>          <span class="m">55.3</span>         <span class="m">55.67</span>
+<span class="m">17</span><span class="o">:</span> Flood<span class="p">,</span> Storm <span class="m">2013</span>       <span class="m">2</span>              Nelson<span class="p">,</span>Bay of Plenty          <span class="m">46.2</span>         <span class="m">47.26</span>
+<span class="m">18</span><span class="o">:</span> Flood<span class="p">,</span> Storm <span class="m">2002</span>       <span class="m">2</span>                      North Island          <span class="m">21.5</span>         <span class="m">28.73</span>
+<span class="m">19</span><span class="o">:</span>      Weather <span class="m">2014</span>       <span class="m">2</span>           North and South Islands          <span class="m">37.6</span>         <span class="m">37.85</span>
+<span class="m">20</span><span class="o">:</span>      Weather <span class="m">1996</span>       <span class="m">3</span>                                <span class="kc">NA</span>           <span class="m">8.1</span>         <span class="m">11.93</span>
+<span class="m">21</span><span class="o">:</span>      Weather <span class="m">2000</span>       <span class="m">3</span>                      North Island           <span class="m">4.2</span>          <span class="m">5.87</span>
+<span class="m">22</span><span class="o">:</span>    Hailstorm <span class="m">1994</span>       <span class="m">1</span>                          Hastings          <span class="m">10.8</span>         <span class="m">17.13</span>
+<span class="m">23</span><span class="o">:</span>    Hailstorm <span class="m">2005</span>       <span class="m">1</span>                      Christchurch          <span class="m">13.0</span>         <span class="m">16.40</span>
+<span class="m">24</span><span class="o">:</span>    Hailstorm <span class="m">2008</span>       <span class="m">4</span>                        Canterbury          <span class="m">11.2</span>         <span class="m">12.57</span>
+<span class="m">25</span><span class="o">:</span> Power outage <span class="m">1998</span>       <span class="m">2</span>                           Mercury          <span class="m">10.2</span>         <span class="m">14.70</span>
+<span class="m">26</span><span class="o">:</span> Power outage <span class="m">2014</span>       <span class="m">4</span>                          Auckland           <span class="m">2.0</span>          <span class="m">2.00</span>
+<span class="m">27</span><span class="o">:</span> Power outage   <span class="kc">NA</span>      <span class="kc">NA</span>                                <span class="kc">NA</span>            <span class="kc">NA</span>            <span class="kc">NA</span>
+<span class="m">28</span><span class="o">:</span>      Tornado <span class="m">2005</span>       <span class="m">1</span>                         Greymouth           <span class="m">9.2</span>         <span class="m">11.61</span>
+<span class="m">29</span><span class="o">:</span>      Tornado <span class="m">2007</span>       <span class="m">3</span>                    Tornado events           <span class="m">8.3</span>          <span class="m">9.74</span>
+<span class="m">30</span><span class="o">:</span>      Tornado <span class="m">2012</span>       <span class="m">4</span>                          Auckland           <span class="m">8.7</span>          <span class="m">8.95</span>
+</pre></div>
+
+
+<p><br>  <br>
+<code>.SD[1:3]</code> specifies the number of rows that should be returned within each 
+subgroup (in this case 3). The <strong>-</strong> preceding <em>LOSS_AMT_2014</em> results in a 
+descending order sort within each&nbsp;subgroup.      </p>
+<p>To return the least costly and most costly events by <em><span class="caps">TYPE</span></em>, we alter the 
+previous expression&nbsp;slightly: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF97<span class="p">[,</span><span class="m">.</span>SD<span class="p">[</span><span class="kt">c</span><span class="p">(</span><span class="m">1</span><span class="p">,</span><span class="m">.</span>N<span class="p">)],</span>by<span class="o">=</span><span class="s">&quot;TYPE&quot;</span><span class="p">]</span>
+
+            TYPE YEAR QUARTER                              LOCATION LOSS_AMT_ORIG LOSS_AMT_2014
+ <span class="m">1</span><span class="o">:</span> Power outage <span class="m">2014</span>       <span class="m">4</span>                              Auckland           <span class="m">2.0</span>          <span class="m">2.00</span>
+ <span class="m">2</span><span class="o">:</span> Power outage <span class="m">1998</span>       <span class="m">2</span>                               Mercury          <span class="m">10.2</span>         <span class="m">14.70</span>
+ <span class="m">3</span><span class="o">:</span>        Flood <span class="m">2014</span>       <span class="m">2</span>                        Nelson<span class="p">,</span> Tasman           <span class="m">2.7</span>          <span class="m">2.72</span>
+ <span class="m">4</span><span class="o">:</span>        Flood <span class="m">1976</span>       <span class="m">1</span>              Wellington <span class="p">,</span> Hutt Valley           <span class="m">6.2</span>         <span class="m">51.61</span>
+ <span class="m">5</span><span class="o">:</span>      Weather <span class="m">2014</span>       <span class="m">2</span>               North and South Islands          <span class="m">37.6</span>         <span class="m">37.85</span>
+ <span class="m">6</span><span class="o">:</span>      Weather <span class="m">1996</span>       <span class="m">4</span>                                    <span class="kc">NA</span>           <span class="m">2.1</span>          <span class="m">3.07</span>
+ <span class="m">7</span><span class="o">:</span> Flood<span class="p">,</span> Storm <span class="m">2014</span>       <span class="m">2</span>                                    <span class="kc">NA</span>          <span class="m">55.3</span>         <span class="m">55.67</span>
+ <span class="m">8</span><span class="o">:</span> Flood<span class="p">,</span> Storm <span class="m">1994</span>       <span class="m">4</span>                         North <span class="p">,</span> South           <span class="m">6.0</span>          <span class="m">9.26</span>
+ <span class="m">9</span><span class="o">:</span>      Cyclone <span class="m">2014</span>       <span class="m">1</span>                                    <span class="kc">NA</span>           <span class="m">3.6</span>          <span class="m">3.63</span>
+<span class="m">10</span><span class="o">:</span>      Cyclone <span class="m">1988</span>       <span class="m">1</span>                                    <span class="kc">NA</span>          <span class="m">37.0</span>         <span class="m">70.41</span>
+<span class="m">11</span><span class="o">:</span>        Storm <span class="m">2014</span>       <span class="m">1</span>                            Canterbury           <span class="m">4.8</span>          <span class="m">4.84</span>
+<span class="m">12</span><span class="o">:</span>        Storm <span class="m">1968</span>       <span class="m">1</span>                                Wahine           <span class="m">3.5</span>         <span class="m">59.72</span>
+<span class="m">13</span><span class="o">:</span>   Earthquake <span class="m">2013</span>       <span class="m">3</span>                           Cook Strait          <span class="m">16.2</span>         <span class="m">16.42</span>
+<span class="m">14</span><span class="o">:</span>   Earthquake <span class="m">1987</span>       <span class="m">1</span>                         Bay of Plenty         <span class="m">192.0</span>        <span class="m">398.17</span>
+<span class="m">15</span><span class="o">:</span>      Tornado <span class="m">2012</span>       <span class="m">4</span>                              Auckland           <span class="m">8.7</span>          <span class="m">8.95</span>
+<span class="m">16</span><span class="o">:</span>      Tornado <span class="m">1980</span>       <span class="m">3</span>                              Onehunga           <span class="m">1.0</span>          <span class="m">4.53</span>
+<span class="m">17</span><span class="o">:</span>    Hailstorm <span class="m">2009</span>       <span class="m">2</span>                         Bay of Plenty           <span class="m">2.3</span>          <span class="m">2.56</span>
+<span class="m">18</span><span class="o">:</span>    Hailstorm <span class="m">1994</span>       <span class="m">1</span>                              Hastings          <span class="m">10.8</span>         <span class="m">17.13</span>
+<span class="m">19</span><span class="o">:</span>        Other <span class="m">2007</span>       <span class="m">4</span> Central North and Lower South Islands           <span class="m">4.8</span>          <span class="m">5.57</span>
+<span class="m">20</span><span class="o">:</span>        Other <span class="m">1968</span>       <span class="m">1</span>                                Wahine          <span class="m">10.0</span>        <span class="m">170.62</span>
+</pre></div>
+
+
+<p><br></p>
+<p>We can further leverage the <code>.N</code> special symbol to obtain a count of 
+catastrophic events by <em><span class="caps">TYPE</span></em>: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[,</span><span class="m">.</span>N<span class="p">,</span> by<span class="o">=</span><span class="s">&quot;TYPE&quot;</span><span class="p">]</span>
+
+            TYPE  N
+ <span class="m">1</span><span class="o">:</span> Power outage  <span class="m">2</span>
+ <span class="m">2</span><span class="o">:</span>        Flood <span class="m">58</span>
+ <span class="m">3</span><span class="o">:</span>      Weather  <span class="m">4</span>
+ <span class="m">4</span><span class="o">:</span> Flood<span class="p">,</span> Storm  <span class="m">9</span>
+ <span class="m">5</span><span class="o">:</span>      Cyclone  <span class="m">4</span>
+ <span class="m">6</span><span class="o">:</span>        Storm <span class="m">32</span>
+ <span class="m">7</span><span class="o">:</span>   Earthquake  <span class="m">7</span>
+ <span class="m">8</span><span class="o">:</span>      Tornado <span class="m">11</span>
+ <span class="m">9</span><span class="o">:</span>    Hailstorm  <span class="m">8</span>
+<span class="m">10</span><span class="o">:</span>        Other <span class="m">10</span>
+</pre></div>
+
+
+<p><br>
+Or by <em><span class="caps">TYPE</span></em> and <em><span class="caps">YEAR</span></em> since&nbsp;2010:     </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[</span>YEAR<span class="o">&gt;=</span><span class="m">2010</span><span class="p">,</span><span class="m">.</span>N<span class="p">,</span>by<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;TYPE&quot;</span><span class="p">,</span><span class="s">&quot;YEAR&quot;</span><span class="p">)]</span>
+
+            TYPE YEAR N
+ <span class="m">1</span><span class="o">:</span> Power outage <span class="m">2014</span> <span class="m">1</span>
+ <span class="m">2</span><span class="o">:</span>        Flood <span class="m">2014</span> <span class="m">1</span>
+ <span class="m">3</span><span class="o">:</span>      Weather <span class="m">2014</span> <span class="m">1</span>
+ <span class="m">4</span><span class="o">:</span> Flood<span class="p">,</span> Storm <span class="m">2014</span> <span class="m">1</span>
+ <span class="m">5</span><span class="o">:</span>      Cyclone <span class="m">2014</span> <span class="m">1</span>
+ <span class="m">6</span><span class="o">:</span>        Storm <span class="m">2014</span> <span class="m">2</span>
+ <span class="m">7</span><span class="o">:</span>        Storm <span class="m">2013</span> <span class="m">3</span>
+ <span class="m">8</span><span class="o">:</span>   Earthquake <span class="m">2013</span> <span class="m">2</span>
+ <span class="m">9</span><span class="o">:</span>        Flood <span class="m">2013</span> <span class="m">1</span>
+<span class="m">10</span><span class="o">:</span> Flood<span class="p">,</span> Storm <span class="m">2013</span> <span class="m">1</span>
+<span class="m">11</span><span class="o">:</span>      Tornado <span class="m">2012</span> <span class="m">1</span>
+<span class="m">12</span><span class="o">:</span>   Earthquake <span class="m">2011</span> <span class="m">1</span>
+<span class="m">13</span><span class="o">:</span> Flood<span class="p">,</span> Storm <span class="m">2011</span> <span class="m">1</span>
+<span class="m">14</span><span class="o">:</span>        Flood <span class="m">2011</span> <span class="m">3</span>
+<span class="m">15</span><span class="o">:</span>      Tornado <span class="m">2011</span> <span class="m">2</span>
+<span class="m">16</span><span class="o">:</span>        Flood <span class="m">2010</span> <span class="m">3</span>
+<span class="m">17</span><span class="o">:</span>        Storm <span class="m">2010</span> <span class="m">2</span>
+</pre></div>
+
+
+<p><br></p>
+<h2>Assignment by&nbsp;Reference</h2>
+<p>Fields can be appended to an existing data.table with data representing a 
+specific categorical aggregation. For example, if we focus only on records 
+from the original catastrophe dataset but only those occurring in&nbsp;1997: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF97 <span class="o">=</span> DF<span class="p">[</span>YEAR<span class="o">==</span><span class="m">1997</span><span class="p">,]</span>
+<span class="o">&gt;</span> DF97
+
+    YEAR QUARTER      TYPE             LOCATION LOSS_AMT_ORIG LOSS_AMT_2014
+ <span class="m">1</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood            Northland           <span class="m">1.2</span>          <span class="m">1.76</span>
+ <span class="m">2</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">3</span>     Flood             Auckland           <span class="m">0.7</span>          <span class="m">1.02</span>
+ <span class="m">3</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">3</span>     Flood           Coromandel           <span class="m">0.5</span>          <span class="m">0.73</span>
+ <span class="m">4</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood             Auckland           <span class="m">3.7</span>          <span class="m">5.42</span>
+ <span class="m">5</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">1</span>     Storm         South Island           <span class="m">1.1</span>          <span class="m">1.61</span>
+ <span class="m">6</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span>     Storm         South Island           <span class="m">0.2</span>          <span class="m">0.29</span>
+ <span class="m">7</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span> Hailstorm    Southland <span class="p">,</span> Otago           <span class="m">0.4</span>          <span class="m">0.58</span>
+ <span class="m">8</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">1</span>   Cyclone                   <span class="kc">NA</span>           <span class="m">3.2</span>          <span class="m">4.69</span>
+ <span class="m">9</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood               Wairoa           <span class="m">0.5</span>          <span class="m">0.73</span>
+<span class="m">10</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span>     Storm North <span class="p">,</span> South Island           <span class="m">2.9</span>          <span class="m">4.20</span>
+</pre></div>
+
+
+<p><br> 
+A new column can be added representing the proportion each event contributed 
+to the total loss amount for <em><span class="caps">YEAR</span>=1997</em> (note that in this example, 
+<em>LOSS_AMT_2014</em> is targeted as the proportionality&nbsp;basis): </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF97<span class="p">[,</span>PROPORTION<span class="o">:=</span>LOSS_AMT_2014<span class="o">/</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_2014<span class="p">)][]</span>
+
+    YEAR QUARTER      TYPE             LOCATION LOSS_AMT_ORIG LOSS_AMT_2014 PROPORTION
+ <span class="m">1</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood            Northland           <span class="m">1.2</span>          <span class="m">1.76</span> <span class="m">0.08368997</span>
+ <span class="m">2</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">3</span>     Flood             Auckland           <span class="m">0.7</span>          <span class="m">1.02</span> <span class="m">0.04850214</span>
+ <span class="m">3</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">3</span>     Flood           Coromandel           <span class="m">0.5</span>          <span class="m">0.73</span> <span class="m">0.03471232</span>
+ <span class="m">4</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood             Auckland           <span class="m">3.7</span>          <span class="m">5.42</span> <span class="m">0.25772706</span>
+ <span class="m">5</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">1</span>     Storm         South Island           <span class="m">1.1</span>          <span class="m">1.61</span> <span class="m">0.07655730</span>
+ <span class="m">6</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span>     Storm         South Island           <span class="m">0.2</span>          <span class="m">0.29</span> <span class="m">0.01378982</span>
+ <span class="m">7</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span> Hailstorm    Southland <span class="p">,</span> Otago           <span class="m">0.4</span>          <span class="m">0.58</span> <span class="m">0.02757965</span>
+ <span class="m">8</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">1</span>   Cyclone                   <span class="kc">NA</span>           <span class="m">3.2</span>          <span class="m">4.69</span> <span class="m">0.22301474</span>
+ <span class="m">9</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood               Wairoa           <span class="m">0.5</span>          <span class="m">0.73</span> <span class="m">0.03471232</span>
+<span class="m">10</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span>     Storm North <span class="p">,</span> South Island           <span class="m">2.9</span>          <span class="m">4.20</span> <span class="m">0.19971469</span>
+</pre></div>
+
+
+<p><br>
+This expression contains the <code>:=</code> operator, which, within the context of 
+data.table, facilitates assignment-by-reference. We include the empty set of 
+brackets since without them, no result is printed when columns are assigned by 
+reference.   <br>
+This example introduces a point worth remembering: When updating data.tables 
+with assignment-by-reference or with the functional form equivalent, in 
+general the dataset will not be aggregated. Instead, the result of the 
+aggregate operation will be appended to each record (and by each sub-group if 
+applicable) in the original data.table. Stated more succinctly, the 
+assignment-by-reference operator cannot perform grouping&nbsp;operations.           </p>
+<p>One final scenario I&#8217;d like to cover is updating data.table columns while 
+retaining the original table shape (at least in one dimension). Although this 
+isn&#8217;t considered an aggregate operation or function as such, it is somewhat 
+related and will be included here&nbsp;nonetheless.       </p>
+<p>The following example is contrived, but nicely illustrates the point. Assume 
+we&#8217;d like to add 5 to every cell in <em>LOSS_AMT_ORIG</em> and <em>LOSS_AMT_2014</em> in the 
+<em><span class="caps">DF97</span></em> subset. The first approach will be to leverage <code>.SD</code> with <code>lapply</code> 
+while reassigning <em>LOSS_AMT_ORIG</em> and <em>LOSS_AMT_2014</em>: </p>
+<div class="highlight"><pre><span></span><span class="c1"># Specify numeric fields =&gt;</span>
+numFields <span class="o">=</span> <span class="kt">c</span><span class="p">(</span><span class="s">&quot;LOSS_AMT_ORIG&quot;</span><span class="p">,</span> <span class="s">&quot;LOSS_AMT_2014&quot;</span><span class="p">)</span>
+
+<span class="o">&gt;</span> DF<span class="p">[,(</span>numFields<span class="p">)</span><span class="o">:=</span>
+      <span class="kp">lapply</span><span class="p">(</span><span class="m">.</span>SD<span class="p">,</span> <span class="kr">function</span><span class="p">(</span>v<span class="p">)</span> v<span class="m">+5</span><span class="p">),</span>
+          <span class="m">.</span>SDcols<span class="o">=</span>numFields<span class="p">][]</span>
+
+    YEAR QUARTER      TYPE             LOCATION LOSS_AMT_ORIG LOSS_AMT_2014
+ <span class="m">1</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood            Northland           <span class="m">6.2</span>          <span class="m">6.76</span>
+ <span class="m">2</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">3</span>     Flood             Auckland           <span class="m">5.7</span>          <span class="m">6.02</span>
+ <span class="m">3</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">3</span>     Flood           Coromandel           <span class="m">5.5</span>          <span class="m">5.73</span>
+ <span class="m">4</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood             Auckland           <span class="m">8.7</span>         <span class="m">10.42</span>
+ <span class="m">5</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">1</span>     Storm         South Island           <span class="m">6.1</span>          <span class="m">6.61</span>
+ <span class="m">6</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span>     Storm         South Island           <span class="m">5.2</span>          <span class="m">5.29</span>
+ <span class="m">7</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span> Hailstorm    Southland <span class="p">,</span> Otago           <span class="m">5.4</span>          <span class="m">5.58</span>
+ <span class="m">8</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">1</span>   Cyclone                   <span class="kc">NA</span>           <span class="m">8.2</span>          <span class="m">9.69</span>
+ <span class="m">9</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood               Wairoa           <span class="m">5.5</span>          <span class="m">5.73</span>
+<span class="m">10</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span>     Storm North <span class="p">,</span> South Island           <span class="m">7.9</span>          <span class="m">9.20</span>
+</pre></div>
+
+
+<p><br>
+It is necessary to surround the vector <em>numFields</em> with <code>()</code>, otherwise the 
+vector will be mistaken as a column name for a new field assignment by 
+reference. Notice that this has the desired effect of adding 5 to each cell in 
+the target columns.      <br>
+The second approach highlights what is referred to as the <em>Functional form</em> in 
+data.table parlance. Essentially, it serves as a multi-column analog of the 
+assignment-by-reference operator, <code>:=</code>. When used with Functional form 
+expressions, <code>:=</code> must be surrounded by either backticks <code>:=</code> or 
+quotes <code>':='</code>. We&nbsp;demonstrate: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF97<span class="p">[,</span> <span class="sb">`:=`</span> 
+      <span class="p">(</span>LOSS_AMT_ORIG<span class="o">=</span>LOSS_AMT_ORIG<span class="m">+5</span><span class="p">,</span>
+       LOSS_AMT_2014<span class="o">=</span>LOSS_AMT_2014<span class="m">+5</span><span class="p">)][]</span>
+
+    YEAR QUARTER      TYPE             LOCATION LOSS_AMT_ORIG LOSS_AMT_2014
+ <span class="m">1</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood            Northland           <span class="m">6.2</span>          <span class="m">6.76</span>
+ <span class="m">2</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">3</span>     Flood             Auckland           <span class="m">5.7</span>          <span class="m">6.02</span>
+ <span class="m">3</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">3</span>     Flood           Coromandel           <span class="m">5.5</span>          <span class="m">5.73</span>
+ <span class="m">4</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood             Auckland           <span class="m">8.7</span>         <span class="m">10.42</span>
+ <span class="m">5</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">1</span>     Storm         South Island           <span class="m">6.1</span>          <span class="m">6.61</span>
+ <span class="m">6</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span>     Storm         South Island           <span class="m">5.2</span>          <span class="m">5.29</span>
+ <span class="m">7</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span> Hailstorm    Southland <span class="p">,</span> Otago           <span class="m">5.4</span>          <span class="m">5.58</span>
+ <span class="m">8</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">1</span>   Cyclone                   <span class="kc">NA</span>           <span class="m">8.2</span>          <span class="m">9.69</span>
+ <span class="m">9</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">2</span>     Flood               Wairoa           <span class="m">5.5</span>          <span class="m">5.73</span>
+<span class="m">10</span><span class="o">:</span> <span class="m">1997</span>       <span class="m">4</span>     Storm North <span class="p">,</span> South Island           <span class="m">7.9</span>          <span class="m">9.20</span>
+</pre></div>
+
+
+<p><br>
+Finally, as a sort-of anti-example, we demonstrate the behavior of applying an 
+aggregate operation using the Functional form of the assignment-by-reference 
+operator and column rebinding. If we entered the&nbsp;following: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF97<span class="p">[,</span> <span class="sb">`:=`</span> 
+    <span class="p">(</span>LOSS_AMT_ORIG<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_ORIG<span class="p">),</span>
+     LOSS_AMT_2014<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_2014<span class="p">))][]</span>
+</pre></div>
+
+
+<p><br>
+One might assume this expression returns the summation of <em>LOSS_AMT_ORIG</em> and 
+<em>LOSS_AMT_2014</em> over all records without partitioning, resulting in a 1-row by 
+2-column data.table. However, the expression contains the 
+assignment-by-reference operator in functional form, and as we mentioned 
+before, the assignment-by-reference operator cannot perform grouping
+operations. Therefore, the above expression instead overwrites each cell of 
+<em>LOSS_AMT_ORIG</em> and <em>LOSS_AMT_2014</em> with the non-partitioned aggregate sum of 
+each column respectively. Here&#8217;s a look at the first 10&nbsp;records: </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DF<span class="p">[,</span> <span class="sb">`:=`</span> 
+    <span class="p">(</span>LOSS_AMT_ORIG<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_ORIG<span class="p">),</span>
+     LOSS_AMT_2014<span class="o">=</span><span class="kp">sum</span><span class="p">(</span>LOSS_AMT_2014<span class="p">))][]</span>
+
+    YEAR QUARTER         TYPE                          LOCATION LOSS_AMT_ORIG LOSS_AMT_2014
+ <span class="m">1</span><span class="o">:</span> <span class="m">2014</span>       <span class="m">4</span> Power outage                          Auckland      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+ <span class="m">2</span><span class="o">:</span> <span class="m">2014</span>       <span class="m">2</span>        Flood                    Nelson<span class="p">,</span> Tasman      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+ <span class="m">3</span><span class="o">:</span> <span class="m">2014</span>       <span class="m">2</span>      Weather           North and South Islands      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+ <span class="m">4</span><span class="o">:</span> <span class="m">2014</span>       <span class="m">2</span> Flood<span class="p">,</span> Storm                                <span class="kc">NA</span>      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+ <span class="m">5</span><span class="o">:</span> <span class="m">2014</span>       <span class="m">1</span>      Cyclone                                <span class="kc">NA</span>      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+ <span class="m">6</span><span class="o">:</span> <span class="m">2014</span>       <span class="m">1</span>        Storm                        Canterbury      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+ <span class="m">7</span><span class="o">:</span> <span class="m">2014</span>       <span class="m">1</span>        Storm Canterbury and Lower North Island      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+ <span class="m">8</span><span class="o">:</span> <span class="m">2013</span>       <span class="m">4</span>        Storm                        Nationwide      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+ <span class="m">9</span><span class="o">:</span> <span class="m">2013</span>       <span class="m">3</span>        Storm                        Nationwide      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+<span class="m">10</span><span class="o">:</span> <span class="m">2013</span>       <span class="m">3</span>   Earthquake                       Cook Strait      <span class="m">18065.72</span>      <span class="m">19977.66</span>
+</pre></div>
+
+
+<p><br>
+Depending on the context, this may or may not be the desired result of an 
+aggregate operation. But more importantly, being able to identify when the 
+assignment-by-reference operator should be used in a data.table expression and 
+when it shouldn&#8217;t is an important skill to develop, and comes in especially 
+handy when debugging data.table code that you didn&#8217;t author.<br>
+<br></p>
+<h2>Conclusion</h2>
+<p>In this post, we introduced data aggregation within the context of the 
+powerful data.table library. We touched on aggregation via data.table&#8217;s 
+special symbols, and presented the two ways in which the 
+assignment-by-reference operator can be used. But this post serves only as an 
+introduction. For more information many more advanced use cases and examples, 
+I suggest becoming familiar with the 
+<a href="https://cran.r-project.org/web/packages/data.table/data.table.pdf">data.table reference manual</a>. 
+In my opinion, the developers, contributors and maintainers of data.table 
+produce one of the best, most useful open source library references I&#8217;ve seen. 
+Like every other reference manual, the library&#8217;s <span class="caps">API</span> is covered in detail, but 
+what really sets it apart is the examples: In addition to the minimally useful 
+annotations that demonstrate a given callable&#8217;s most basic functionality, many 
+sections include additional detail with a wealth of useful examples and 
+alternate approaches the user might not have even known were possible. 
+Sections that come immediately to mind are the assignment-by-reference 
+operator (identified as <code>:=</code> in the table of contents), <em>melt.data.table</em>, 
+<em>dcast.data.table</em> and <em>special-symbols</em>. Despite using data.table on a 
+regular basis, I still peruse the manual after each release, and each time end 
+up taking something away that I hadn&#8217;t known before. I encourage you to get in
+the habit of doing the same.         <br>
+Until next time, happy&nbsp;coding!     </p>
+<h3>Footnotes:</h3>
+<ol>
+<li>https://github.com/Rdatatable/data.table/wiki     </li>
+<li>https://cran.r-project.org/web/packages/data.table/data.table.pdf,&nbsp;pg.93   </li>
+</ol>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

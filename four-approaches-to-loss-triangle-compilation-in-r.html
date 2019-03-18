@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Four Approaches to Loss Triangle Compilation in R - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/four-approaches-to-loss-triangle-compilation-in-r.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="R,Actuarial" />
+        <meta name="description" content="Various approaches to compiling loss reserving triangles in R" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Four Approaches to Loss Triangle Compilation in R"/>
+        <meta property="og:url" content="https://jtrive84.github.io/four-approaches-to-loss-triangle-compilation-in-r.html"/>
+        <meta property="og:description" content="Various approaches to compiling loss reserving triangles in R"/>
+        <meta property="article:published_time" content="2018-02-26" />
+            <meta property="article:section" content="R" />
+            <meta property="article:tag" content="R" />
+            <meta property="article:tag" content="Actuarial" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/r.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out R ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/four-approaches-to-loss-triangle-compilation-in-r.html"
+                       rel="bookmark"
+                       title="Permalink to Four Approaches to Loss Triangle Compilation in R">
+                        Four Approaches to Loss Triangle Compilation in&nbsp;R
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-02-26T00:00:00-06:00"> 2018-02-26</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/r.html">R</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/r.html">R</a>
+        /
+	<a href="https://jtrive84.github.io/tag/actuarial.html">Actuarial</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>The Loss Triangle is a data structure familiar to both pricing and reserving Actuaries commonly used to organize losses by date of occurance (generally the vertical axis), and in the case of paid loss triangles, the date of payment (horizontal axis). In practice, triangles present losses in one of two states: Incremental loss triangles represent losses for a given accident year an a particular point in time. Cumulative loss triangles represent the cumulative losses to date up to and including the development period from which losses are evaluated. A typical example is shown below:   <br>
+<br>
+<p align="center"> 
+<img alt="lossTri" src="/images/triangles.png">
+</p> <br>
+<br>
+This post does not detail the <em>what</em> of loss reserving triangles, but instead focuses on the <em>how</em>, namely how to convert transactional loss data into a triangle structure using base R, the foreach package, the data.table package and finally the ChainLadder package. 
+For more information specific to the <em>what</em> of loss triangles, refer to Jaqueline Friedland&#8217;s <a href="https://www.casact.org/library/studynotes/Friedland_estimating.pdf"><em>Estimating Unpaid Claims Using Basic Techniques</em></a>, in particular chapters 5 and 6.  <br>
+<br>
+For the purposes of consistency and clarity of exposition, all examples reference a loss dataset made available by the Reinsurance Association of America, which can be downloaded <a href="https://gist.github.com/jtrive84/976c80786a6e97cce7483e306562f85b">here</a>. This is the same dataset identified as <code>RAA</code> in the <code>ChainLadder</code> package, the only difference being the above referenced dataset contains incremental (as opposed to cumulative) losses. The available fields are:
+<br>
+<em>  <strong><span class="caps">ORIGIN</span></strong> - The year in which the loss occurred. 
+<br>   <br>
+</em>  <strong><span class="caps">DEV</span></strong> - The development period. In the case of paid losses, the number of periods (months, years, etc&#8230;) after the occurance that payment was made. 
+<br> <br>
+*  <strong><span class="caps">VALUE</span></strong> - In the case of paid losses, the paid loss amount (in dollars) for losses at each valid cell representing the intersection of <code>ORIGIN</code> and <code>DEV</code>. 
+<br>    </p>
+<h2>Method I: Base&nbsp;R</h2>
+<p>Although not the most straightforward approach, it is possible to convert transactional loss data into triangle format without the use of 3rd-party libraries. The next example demonstrates one possible method:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># =============================================</span>
+<span class="c1"># Loss Triangle Compilation in R: Method I    |</span>
+<span class="c1"># =============================================</span>
+
+<span class="c1"># Read in RAA.csv =&gt;</span>
+DF <span class="o">=</span> read.table<span class="p">(</span>
+    file<span class="o">=</span><span class="s">&quot;E:/Repos/trikit/datasets/RAA.csv&quot;</span><span class="p">,</span>
+    header<span class="o">=</span><span class="kc">TRUE</span><span class="p">,</span>
+    sep<span class="o">=</span><span class="s">&quot;,&quot;</span><span class="p">,</span>
+    row.names<span class="o">=</span><span class="kc">NULL</span><span class="p">,</span>
+    stringsAsFactors<span class="o">=</span><span class="kc">FALSE</span>
+    <span class="p">)</span>
+
+
+triData1 <span class="o">=</span> <span class="kt">matrix</span><span class="p">(</span>
+    nrow<span class="o">=</span><span class="kp">length</span><span class="p">(</span><span class="kp">unique</span><span class="p">(</span>DF<span class="o">$</span>ORIGIN<span class="p">)),</span>
+    ncol<span class="o">=</span><span class="kp">length</span><span class="p">(</span><span class="kp">unique</span><span class="p">(</span>DF<span class="o">$</span>DEV<span class="p">)),</span>
+    dimnames<span class="o">=</span><span class="kt">list</span><span class="p">(</span>
+            ORIGIN<span class="o">=</span><span class="kp">sort</span><span class="p">(</span><span class="kp">unique</span><span class="p">(</span>DF<span class="o">$</span>ORIGIN<span class="p">)),</span>
+            DEV<span class="o">=</span><span class="kp">sort</span><span class="p">(</span><span class="kp">unique</span><span class="p">(</span>DF<span class="o">$</span>DEV<span class="p">))</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+triData1<span class="p">[</span><span class="kp">cbind</span><span class="p">(</span><span class="kp">factor</span><span class="p">(</span>DF<span class="o">$</span>ORIGIN<span class="p">),</span>DF<span class="o">$</span>DEV<span class="p">)]</span> <span class="o">=</span> DF<span class="o">$</span>VALUE
+
+
+Printing triData1 <span class="o">=&gt;</span>
+<span class="o">&gt;</span> <span class="kp">print</span><span class="p">(</span>triData1<span class="p">)</span>
+
+      DEV
+ORIGIN    <span class="m">1</span>    <span class="m">2</span>    <span class="m">3</span>    <span class="m">4</span>    <span class="m">5</span>    <span class="m">6</span>    <span class="m">7</span>   <span class="m">8</span>   <span class="m">9</span>  <span class="m">10</span>
+  <span class="m">1981</span> <span class="m">5012</span> <span class="m">3257</span> <span class="m">2638</span>  <span class="m">898</span> <span class="m">1734</span> <span class="m">2642</span> <span class="m">1828</span> <span class="m">599</span>  <span class="m">54</span> <span class="m">172</span>
+  <span class="m">1982</span>  <span class="m">106</span> <span class="m">4179</span> <span class="m">1111</span> <span class="m">5270</span> <span class="m">3116</span> <span class="m">1817</span> <span class="m">-103</span> <span class="m">673</span> <span class="m">535</span>  <span class="kc">NA</span>
+  <span class="m">1983</span> <span class="m">3410</span> <span class="m">5582</span> <span class="m">4881</span> <span class="m">2268</span> <span class="m">2594</span> <span class="m">3479</span>  <span class="m">649</span> <span class="m">603</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">5655</span> <span class="m">5900</span> <span class="m">4211</span> <span class="m">5500</span> <span class="m">2159</span> <span class="m">2658</span>  <span class="m">984</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">1092</span> <span class="m">8473</span> <span class="m">6271</span> <span class="m">6333</span> <span class="m">3786</span>  <span class="m">225</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">1513</span> <span class="m">4932</span> <span class="m">5257</span> <span class="m">1233</span> <span class="m">2917</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1987</span>  <span class="m">557</span> <span class="m">3463</span> <span class="m">6926</span> <span class="m">1368</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">1351</span> <span class="m">5596</span> <span class="m">6165</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">3133</span> <span class="m">2262</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">2063</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+</pre></div>
+
+
+<p><br>
+The base R method returns the triangle as a matrix of incremental losses. To obtain a triangle of cumulative losses, run the following:
+ <br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> triData1c <span class="o">=</span> <span class="kp">t</span><span class="p">(</span><span class="kp">apply</span><span class="p">(</span><span class="kp">apply</span><span class="p">(</span>triData1<span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="kp">cumsum</span><span class="p">),</span> <span class="m">1</span><span class="p">,</span> <span class="kp">cumsum</span><span class="p">))</span>
+
+<span class="o">&gt;</span> <span class="kp">print</span><span class="p">(</span>triData1c<span class="p">)</span>
+
+      DEV
+ORIGIN     <span class="m">1</span>     <span class="m">2</span>     <span class="m">3</span>      <span class="m">4</span>      <span class="m">5</span>      <span class="m">6</span>     <span class="m">7</span>     <span class="m">8</span>     <span class="m">9</span>    <span class="m">10</span>
+  <span class="m">1981</span>  <span class="m">5012</span>  <span class="m">8269</span> <span class="m">10907</span>  <span class="m">11805</span>  <span class="m">13539</span>  <span class="m">16181</span> <span class="m">18009</span> <span class="m">18608</span> <span class="m">18662</span> <span class="m">18834</span>
+  <span class="m">1982</span>  <span class="m">5118</span> <span class="m">12554</span> <span class="m">16303</span>  <span class="m">22471</span>  <span class="m">27321</span>  <span class="m">31780</span> <span class="m">33505</span> <span class="m">34777</span> <span class="m">35366</span>    <span class="kc">NA</span>
+  <span class="m">1983</span>  <span class="m">8528</span> <span class="m">21546</span> <span class="m">30176</span>  <span class="m">38612</span>  <span class="m">46056</span>  <span class="m">53994</span> <span class="m">56368</span> <span class="m">58243</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">14183</span> <span class="m">33101</span> <span class="m">45942</span>  <span class="m">59878</span>  <span class="m">69481</span>  <span class="m">80077</span> <span class="m">83435</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">15275</span> <span class="m">42666</span> <span class="m">61778</span>  <span class="m">82047</span>  <span class="m">95436</span> <span class="m">106257</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">16788</span> <span class="m">49111</span> <span class="m">73480</span>  <span class="m">94982</span> <span class="m">111288</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1987</span> <span class="m">17345</span> <span class="m">53131</span> <span class="m">84426</span> <span class="m">107296</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">18696</span> <span class="m">60078</span> <span class="m">97538</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">21829</span> <span class="m">65473</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">23892</span>    <span class="kc">NA</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+</pre></div>
+
+
+<p><br></p>
+<h2>Method <span class="caps">II</span>: Using&nbsp;foreach+data.table</h2>
+<p>The <a href="https://cran.r-project.org/web/packages/foreach/vignettes/foreach.pdf"><code>foreach</code></a> package provides a new looping construct for executing R code repeatedly. It is especially useful in developing platform-independent applications that distribute tasks across multiple cores.   <br>
+<a href="https://cran.r-project.org/web/packages/data.table/data.table.pdf"><code>data.table</code></a> facilitates fast aggregation of large data, fast ordered joins and fast add/modify/delete of columns by group using no copies at all. <br>
+In this example, we use the <code>foreach</code> constructor, along with <code>data.table</code><span class="quo">&#8216;</span>s <code>rbindlist</code> function to compile a triangle of incremental losses:  <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># =============================================</span>
+<span class="c1"># Loss Triangle Compilation in R: Method II   |</span>
+<span class="c1"># =============================================</span>
+<span class="kp">suppressPackageStartupMessages</span><span class="p">(</span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">))</span>
+<span class="kp">suppressPackageStartupMessages</span><span class="p">(</span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;foreach&quot;</span><span class="p">))</span>
+
+<span class="c1"># Read in RAA.csv =&gt;</span>
+DF <span class="o">=</span> read.table<span class="p">(</span>
+    file<span class="o">=</span><span class="s">&quot;E:/Repos/trikit/datasets/RAA.csv&quot;</span><span class="p">,</span>
+    header<span class="o">=</span><span class="kc">TRUE</span><span class="p">,</span>
+    sep<span class="o">=</span><span class="s">&quot;,&quot;</span><span class="p">,</span>
+    row.names<span class="o">=</span><span class="kc">NULL</span><span class="p">,</span>
+    stringsAsFactors<span class="o">=</span><span class="kc">FALSE</span>
+    <span class="p">)</span>
+
+
+lossList <span class="o">=</span> <span class="kp">split</span><span class="p">(</span>setDT<span class="p">(</span>DF<span class="p">),</span> by<span class="o">=</span><span class="s">&quot;ORIGIN&quot;</span><span class="p">)</span>
+
+triData2 <span class="o">=</span> foreach<span class="p">(</span>
+    i<span class="o">=</span><span class="m">1</span><span class="o">:</span><span class="kp">length</span><span class="p">(</span>lossList<span class="p">),</span> 
+    <span class="m">.</span>final<span class="o">=</span><span class="kr">function</span><span class="p">(</span>l<span class="p">)</span> rbindlist<span class="p">(</span>l<span class="p">,</span>fill<span class="o">=</span><span class="kc">TRUE</span><span class="p">))</span> <span class="o">%do%</span> <span class="p">{</span>
+
+    iterList <span class="o">=</span> setNames<span class="p">(</span>
+                   <span class="kp">as.list</span><span class="p">(</span>lossList<span class="p">[[</span>i<span class="p">]]</span><span class="o">$</span>VALUE<span class="p">),</span>
+                   nm<span class="o">=</span><span class="kp">as.character</span><span class="p">(</span>lossList<span class="p">[[</span>i<span class="p">]]</span><span class="o">$</span>DEV<span class="p">)</span>
+                   <span class="p">)</span>
+
+    <span class="kp">append</span><span class="p">(</span><span class="kt">list</span><span class="p">(</span>ORIGIN<span class="o">=</span><span class="kp">names</span><span class="p">(</span>lossList<span class="p">)[</span>i<span class="p">]),</span>iterList<span class="p">)</span>
+<span class="p">}</span>
+
+
+Printing triData2 <span class="o">=&gt;</span>
+<span class="o">&gt;</span> print triData2
+
+      DEV
+ORIGIN    <span class="m">1</span>    <span class="m">2</span>    <span class="m">3</span>    <span class="m">4</span>    <span class="m">5</span>    <span class="m">6</span>    <span class="m">7</span>   <span class="m">8</span>   <span class="m">9</span>  <span class="m">10</span>
+  <span class="m">1981</span> <span class="m">5012</span> <span class="m">3257</span> <span class="m">2638</span>  <span class="m">898</span> <span class="m">1734</span> <span class="m">2642</span> <span class="m">1828</span> <span class="m">599</span>  <span class="m">54</span> <span class="m">172</span>
+  <span class="m">1982</span>  <span class="m">106</span> <span class="m">4179</span> <span class="m">1111</span> <span class="m">5270</span> <span class="m">3116</span> <span class="m">1817</span> <span class="m">-103</span> <span class="m">673</span> <span class="m">535</span>  <span class="kc">NA</span>
+  <span class="m">1983</span> <span class="m">3410</span> <span class="m">5582</span> <span class="m">4881</span> <span class="m">2268</span> <span class="m">2594</span> <span class="m">3479</span>  <span class="m">649</span> <span class="m">603</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">5655</span> <span class="m">5900</span> <span class="m">4211</span> <span class="m">5500</span> <span class="m">2159</span> <span class="m">2658</span>  <span class="m">984</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">1092</span> <span class="m">8473</span> <span class="m">6271</span> <span class="m">6333</span> <span class="m">3786</span>  <span class="m">225</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">1513</span> <span class="m">4932</span> <span class="m">5257</span> <span class="m">1233</span> <span class="m">2917</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1987</span>  <span class="m">557</span> <span class="m">3463</span> <span class="m">6926</span> <span class="m">1368</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">1351</span> <span class="m">5596</span> <span class="m">6165</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">3133</span> <span class="m">2262</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">2063</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+</pre></div>
+
+
+<p><br>
+In Method <span class="caps">II</span>, the transactional loss data is first split into a list of data.tables by common <code>ORIGIN</code> which we named <code>lossList</code>. The <code>foreach</code> constructor then iterates over <code>lossList</code>, transforming each data.table into what amounts to a single row in the incremental triangle. Notice that within the <code>foreach</code> constructor, we specify a function for the <code>.final</code> parameter: When defined, <code>.final</code> specifies a function of one argument that is called to return final result. <code>data.table</code><span class="quo">&#8216;</span>s <code>rbindlist</code> takes as input a list of data.table&#8217;s/data.frame&#8217;s and concatenates them horizontally, returning a single data.table. 
+<br>
+When the resulting triangle of incremental losses is returned as a data.table/data.frame, we can generate the cumulative loss
+triangle in the following manner:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># Starting from triData2 incremental losses =&gt;</span>
+devDF <span class="o">=</span> triData2<span class="p">[,</span><span class="o">-</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;ORIGIN&quot;</span><span class="p">)]</span>
+
+devDF<span class="p">[,</span><span class="kp">names</span><span class="p">(</span>devDF<span class="p">)</span><span class="o">:=</span><span class="kp">Reduce</span><span class="p">(</span><span class="sb">`+`</span><span class="p">,</span>devDF<span class="p">,</span>accumulate<span class="o">=</span><span class="kc">TRUE</span><span class="p">)]</span>
+
+triData2c <span class="o">=</span> <span class="kp">cbind</span><span class="p">(</span>triData2<span class="p">[,</span><span class="m">.</span><span class="p">(</span>ORIGIN<span class="p">)],</span>devDF<span class="p">)</span>
+
+
+<span class="c1"># Printing cumulative loss triangle =&gt;</span>
+<span class="o">&gt;</span> <span class="kp">print</span><span class="p">(</span>triData2c<span class="p">)</span>
+
+      DEV
+ORIGIN     <span class="m">1</span>     <span class="m">2</span>     <span class="m">3</span>      <span class="m">4</span>      <span class="m">5</span>      <span class="m">6</span>     <span class="m">7</span>     <span class="m">8</span>     <span class="m">9</span>    <span class="m">10</span>
+  <span class="m">1981</span>  <span class="m">5012</span>  <span class="m">8269</span> <span class="m">10907</span>  <span class="m">11805</span>  <span class="m">13539</span>  <span class="m">16181</span> <span class="m">18009</span> <span class="m">18608</span> <span class="m">18662</span> <span class="m">18834</span>
+  <span class="m">1982</span>  <span class="m">5118</span> <span class="m">12554</span> <span class="m">16303</span>  <span class="m">22471</span>  <span class="m">27321</span>  <span class="m">31780</span> <span class="m">33505</span> <span class="m">34777</span> <span class="m">35366</span>    <span class="kc">NA</span>
+  <span class="m">1983</span>  <span class="m">8528</span> <span class="m">21546</span> <span class="m">30176</span>  <span class="m">38612</span>  <span class="m">46056</span>  <span class="m">53994</span> <span class="m">56368</span> <span class="m">58243</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">14183</span> <span class="m">33101</span> <span class="m">45942</span>  <span class="m">59878</span>  <span class="m">69481</span>  <span class="m">80077</span> <span class="m">83435</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">15275</span> <span class="m">42666</span> <span class="m">61778</span>  <span class="m">82047</span>  <span class="m">95436</span> <span class="m">106257</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">16788</span> <span class="m">49111</span> <span class="m">73480</span>  <span class="m">94982</span> <span class="m">111288</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1987</span> <span class="m">17345</span> <span class="m">53131</span> <span class="m">84426</span> <span class="m">107296</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">18696</span> <span class="m">60078</span> <span class="m">97538</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">21829</span> <span class="m">65473</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">23892</span>    <span class="kc">NA</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+</pre></div>
+
+
+<p><br>
+First the <code>ORIGIN</code> field is removed from <code>triData2</code>, so that <code>devDF</code> consists only of the development period columns. Next <a href="https://www.rdocumentation.org/packages/base/versions/3.4.3/topics/funprog"><code>Reduce</code></a> is applied to all rows, specifying <code>accumulate=TRUE</code> so that a cumulative sum is calculated. Finally, <code>ORIGIN</code> is vertically concatenated back with the cumulated losses by development period and named <code>triData2c</code>.       <br>
+<br>
+We next demonstrate a method for transforming datasets that highlights the power and ease-of-use of  the <code>data.table</code> package.<br>
+<br></p>
+<h2>Method <span class="caps">III</span>:&nbsp;data.table</h2>
+<p><code>data.table</code><span class="quo">&#8216;</span>s <code>dcast</code> function is a very powerful and flexibile utility used primarily for reshaping datasets. Fieldnames are specified and used as column and row indicies in terms of a formula that follows the form <code>LHS ~ RHS</code> (see the <a href="https://www.rdocumentation.org/packages/data.table/versions/1.10.4-2/topics/dcast.data.table">help page</a> for more information).    <br>
+For Method <span class="caps">III</span>, <code>dcast</code> is used to convert the <span class="caps">RAA</span> transactional loss data into an incremental loss triangle using a single function call:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># =============================================</span>
+<span class="c1"># Loss Triangle Compilation in R: Method III  |</span>
+<span class="c1"># =============================================</span>
+<span class="kp">suppressPackageStartupMessages</span><span class="p">(</span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">))</span>
+
+<span class="c1"># Read in RAA.csv =&gt;</span>
+DF <span class="o">=</span> read.table<span class="p">(</span>
+    file<span class="o">=</span><span class="s">&quot;E:/Repos/trikit/datasets/RAA.csv&quot;</span><span class="p">,</span>
+    header<span class="o">=</span><span class="kc">TRUE</span><span class="p">,</span>
+    sep<span class="o">=</span><span class="s">&quot;,&quot;</span><span class="p">,</span>
+    row.names<span class="o">=</span><span class="kc">NULL</span><span class="p">,</span>
+    stringsAsFactors<span class="o">=</span><span class="kc">FALSE</span>
+    <span class="p">)</span>
+
+triData3 <span class="o">=</span> dcast<span class="p">(</span>DF<span class="p">,</span>ORIGIN<span class="o">~</span>DEV<span class="p">,</span>value.var<span class="o">=</span><span class="s">&quot;VALUE&quot;</span><span class="p">,</span>fill<span class="o">=</span><span class="kc">NA</span><span class="p">)</span>
+
+<span class="c1"># Printing triData3 =&gt;</span>
+<span class="o">&gt;</span> <span class="kp">print</span><span class="p">(</span>triData3<span class="p">)</span>
+
+DEV
+ORIGIN    <span class="m">1</span>    <span class="m">2</span>    <span class="m">3</span>    <span class="m">4</span>    <span class="m">5</span>    <span class="m">6</span>    <span class="m">7</span>   <span class="m">8</span>   <span class="m">9</span>  <span class="m">10</span>
+  <span class="m">1981</span> <span class="m">5012</span> <span class="m">3257</span> <span class="m">2638</span>  <span class="m">898</span> <span class="m">1734</span> <span class="m">2642</span> <span class="m">1828</span> <span class="m">599</span>  <span class="m">54</span> <span class="m">172</span>
+  <span class="m">1982</span>  <span class="m">106</span> <span class="m">4179</span> <span class="m">1111</span> <span class="m">5270</span> <span class="m">3116</span> <span class="m">1817</span> <span class="m">-103</span> <span class="m">673</span> <span class="m">535</span>  <span class="kc">NA</span>
+  <span class="m">1983</span> <span class="m">3410</span> <span class="m">5582</span> <span class="m">4881</span> <span class="m">2268</span> <span class="m">2594</span> <span class="m">3479</span>  <span class="m">649</span> <span class="m">603</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">5655</span> <span class="m">5900</span> <span class="m">4211</span> <span class="m">5500</span> <span class="m">2159</span> <span class="m">2658</span>  <span class="m">984</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">1092</span> <span class="m">8473</span> <span class="m">6271</span> <span class="m">6333</span> <span class="m">3786</span>  <span class="m">225</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">1513</span> <span class="m">4932</span> <span class="m">5257</span> <span class="m">1233</span> <span class="m">2917</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1987</span>  <span class="m">557</span> <span class="m">3463</span> <span class="m">6926</span> <span class="m">1368</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">1351</span> <span class="m">5596</span> <span class="m">6165</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">3133</span> <span class="m">2262</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">2063</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+</pre></div>
+
+
+<p><br>
+The first argument to <code>dcast</code> is the dataset. <code>ORIGIN~DEV</code> is then specified, with <code>ORIGIN</code> corresponding to the <span class="caps">LHS</span> and <code>DEV</code> the <span class="caps">RHS</span>. <code>value.var</code> specifies the field over which to aggregate, and <code>fill</code> specifies how populate invalid cell references  (defaults to 0).         <br>
+Since <code>dcast</code> returns a data.table, the approach demonstrated in Method <span class="caps">II</span> can be used to obtain a triangle of cumulative losses, and so it will not be repeaed here. However, the data.table approach enables us to perform a task which is non-trivial to perform using the other methods: Converting a loss triangle back into a dataset of transactional losses. This is accomplished with data.table&#8217;s <a href="https://www.rdocumentation.org/packages/data.table/versions/1.10.4-2/topics/melt.data.table"><code>melt</code></a> function. In the next example, we convert <code>triData3</code> back into the <span class="caps">RAA</span> dataset:
+<br></p>
+<div class="highlight"><pre><span></span><span class="kp">suppressPackageStartupMessages</span><span class="p">(</span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">))</span>
+
+<span class="c1"># Convert a loss triangle back into transactional loss data.</span>
+<span class="c1"># Assume triData3 exists and represents incremental loss </span>
+<span class="c1"># data compiled from RAA.csv =&gt;</span>
+
+DF2 <span class="o">=</span> data.table<span class="o">::</span>melt<span class="p">(</span>
+            triData3<span class="p">,</span> 
+            id.vars<span class="o">=</span><span class="s">&quot;ORIGIN&quot;</span><span class="p">,</span> 
+            variable.name<span class="o">=</span><span class="s">&quot;DEV&quot;</span><span class="p">,</span>
+            value.name<span class="o">=</span><span class="s">&quot;VALUE&quot;</span><span class="p">,</span>
+            value.factor<span class="o">=</span><span class="kc">FALSE</span><span class="p">,</span>
+            variable.factor<span class="o">=</span><span class="kc">FALSE</span><span class="p">,</span>
+            na.rm<span class="o">=</span><span class="kc">TRUE</span>
+            <span class="p">)</span>
+
+<span class="c1"># Convert `DEV` back to numeric and order records =&gt;</span>
+DF2<span class="p">[[</span><span class="s">&quot;DEV&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="kp">as.integer</span><span class="p">(</span>DF2<span class="p">[[</span><span class="s">&quot;DEV&quot;</span><span class="p">]])</span>
+DF2 <span class="o">=</span> DF2<span class="p">[</span><span class="kp">order</span><span class="p">(</span>ORIGIN<span class="p">,</span>DEV<span class="p">)]</span>
+
+
+<span class="c1"># Test equivalence of DF and DF2 =&gt;</span>
+<span class="o">&gt;</span> <span class="kp">all.equal</span><span class="p">(</span>DF<span class="p">,</span> DF2<span class="p">)</span>
+
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="kc">TRUE</span>
+</pre></div>
+
+
+<p><br>
+The first argument to <code>melt</code> is the triangle of incremental losses. Next, we specify the <code>id.vars</code>, <code>variable.name</code> and &#8216;value.name<code>, with</code>value.name<code>representing the measure of interest.</code>value.factor<code>and</code>variable.factor<code>specify whether the value(s) and/or variable(s) should be returned as factors, and</code>na.rm<code>indicates whether or not records containing</code><span class="caps">NA</span><code>'s should be removed from the dataset.  
+There are many excellent examples contained within</code>melt<code>'s help page where it greatly simplifies what were at one time arduous data manipulation tasks into a simple function call. I highly encourage anyone working with data in R on regular basis to become intimately familiar with</code>melt<code>and</code>dcast`, but perhaps more importantly data.table in general (to start, check out a post on data.table&#8217;s Special Symbols <a href="https://jtrive84.github.io/introduction-to-datatables-special-symbols.html">here</a>).
+<br></p>
+<h2>Method <span class="caps">IV</span>:&nbsp;ChainLadder</h2>
+<p>The <a href="https://cran.r-project.org/web/packages/ChainLadder/vignettes/ChainLadder.pdf"><code>ChainLadder</code></a> package provides various statistical methods which are typically used for the estimation of outstanding claims reserves in general
+insurance. It includes a suite of utilities that ca nbe used to estimate outstanding claim liabilities, but those utilities will not be covered here. Of interest to this post is the <code>triangle</code> class made available by <code>ChainLadder</code>. The <code>as.triangle</code> declaration is as follows:
+<br>&#8220;`R
+as.triangle(Triangle, origin=&#8221;origin&#8221;, dev=&#8221;dev&#8221;,&nbsp;value=&#8221;value&#8221;,&#8230;)</p>
+<div class="highlight"><pre><span></span>&lt;br&gt;
+`Triangle` represents the transactional loss dataset. For `origin`, `dev` and `value`, specify the corresponding fieldnames contained in the dataset. Referring again to the RAA dataset:
+&lt;br&gt;
+```R
+# =============================================
+# Loss Triangle Compilation in R: Method IV   |
+# =============================================
+suppressPackageStartupMessages(library(&quot;ChainLadder&quot;))
+
+# Read in RAA.csv =&gt;
+DF = read.table(
+    file=&quot;E:/Repos/trikit/datasets/RAA.csv&quot;,
+    header=TRUE,
+    sep=&quot;,&quot;,
+    row.names=NULL,
+    stringsAsFactors=FALSE
+    )
+
+
+# Fieldnames in DF are &quot;ORIGIN&quot;, &quot;DEV&quot;, &quot;VALUE&quot; =&gt;
+triData4 = as.triangle(DF, origin=&quot;ORIGIN&quot;, dev=&quot;DEV&quot;, value=&quot;VALUE&quot;)
+
+
+Printing triData4 =&gt;
+&gt; print triData4
+
+
+      DEV
+ORIGIN    1    2    3    4    5    6    7   8   9  10
+  1981 5012 3257 2638  898 1734 2642 1828 599  54 172
+  1982  106 4179 1111 5270 3116 1817 -103 673 535  NA
+  1983 3410 5582 4881 2268 2594 3479  649 603  NA  NA
+  1984 5655 5900 4211 5500 2159 2658  984  NA  NA  NA
+  1985 1092 8473 6271 6333 3786  225   NA  NA  NA  NA
+  1986 1513 4932 5257 1233 2917   NA   NA  NA  NA  NA
+  1987  557 3463 6926 1368   NA   NA   NA  NA  NA  NA
+  1988 1351 5596 6165   NA   NA   NA   NA  NA  NA  NA
+  1989 3133 2262   NA   NA   NA   NA   NA  NA  NA  NA
+  1990 2063   NA   NA   NA   NA   NA   NA  NA  NA  NA
+</pre></div>
+
+
+<p><br>
+The ChainLadder packages comes with two convenience functions that allow for seamless conversion from incremental to cumulative or cumulative to incremental triangles. They are <code>incr2cum</code> and <code>cum2incr</code> respectively. We&#8217;ll use the former to obtain <code>triData4c</code>:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># Assume incremental loss triangle triData4 exists =&gt;</span>
+triData4c <span class="o">=</span> incr2cum<span class="p">(</span>triData4<span class="p">)</span>
+
+
+<span class="c1"># Printing triData4c =&gt;</span>
+<span class="o">&gt;</span> <span class="kp">print</span><span class="p">(</span>triData4c<span class="p">)</span>
+
+      DEV
+ORIGIN     <span class="m">1</span>     <span class="m">2</span>     <span class="m">3</span>      <span class="m">4</span>      <span class="m">5</span>      <span class="m">6</span>     <span class="m">7</span>     <span class="m">8</span>     <span class="m">9</span>    <span class="m">10</span>
+  <span class="m">1981</span>  <span class="m">5012</span>  <span class="m">8269</span> <span class="m">10907</span>  <span class="m">11805</span>  <span class="m">13539</span>  <span class="m">16181</span> <span class="m">18009</span> <span class="m">18608</span> <span class="m">18662</span> <span class="m">18834</span>
+  <span class="m">1982</span>  <span class="m">5118</span> <span class="m">12554</span> <span class="m">16303</span>  <span class="m">22471</span>  <span class="m">27321</span>  <span class="m">31780</span> <span class="m">33505</span> <span class="m">34777</span> <span class="m">35366</span>    <span class="kc">NA</span>
+  <span class="m">1983</span>  <span class="m">8528</span> <span class="m">21546</span> <span class="m">30176</span>  <span class="m">38612</span>  <span class="m">46056</span>  <span class="m">53994</span> <span class="m">56368</span> <span class="m">58243</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">14183</span> <span class="m">33101</span> <span class="m">45942</span>  <span class="m">59878</span>  <span class="m">69481</span>  <span class="m">80077</span> <span class="m">83435</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">15275</span> <span class="m">42666</span> <span class="m">61778</span>  <span class="m">82047</span>  <span class="m">95436</span> <span class="m">106257</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">16788</span> <span class="m">49111</span> <span class="m">73480</span>  <span class="m">94982</span> <span class="m">111288</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1987</span> <span class="m">17345</span> <span class="m">53131</span> <span class="m">84426</span> <span class="m">107296</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">18696</span> <span class="m">60078</span> <span class="m">97538</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">21829</span> <span class="m">65473</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">23892</span>    <span class="kc">NA</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+</pre></div>
+
+
+<p><br>
+For completeness, <code>cum2incr</code> can be used to go from cumulative to incremental:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># Assume cumulative loss triangle triData4c exists =&gt;</span>
+triData4 <span class="o">=</span> cum2incr<span class="p">(</span>triData4c<span class="p">)</span>
+
+Printing triData4 <span class="p">(</span>again<span class="p">)</span> <span class="o">=&gt;</span>
+<span class="o">&gt;</span> print triData4
+
+
+      DEV
+ORIGIN    <span class="m">1</span>    <span class="m">2</span>    <span class="m">3</span>    <span class="m">4</span>    <span class="m">5</span>    <span class="m">6</span>    <span class="m">7</span>   <span class="m">8</span>   <span class="m">9</span>  <span class="m">10</span>
+  <span class="m">1981</span> <span class="m">5012</span> <span class="m">3257</span> <span class="m">2638</span>  <span class="m">898</span> <span class="m">1734</span> <span class="m">2642</span> <span class="m">1828</span> <span class="m">599</span>  <span class="m">54</span> <span class="m">172</span>
+  <span class="m">1982</span>  <span class="m">106</span> <span class="m">4179</span> <span class="m">1111</span> <span class="m">5270</span> <span class="m">3116</span> <span class="m">1817</span> <span class="m">-103</span> <span class="m">673</span> <span class="m">535</span>  <span class="kc">NA</span>
+  <span class="m">1983</span> <span class="m">3410</span> <span class="m">5582</span> <span class="m">4881</span> <span class="m">2268</span> <span class="m">2594</span> <span class="m">3479</span>  <span class="m">649</span> <span class="m">603</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">5655</span> <span class="m">5900</span> <span class="m">4211</span> <span class="m">5500</span> <span class="m">2159</span> <span class="m">2658</span>  <span class="m">984</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">1092</span> <span class="m">8473</span> <span class="m">6271</span> <span class="m">6333</span> <span class="m">3786</span>  <span class="m">225</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">1513</span> <span class="m">4932</span> <span class="m">5257</span> <span class="m">1233</span> <span class="m">2917</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1987</span>  <span class="m">557</span> <span class="m">3463</span> <span class="m">6926</span> <span class="m">1368</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">1351</span> <span class="m">5596</span> <span class="m">6165</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">3133</span> <span class="m">2262</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">2063</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>   <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>  <span class="kc">NA</span>
+</pre></div>
+
+
+<p><br>
+Something worth mentioning w.r.t. the behavior of <code>incr2cum</code> and <code>cum2incr</code>: Upon converting loss data into a triangle type, there is no internal reference that tracks whether the data originally represented cumulative or incremental losses. If you have incremental losses that are transformed into a <code>triangle</code> instance and then run <code>incr2cum</code> on that triangle, a triangle of incremental losses is returned as expected. However, if you pass that cumulative loss triangle <code>incr2cum</code> again, the function will cumulate the already cumulated losses. For example:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># Read in RAA.csv =&gt;</span>
+DF <span class="o">=</span> read.table<span class="p">(</span>
+    file<span class="o">=</span><span class="s">&quot;E:/Repos/trikit/datasets/RAA.csv&quot;</span><span class="p">,</span>
+    header<span class="o">=</span><span class="kc">TRUE</span><span class="p">,</span>
+    sep<span class="o">=</span><span class="s">&quot;,&quot;</span><span class="p">,</span>
+    row.names<span class="o">=</span><span class="kc">NULL</span><span class="p">,</span>
+    stringsAsFactors<span class="o">=</span><span class="kc">FALSE</span>
+    <span class="p">)</span>
+
+
+<span class="c1"># Fieldnames in DF are &quot;ORIGIN&quot;, &quot;DEV&quot;, &quot;VALUE&quot; =&gt;</span>
+triData4 <span class="o">=</span> as.triangle<span class="p">(</span>DF<span class="p">,</span> origin<span class="o">=</span><span class="s">&quot;ORIGIN&quot;</span><span class="p">,</span> dev<span class="o">=</span><span class="s">&quot;DEV&quot;</span><span class="p">,</span> value<span class="o">=</span><span class="s">&quot;VALUE&quot;</span><span class="p">)</span>
+
+triData4c <span class="o">=</span> incr2cum<span class="p">(</span>triData4<span class="p">)</span>
+
+<span class="o">&gt;</span> <span class="kp">print</span><span class="p">(</span>triData4c<span class="p">)</span>
+
+      DEV
+ORIGIN     <span class="m">1</span>     <span class="m">2</span>     <span class="m">3</span>      <span class="m">4</span>      <span class="m">5</span>      <span class="m">6</span>     <span class="m">7</span>     <span class="m">8</span>     <span class="m">9</span>    <span class="m">10</span>
+  <span class="m">1981</span>  <span class="m">5012</span>  <span class="m">8269</span> <span class="m">10907</span>  <span class="m">11805</span>  <span class="m">13539</span>  <span class="m">16181</span> <span class="m">18009</span> <span class="m">18608</span> <span class="m">18662</span> <span class="m">18834</span>
+  <span class="m">1982</span>  <span class="m">5118</span> <span class="m">12554</span> <span class="m">16303</span>  <span class="m">22471</span>  <span class="m">27321</span>  <span class="m">31780</span> <span class="m">33505</span> <span class="m">34777</span> <span class="m">35366</span>    <span class="kc">NA</span>
+  <span class="m">1983</span>  <span class="m">8528</span> <span class="m">21546</span> <span class="m">30176</span>  <span class="m">38612</span>  <span class="m">46056</span>  <span class="m">53994</span> <span class="m">56368</span> <span class="m">58243</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">14183</span> <span class="m">33101</span> <span class="m">45942</span>  <span class="m">59878</span>  <span class="m">69481</span>  <span class="m">80077</span> <span class="m">83435</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">15275</span> <span class="m">42666</span> <span class="m">61778</span>  <span class="m">82047</span>  <span class="m">95436</span> <span class="m">106257</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">16788</span> <span class="m">49111</span> <span class="m">73480</span>  <span class="m">94982</span> <span class="m">111288</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1987</span> <span class="m">17345</span> <span class="m">53131</span> <span class="m">84426</span> <span class="m">107296</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">18696</span> <span class="m">60078</span> <span class="m">97538</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">21829</span> <span class="m">65473</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">23892</span>    <span class="kc">NA</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>
+
+
+<span class="c1"># So far so good...Pass triData4c to incr2cum again =&gt;</span>
+triData4c2 <span class="o">=</span> incr2cum<span class="p">(</span>triData4c<span class="p">)</span>
+
+<span class="o">&gt;</span> <span class="kp">print</span><span class="p">(</span>triData4c2<span class="p">)</span>
+
+      DEV
+ORIGIN    <span class="m">1</span>     <span class="m">2</span>     <span class="m">3</span>     <span class="m">4</span>     <span class="m">5</span>      <span class="m">6</span>      <span class="m">7</span>      <span class="m">8</span>      <span class="m">9</span>     <span class="m">10</span>
+  <span class="m">1981</span> <span class="m">5012</span> <span class="m">13281</span> <span class="m">24188</span> <span class="m">35993</span> <span class="m">49532</span>  <span class="m">65713</span>  <span class="m">83722</span> <span class="m">102330</span> <span class="m">120992</span> <span class="m">139826</span>
+  <span class="m">1982</span>  <span class="m">106</span>  <span class="m">4391</span>  <span class="m">9787</span> <span class="m">20453</span> <span class="m">34235</span>  <span class="m">49834</span>  <span class="m">65330</span>  <span class="m">81499</span>  <span class="m">98203</span>     <span class="kc">NA</span>
+  <span class="m">1983</span> <span class="m">3410</span> <span class="m">12402</span> <span class="m">26275</span> <span class="m">42416</span> <span class="m">61151</span>  <span class="m">83365</span> <span class="m">106228</span> <span class="m">129694</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">5655</span> <span class="m">17210</span> <span class="m">32976</span> <span class="m">54242</span> <span class="m">77667</span> <span class="m">103750</span> <span class="m">130817</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">1092</span> <span class="m">10657</span> <span class="m">26493</span> <span class="m">48662</span> <span class="m">74617</span> <span class="m">100797</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">1513</span>  <span class="m">7958</span> <span class="m">19660</span> <span class="m">32595</span> <span class="m">48447</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1987</span>  <span class="m">557</span>  <span class="m">4577</span> <span class="m">15523</span> <span class="m">27837</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">1351</span>  <span class="m">8298</span> <span class="m">21410</span>    <span class="kc">NA</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">3133</span>  <span class="m">8528</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">2063</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+
+
+<span class="c1"># Pass triData4c2 to incr2cum again =&gt;</span>
+triData4c3 <span class="o">=</span> incr2cum<span class="p">(</span>triData4c2<span class="p">)</span>
+
+<span class="o">&gt;</span> <span class="kp">print</span><span class="p">(</span>triData4c2<span class="p">)</span>
+
+      DEV
+ORIGIN    <span class="m">1</span>     <span class="m">2</span>     <span class="m">3</span>      <span class="m">4</span>      <span class="m">5</span>      <span class="m">6</span>      <span class="m">7</span>      <span class="m">8</span>      <span class="m">9</span>     <span class="m">10</span>
+  <span class="m">1981</span> <span class="m">5012</span> <span class="m">18293</span> <span class="m">42481</span>  <span class="m">78474</span> <span class="m">128006</span> <span class="m">193719</span> <span class="m">277441</span> <span class="m">379771</span> <span class="m">500763</span> <span class="m">640589</span>
+  <span class="m">1982</span>  <span class="m">106</span>  <span class="m">4497</span> <span class="m">14284</span>  <span class="m">34737</span>  <span class="m">68972</span> <span class="m">118806</span> <span class="m">184136</span> <span class="m">265635</span> <span class="m">363838</span>     <span class="kc">NA</span>
+  <span class="m">1983</span> <span class="m">3410</span> <span class="m">15812</span> <span class="m">42087</span>  <span class="m">84503</span> <span class="m">145654</span> <span class="m">229019</span> <span class="m">335247</span> <span class="m">464941</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1984</span> <span class="m">5655</span> <span class="m">22865</span> <span class="m">55841</span> <span class="m">110083</span> <span class="m">187750</span> <span class="m">291500</span> <span class="m">422317</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1985</span> <span class="m">1092</span> <span class="m">11749</span> <span class="m">38242</span>  <span class="m">86904</span> <span class="m">161521</span> <span class="m">262318</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1986</span> <span class="m">1513</span>  <span class="m">9471</span> <span class="m">29131</span>  <span class="m">61726</span> <span class="m">110173</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1987</span>  <span class="m">557</span>  <span class="m">5134</span> <span class="m">20657</span>  <span class="m">48494</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1988</span> <span class="m">1351</span>  <span class="m">9649</span> <span class="m">31059</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1989</span> <span class="m">3133</span> <span class="m">11661</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+  <span class="m">1990</span> <span class="m">2063</span>    <span class="kc">NA</span>    <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>     <span class="kc">NA</span>
+</pre></div>
+
+
+<p><br>
+This isn&#8217;t intended to be taken as reason against using the ChainLadder package. I only highlight this behavior since a reasonable expectation might be that the result of calling <code>incr2cum</code> on an already-cumulated triangle would be the equivalent of a no-op, returning the cumulative triangle unmodified. But as demonstrated above, this is not the&nbsp;case. </p>
+<h2>Conclusion</h2>
+<p>The compilation of loss reserving triangles is a necessary part of many Actuarial analyses, but it is merely pre-processing step. In future posts, we&#8217;ll highlight various methods employed by Actuaries for the purpose of estimating reserves and reserve variablitily, in addition to stochastic reserving methods. Until then, happy&nbsp;coding!</p>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

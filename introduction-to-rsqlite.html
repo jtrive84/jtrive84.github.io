@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Introduction to RSQLite - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/introduction-to-rsqlite.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="R" />
+        <meta name="description" content="Leveraging SQLite in R via RSQLite" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Introduction to RSQLite"/>
+        <meta property="og:url" content="https://jtrive84.github.io/introduction-to-rsqlite.html"/>
+        <meta property="og:description" content="Leveraging SQLite in R via RSQLite"/>
+        <meta property="article:published_time" content="2017-09-02" />
+            <meta property="article:section" content="R" />
+            <meta property="article:tag" content="R" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/r.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out R ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/introduction-to-rsqlite.html"
+                       rel="bookmark"
+                       title="Permalink to Introduction to RSQLite">
+                        Introduction to&nbsp;RSQLite
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-09-02T00:00:00-05:00"> 2017-09-02</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/r.html">R</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/r.html">R</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>In a previous <a href="https://jtrive84.github.io/introduction-to-sqlite3.html">post</a>, we highlighted 
+common methods  for interacting with SQLite databases from within the Python programming 
+language. Python exposes the <code>sqlite3</code> module as part of its standard library, 
+allowing for tight integration between the two projects. 
+<br>  <br>
+Although <code>RSQLite</code> is not included with the standard R distribution, the interface is 
+familiar and straightforward to use, especially if you have experience interfacing 
+with other relational database management systems from R: <code>RSQLite</code> is 
+<a href="https://cran.r-project.org/web/packages/DBI/DBI.pdf"><span class="caps">DBI</span></a>-compatible, and leverages 
+all of the familiar database interaction functionality also found in 3rd-party packages 
+such as RMySQL, ROracle, etc&#8230; 
+<br><br>
+In this post, we&#8217;ll demonstrate how to get up and running with <code>RSQLite</code>. We&#8217;ll walk through 
+creating a new SQLite database, creating and populating tables in the database, and finally 
+how to query data from the tables we created. 
+<br>   </p>
+<h2>SQLite Database&nbsp;Creation</h2>
+<p>Creating a new database is straightforward: Specify the type of database to create 
+(the SQLite variety for this example), along with a filepath to which the database will be 
+saved. One of the major benefits SQLite is that it is a disk-based database which doesn&#8217;t 
+require a separate server process:   <br>
+<br>    </p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span>DBI<span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span>RSQLite<span class="p">)</span>
+
+conn <span class="o">=</span> dbConnect<span class="p">(</span>RSQLite<span class="o">::</span>SQLite<span class="p">(),</span> <span class="s">&quot;/path/to/database/file.db&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br><br>
+The database file extension can be either <code>.db</code> or <code>.sqlite</code>.  <br>
+<br> <br>
+Note that it&#8217;s possible to explicity prefix the source library for objects in R with <code>libname::</code>. This 
+removes any ambiguity regarding the package of origin for an object of interest. In the source above, 
+it is clear that <code>SQLite()</code> originates from&nbsp;RSQLite.        </p>
+<p><br>     </p>
+<p>If the database is required only temporarily and it is preferable not to save the 
+database to file, it&#8217;s possible to create an in-memory database. The initialization is the same as 
+for the persisted database, except the filepath is replaced with &#8220;:memory:&#8221;:        <br>
+<br>         </p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span>DBI<span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span>RSQLite<span class="p">)</span>
+
+conn <span class="o">=</span> dbConnect<span class="p">(</span>RSQLite<span class="o">::</span>SQLite<span class="p">(),</span> <span class="s">&quot;:memory:&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>  </p>
+<p>Then, to disconnect from the database, call <code>dbDisconnect(&lt;databasename&gt;)</code>:</p>
+<p><br></p>
+<div class="highlight"><pre><span></span>dbDisconnect<span class="p">(</span>conn<span class="p">)</span>
+</pre></div>
+
+
+<p><br>   <br>
+With respect to the in-memory database, when <code>dbDisconnect</code> is called, the database will be purged from memory.    <br>
+<br></p>
+<h2>Table&nbsp;Creation</h2>
+<p><br>
+One of the advantages of interfacing with relational database management systems in R is that it 
+is not necessary to explicitly create and execute the <span class="caps">DDL</span> associated with the table to be written. 
+The structure of an R data.frame is such that all datatypes and additional table specifications can 
+be inferred from the data.frame, and the <span class="caps">DDL</span> in turn is then compiled and executed on the fly. This 
+is hugely convenient, especially for workflows that rely on a large number table creation and 
+population&nbsp;routines.   </p>
+<p><br>    </p>
+<p>In the next example, we load the <code>trees</code> dataset (which is included as one of R&#8217;s sample datasets) to 
+an SQLite database <em>sample.db</em> into a table named <em>trees</em>. </p>
+<p><br></p>
+<p>A look at the first few records of <em>trees</em>:     </p>
+<p><br>  </p>
+<div class="highlight"><pre><span></span>  Girth Height Volume
+1   8.3     70   10.3
+2   8.6     65   10.3
+3   8.8     63   10.2
+4  10.5     72   16.4
+5  10.7     81   18.8
+6  10.8     83   19.7
+</pre></div>
+
+
+<p><br>   </p>
+<p>In addition, we&#8217;ll include a <em><span class="caps">TIMESTAMP</span></em> field with <em>Girth</em>, <em>Height</em> and <em>Volume</em>.
+Note that <em><span class="caps">TIMESTAMP</span></em> needs to be coerced to a character datatype since SQLite doesn&#8217;t support 
+date datatypes:     <br>
+<br>   </p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span>DBI<span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span>RSQLite<span class="p">)</span>
+
+conn <span class="o">=</span> dbConnect<span class="p">(</span>RSQLite<span class="o">::</span>SQLite<span class="p">(),</span> <span class="s">&quot;sample.db&quot;</span><span class="p">)</span>
+
+df <span class="o">=</span> trees
+df <span class="o">=</span> <span class="kp">cbind</span><span class="p">(</span>df<span class="p">,</span> Timestamp<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="kp">toString</span><span class="p">(</span><span class="kp">Sys.time</span><span class="p">())))</span>
+
+<span class="c1"># change fieldnames to all caps =&gt;</span>
+<span class="kp">names</span><span class="p">(</span>df<span class="p">)</span> <span class="o">=</span> <span class="kp">toupper</span><span class="p">(</span><span class="kp">names</span><span class="p">(</span>df<span class="p">))</span>
+
+dbWriteTable<span class="p">(</span>conn<span class="p">,</span> <span class="s">&quot;trees&quot;</span><span class="p">,</span> df<span class="p">)</span>
+</pre></div>
+
+
+<p><br>  <br>
+To verify that <em>trees</em> was created in <em>sample.db</em>, call <code>dbListTables</code>:       <br>
+<br>   </p>
+<div class="highlight"><pre><span></span><span class="c1"># List tables contained in active database =&gt;</span>
+<span class="o">&gt;</span> dbListTables<span class="p">(</span>conn<span class="p">)</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;trees&quot;</span>
+</pre></div>
+
+
+<p><br>      </p>
+<h2>Querying&nbsp;Tables</h2>
+<p>There are two common approaches with respect to data retrevial: First, pass a valid <span class="caps">SQL</span> statement to 
+<code>dbGetQuery</code>. The <span class="caps">SQL</span> statement gets passed along to the SQLite parser and the corresponding dataset 
+is returned as an R data.frame. Second, provide the tablename to <code>dbReadTable</code>,
+and the table will be returned as contained in the database in its entirety. Users of the latter 
+approach may experience severe performance degradation upon querying very large datasets. We&#8217;ll 
+demonstrate a work-around to this problem in the next&nbsp;section.  </p>
+<p><br> <br>
+To demonstrate <code>dbGetQuery</code>, we return all records from the &#8220;trees&#8221; table with <span class="math">\(HEIGHT&gt;80\)</span>:     <br>
+<br>     </p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span>DBI<span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span>RSQLite<span class="p">)</span>
+
+conn <span class="o">=</span> dbConnect<span class="p">(</span>RSQLite<span class="o">::</span>SQLite<span class="p">(),</span> <span class="s">&quot;sample.db&quot;</span><span class="p">)</span>
+
+SQLstr <span class="o">=</span> <span class="s">&quot;SELECT * FROM trees WHERE HEIGHT&gt;80&quot;</span>
+treesDF <span class="o">=</span> dbGetQuery<span class="p">(</span>conn<span class="p">,</span> SQLstr<span class="p">)</span>
+
+dbDisconnect<span class="p">(</span>conn<span class="p">)</span>
+
+<span class="c1"># print `treesDF` results in =&gt;</span>
+  GIRTH HEIGHT VOLUME           TIMESTAMP
+<span class="m">1</span>  <span class="m">10.7</span>     <span class="m">81</span>   <span class="m">18.8</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+<span class="m">2</span>  <span class="m">10.8</span>     <span class="m">83</span>   <span class="m">19.7</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+<span class="m">3</span>  <span class="m">12.9</span>     <span class="m">85</span>   <span class="m">33.8</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+<span class="m">4</span>  <span class="m">13.3</span>     <span class="m">86</span>   <span class="m">27.4</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+<span class="m">5</span>  <span class="m">17.3</span>     <span class="m">81</span>   <span class="m">55.4</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+<span class="m">6</span>  <span class="m">17.5</span>     <span class="m">82</span>   <span class="m">55.7</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+<span class="m">7</span>  <span class="m">20.6</span>     <span class="m">87</span>   <span class="m">77.0</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+</pre></div>
+
+
+<p><br>     <br>
+If at any point it is necessary to drop a table from a database, simply call <code>dbRemoveTable</code>.
+To remove &#8220;trees&#8221;, we&#8217;d call:     <br>
+<br>     </p>
+<div class="highlight"><pre><span></span>dbRemoveTable<span class="p">(</span>conn<span class="p">,</span> <span class="s">&quot;trees&quot;</span><span class="p">)</span>
+
+<span class="kp">print</span><span class="p">(</span>dbListTables<span class="p">(</span>conn<span class="p">))</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="kt">character</span><span class="p">(</span><span class="m">0</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>      <br>
+<code>dbReadTable</code> requires only the database connection and the tablename of interest. Assuming we haven&#8217;t removed &#8220;trees&#8221;, 
+to return the table in it&#8217;s entirety, run:    <br>
+<br>     </p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span>DBI<span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span>RSQLite<span class="p">)</span>
+
+conn <span class="o">=</span> dbConnect<span class="p">(</span>RSQLite<span class="o">::</span>SQLite<span class="p">(),</span> <span class="s">&quot;sample.db&quot;</span><span class="p">)</span>
+treesDF <span class="o">=</span> dbReadTable<span class="p">(</span>conn<span class="p">,</span> <span class="s">&quot;trees&quot;</span><span class="p">)</span>
+
+<span class="kp">print</span><span class="p">(</span><span class="kp">dim</span><span class="p">(</span>treesDF<span class="p">))</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">31</span>  <span class="m">4</span>
+</pre></div>
+
+
+<p><br><br>
+This matches with the original dimensions of &#8220;trees&#8221; after appending <em><span class="caps">TIMESTAMP</span></em>.  <br>
+<br>   </p>
+<p>RSQLite has support parameterized queries, where a value is provided  which fully specifies the <span class="caps">SQL</span> statement at runtime. 
+To demonstrate, consider the <span class="caps">SQL</span> statement which retrieved the records from &#8220;trees&#8221; with <em><span class="caps">HEIGHT</span></em> in excess of <span class="math">\(80\)</span>. 
+Instead of hardcoding <span class="math">\(80\)</span>, we specify the threshold at runtime. This requires a slight modification to the <span class="caps">SQL</span> 
+statement, as well as the inclusion of an additional argument to the <code>dbGetQuery</code> call. Here we return records 
+with <span class="math">\(HEIGHT&gt;82\)</span>:          <br>
+<br>    </p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span>DBI<span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span>RSQLite<span class="p">)</span>
+
+conn <span class="o">=</span> DBI<span class="o">::</span>dbConnect<span class="p">(</span>RSQLite<span class="o">::</span>SQLite<span class="p">(),</span> <span class="s">&quot;sample.db&quot;</span><span class="p">)</span>
+
+<span class="c1"># change threshold from query to query =&gt;</span>
+thrsh <span class="o">=</span> <span class="m">82</span>
+SQLstr <span class="o">=</span> <span class="s">&quot;SELECT * FROM trees WHERE HEIGHT&gt;:thrsh&quot;</span>
+treesDF <span class="o">=</span> DBI<span class="o">::</span>dbGetQuery<span class="p">(</span>conn<span class="p">,</span> SQLstr<span class="p">,</span> params<span class="o">=</span><span class="kt">list</span><span class="p">(</span>thrsh<span class="o">=</span>thrsh<span class="p">))</span>
+
+<span class="kp">print</span><span class="p">(</span>treesDF<span class="p">)</span>
+
+<span class="c1"># returns =&gt;</span>
+  GIRTH HEIGHT VOLUME           TIMESTAMP
+<span class="m">1</span>  <span class="m">10.8</span>     <span class="m">83</span>   <span class="m">19.7</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+<span class="m">2</span>  <span class="m">12.9</span>     <span class="m">85</span>   <span class="m">33.8</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+<span class="m">3</span>  <span class="m">13.3</span>     <span class="m">86</span>   <span class="m">27.4</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+<span class="m">4</span>  <span class="m">20.6</span>     <span class="m">87</span>   <span class="m">77.0</span> <span class="m">2017-09-02</span> <span class="m">21</span><span class="o">:</span><span class="m">59</span><span class="o">:</span><span class="m">26</span>
+</pre></div>
+
+
+<p><br>     </p>
+<h2>Iterative Retrievial for Large&nbsp;Datasets</h2>
+<p>As mentioned in the last section, users of <code>dbGetTable</code> may experience severe performance degradation when 
+retrieving very large datasets. We can instead retrieve the data iteratively, using a combination of <code>dbSendQuery</code> 
+and <code>dbFetch</code>.    <br>
+The call to <code>dbSendQuery</code> is identical to <code>dbGetQuery</code>, except <code>dbSendQuery</code> initializes a cursor associated with 
+the dataset of interest as opposed to retrieving the dataset of interest outright (as <code>dbGetQuery</code> does). Think 
+of the variable bound to the result of <code>dbSendQuery</code> as a pointer to the row currently being processed, and as 
+each record is retrieved, the pointer moves to the next row, on and on until the entire result set has been 
+traversed. 
+<br>   <br>
+<code>dbFetch</code> takes for arguments a cursor, as well as a number which determines how many records to retrieve at each 
+iteration. If <code>n</code> is not specified, it defaults to 500. If <code>n</code> is set to -1, the entire datset will be retrieved 
+at once, exhibiting behavior similiar to <code>dbGetQuery</code>.   <br>
+<br>
+We next demonstrate iterative retrieval using <code>dbSendQuery</code> and <code>dbFetch</code> to query &#8220;trees&#8221; in groups of 5 records. 
+Each data.frame is written to a list, then combined upon completion.
+Once iteration has ceased, calling <code>dbClearResult(&lt;cursor&gt;)</code> closes the result&nbsp;set:     </p>
+<p><br>       </p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span>DBI<span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span>RSQLite<span class="p">)</span>
+
+conn <span class="o">=</span> dbConnect<span class="p">(</span>RSQLite<span class="o">::</span>SQLite<span class="p">(),</span> <span class="s">&quot;sample.db&quot;</span><span class="p">)</span>
+
+<span class="c1"># `resList` contains data.frame from each iteration =&gt;</span>
+resList <span class="o">=</span> <span class="kt">list</span><span class="p">()</span>
+cursor <span class="o">=</span> dbSendQuery<span class="p">(</span>conn<span class="p">,</span> <span class="s">&quot;SELECT * FROM trees&quot;</span><span class="p">)</span>
+
+<span class="c1"># commence iteration =&gt;</span>
+<span class="kr">while</span> <span class="p">(</span><span class="o">!</span>dbHasCompleted<span class="p">(</span>cursor<span class="p">))</span> <span class="p">{</span>
+    iterDF <span class="o">=</span> dbFetch<span class="p">(</span>cursor<span class="p">,</span> n<span class="o">=</span><span class="m">5</span><span class="p">)</span>
+    resList<span class="p">[[</span><span class="kp">length</span><span class="p">(</span>resList<span class="p">)</span><span class="m">+1</span><span class="p">]]</span> <span class="o">&lt;-</span> iterDF
+<span class="p">}</span>
+
+dbClearResult<span class="p">(</span>cursor<span class="p">)</span>
+treesDF <span class="o">=</span> <span class="kp">do.call</span><span class="p">(</span><span class="s">&quot;rbind&quot;</span><span class="p">,</span> resList<span class="p">)</span>
+<span class="kp">print</span><span class="p">(</span><span class="kp">dim</span><span class="p">(</span>treesDF<span class="p">))</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">31</span>  <span class="m">4</span>
+</pre></div>
+
+
+<p><br>
+<br></p>
+<h2>Conclusion</h2>
+<p>One of the benefits of leveraging SQLite for data management has to do with interoperability across programming 
+languages. While there exist plenty of 3rd-party libraries that facilitate communication between, say, R and 
+Python, SQLite databases can be used as a common middle ground or pipeline between Python and R that doesn&#8217;t 
+require the maintenance or management of external dependencies. This is preferable to simply writing an R data.frame 
+to .csv then reading it back into Python, since with SQLite, the datatypes are necessarily preserved.   <br>
+SQLite usage is widespread, and after sufficient familiarity with it has been gained, you&#8217;ll find yourself using it 
+all the time is all kinds of projects. Go forth and experiment! Until next time, happy&nbsp;coding!</p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

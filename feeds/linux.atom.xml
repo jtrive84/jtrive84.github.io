@@ -1,0 +1,630 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>The Pleasure of Finding Things Out - Linux</title><link href="https://jtrive84.github.io/" rel="alternate"></link><link href="https://jtrive84.github.io/feeds/linux.atom.xml" rel="self"></link><id>https://jtrive84.github.io/</id><updated>2018-12-07T00:00:00-06:00</updated><entry><title>Utilizing Zero-Width Assertions with grep</title><link href="https://jtrive84.github.io/utilizing-zero-width-assertions-with-grep.html" rel="alternate"></link><published>2018-12-07T00:00:00-06:00</published><updated>2018-12-07T00:00:00-06:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2018-12-07:/utilizing-zero-width-assertions-with-grep.html</id><summary type="html">&lt;p&gt;Leveraging zero-width assertions in regular expression&amp;nbsp;patterns&lt;/p&gt;</summary><content type="html">&lt;p&gt;Recently, I needed to extract a set of port numbers from a .json file in order 
+to connect to a remotely running IPython kernel instance locally, and learned 
+that it is possible to use zero-width assertions with grep. Zero-width 
+assertions are regular expressions that match a specific pattern without 
+consuming, so they can be used to anchor your regular expression within the 
+target&amp;nbsp;text.      &lt;/p&gt;
+&lt;p&gt;The IPython kernel file structure is consistent across invocations, but each 
+new file contains different random port numbers which need to be forwarded 
+between local and remotehost. These ports facilitate the connection to the 
+instance of the IPython kernel running on remotehost. What follows is the 
+content of a typical kernel file with randomly-generated 
+ports (the filename is also random, but follows the format &lt;em&gt;kernel-####.json&lt;/em&gt;):       &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;quot;iopub_port&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;39736&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;quot;control_port&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;59725&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;quot;transport&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;tcp&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;quot;shell_port&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;51963&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;quot;key&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;1fcd997c-ef64-4322-8762-c034af6095e1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;quot;stdin_port&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;59714&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;quot;signature_scheme&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;hmac-sha256&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;quot;hb_port&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mi"&gt;41128&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+  &lt;span class="nt"&gt;&amp;quot;ip&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;127.0.0.1&amp;quot;&lt;/span&gt;
+&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Our goal is to extract and forward the randomly generated port numbers using 
+ssh. One approach is provided in the IPython Cookbook recipe 
+&lt;a href="https://github.com/ipython/ipython/wiki/Cookbook:-Connecting-to-a-remote-kernel-via-ssh"&gt;Connecting to a remote kernel via ssh&lt;/a&gt;, 
+which extracts the ports and forwards them&amp;nbsp;iteratively:          &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="ch"&gt;#!/bin/bash&lt;/span&gt;
+
+&lt;span class="c1"&gt;# Assume kernel connection details reside in `kernel-2323.json`&lt;/span&gt;
+
+&lt;span class="k"&gt;for&lt;/span&gt; port in &lt;span class="k"&gt;$(&lt;/span&gt;cat kernel-2323.json &lt;span class="p"&gt;|&lt;/span&gt; grep &lt;span class="s1"&gt;&amp;#39;_port&amp;#39;&lt;/span&gt; &lt;span class="p"&gt;|&lt;/span&gt; grep -o &lt;span class="s1"&gt;&amp;#39;[0-9]\+&amp;#39;&lt;/span&gt;&lt;span class="k"&gt;)&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="k"&gt;do&lt;/span&gt;
+    ssh remotehost.com -f -N -L &lt;span class="nv"&gt;$port&lt;/span&gt;:127.0.0.1:&lt;span class="nv"&gt;$port&lt;/span&gt;
+&lt;span class="k"&gt;done&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+In the call to ssh, the options &lt;code&gt;-f -N -L&lt;/code&gt; specify:        &lt;/p&gt;
+&lt;p&gt;&lt;code&gt;-f&lt;/code&gt;  Requests ssh to go to background just before command execution.       &lt;br&gt;
+&lt;code&gt;-N&lt;/code&gt;  Do not execute a remote command. This is useful for just forwarding ports.        &lt;br&gt;
+&lt;code&gt;-L&lt;/code&gt;  Specifies that connections to the given port on localhost are to be
+      forwarded to the port on remotehost.     &lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;The cookbook method works without issue. However, the pattern extracts port 
+numbers without consideration of the port&amp;#8217;s associated kernel component. For 
+example, if we needed to know which port corresponds to &lt;code&gt;shell_port&lt;/code&gt;, the 
+cookbook solution falls&amp;nbsp;short.         &lt;/p&gt;
+&lt;p&gt;An alternative approach uses grep&amp;#8217;s zero-width assertion operator &lt;code&gt;\K&lt;/code&gt;. This 
+option isn&amp;#8217;t listed in grep&amp;#8217;s help menu or man page, but is nonetheless valid 
+syntactically (the &lt;code&gt;-P&lt;/code&gt; flag indicates that the pattern is a Perl regular 
+expression). Simply provide grep with any valid regular expression pattern: 
+If &lt;code&gt;\K&lt;/code&gt; is included within the regular expression, the matching text that 
+follows will be returned if and only if what precedes it also matches. This is 
+also known as a positive lookbehind&amp;nbsp;assertion.            &lt;/p&gt;
+&lt;p&gt;The next example parses &lt;em&gt;kernel-2323.json&lt;/em&gt; as before, but this time retains 
+the component-to-port mapping. After extracting the kernel component names and 
+ports, we save them to an associative&amp;nbsp;array:          &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="ch"&gt;#!/bin/bash&lt;/span&gt;
+
+&lt;span class="nv"&gt;KERNEL_FILENAME&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;kernel-2323.json&amp;quot;&lt;/span&gt;
+
+&lt;span class="nb"&gt;declare&lt;/span&gt; -a &lt;span class="nv"&gt;portsArr&lt;/span&gt;&lt;span class="o"&gt;=(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;hb_port&amp;#39;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;iopub_port&amp;#39;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;control_port&amp;#39;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;shell_port&amp;#39;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;stdin_port&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="nb"&gt;declare&lt;/span&gt; -A kernelDict  &lt;span class="c1"&gt;# Associative array to hold component-port mapping&lt;/span&gt;
+
+&lt;span class="k"&gt;for&lt;/span&gt; portname in &lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;portsArr&lt;/span&gt;&lt;span class="p"&gt;[@]&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;
+&lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="nv"&gt;PATTERN&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;[[:space:]]+\&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;portname&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;\&amp;quot;:[[:space:]]+\K[0-9]{2,5}&amp;quot;&lt;/span&gt;
+    &lt;span class="nv"&gt;PORTNBR&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="k"&gt;$(&lt;/span&gt;grep -Po &lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PATTERN&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;KERNEL_FILENAME&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="k"&gt;)&lt;/span&gt;
+    &lt;span class="nb"&gt;echo&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;Now forwarding &lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;portname&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;...&amp;quot;&lt;/span&gt;
+    ssh remotehost.com -f -N -L &lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PORTNBR&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;:127.0.0.1:&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PORTNBR&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;
+    &lt;span class="c1"&gt;# Add component-port mapping to kernelDict.&lt;/span&gt;
+    kernelDict&lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;portname&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="o"&gt;]=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PORTNBR&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;
+&lt;span class="k"&gt;done&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Notice the placement of &lt;code&gt;\K&lt;/code&gt;: At each iteration, the pattern specifies that a 
+matching string will contain the port name followed by a colon and one or more 
+whitespace characters, followed by 2-5 digits. Since &lt;code&gt;\K&lt;/code&gt; directly precedes 
+&amp;#8220;[0-9]{2,5}&amp;#8221; successful matches will only return that portion of a matching&amp;nbsp;string.        &lt;/p&gt;
+&lt;p&gt;Our implementation works as expected, but is inefficient: For each port number 
+extracted and forwarded, the kernel file is reopened and reread. For this 
+example it&amp;#8217;s not much of a problem, but for larger files, this approach could 
+result in serious performance degradation. A more efficient solution would 
+read the kernel file in one time, storing it in a variable, and searching this 
+variable against the regular expression pattern at each iteration. The change 
+in logic is subtle: the only difference is reading the file into the variable 
+identified as &lt;code&gt;KERNEL_CONTENTS&lt;/code&gt; at the start of the script, and the 
+inclusion of &lt;code&gt;&amp;lt;&amp;lt;&amp;lt;&lt;/code&gt; after the grep&amp;nbsp;command:      &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="ch"&gt;#!/bin/bash&lt;/span&gt;
+
+&lt;span class="nv"&gt;KERNEL_FILENAME&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;kernel-2323.json&amp;quot;&lt;/span&gt;
+&lt;span class="nv"&gt;KERNEL_CONTENTS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="k"&gt;$(&lt;/span&gt;cat &lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;KERNEL_FILENAME&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="k"&gt;)&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;
+
+&lt;span class="nb"&gt;declare&lt;/span&gt; -a &lt;span class="nv"&gt;portsArr&lt;/span&gt;&lt;span class="o"&gt;=(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;hb_port&amp;#39;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;iopub_port&amp;#39;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;control_port&amp;#39;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;shell_port&amp;#39;&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;stdin_port&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;span class="nb"&gt;declare&lt;/span&gt; -A kernelDict  &lt;span class="c1"&gt;# Associative array to hold component-port mapping&lt;/span&gt;
+
+&lt;span class="k"&gt;for&lt;/span&gt; portname in &lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;portsArr&lt;/span&gt;&lt;span class="p"&gt;[@]&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;
+&lt;span class="k"&gt;do&lt;/span&gt;
+    &lt;span class="nv"&gt;PATTERN&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;[[:space:]]+\&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;portname&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;\&amp;quot;:[[:space:]]+\K[0-9]{2,5}&amp;quot;&lt;/span&gt;
+    &lt;span class="nv"&gt;PORTNBR&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="k"&gt;$(&lt;/span&gt;grep -Po &lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PATTERN&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;KERNEL_CONTENTS&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="k"&gt;)&lt;/span&gt;
+    &lt;span class="nb"&gt;echo&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;Now forwarding &lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;portname&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;...&amp;quot;&lt;/span&gt;
+    ssh remotehost.com -f -N -L &lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PORTNBR&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;:127.0.0.1:&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PORTNBR&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;
+    &lt;span class="c1"&gt;# Add component-port mapping to kernelDict.&lt;/span&gt;
+    kernelDict&lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;portname&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="o"&gt;]=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PORTNBR&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;
+&lt;span class="k"&gt;done&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+The &lt;code&gt;&amp;lt;&amp;lt;&amp;lt;&lt;/code&gt; syntax is used to indicate a here string, a form of input 
+redirection which allows variables containing text to be interpreted as a 
+file-like object. See &lt;a href="https://www.tldp.org/LDP/abs/html/x17837.html"&gt;this link&lt;/a&gt; 
+for more&amp;nbsp;information.            &lt;/p&gt;
+&lt;p&gt;That&amp;#8217;s it for now. Until next time, happy&amp;nbsp;coding!&lt;/p&gt;</content><category term="Linux"></category></entry><entry><title>Using scp to Copy Files to Remote Servers</title><link href="https://jtrive84.github.io/using-scp-to-copy-files-to-remote-servers.html" rel="alternate"></link><published>2017-12-28T00:00:00-06:00</published><updated>2017-12-28T00:00:00-06:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-12-28:/using-scp-to-copy-files-to-remote-servers.html</id><summary type="html">&lt;p&gt;Introduction to the secure copy&amp;nbsp;utility&lt;/p&gt;</summary><content type="html">&lt;p&gt;Copying files from local clients to remote servers is a task required of all types of analysts. Certain graphical tools, such as WinSCP, can aid those who prefer graphical utilities to command line equivalents. But often times, the command line solution is quicker, more elegant, and has the advantage that any collection of commands can be placed in a shell script and run on-demand. 
+&lt;br&gt;
+In this brief post, we&amp;#8217;ll demonstrate how to copy files from a local Windows client to a remote Linux server. It is assumed that Cygwin is installed on the Windows client, and that it is possible to connect to the remote Linux server from the terminal via ssh.   &lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;h2&gt;Command&amp;nbsp;Syntax&lt;/h2&gt;
+&lt;p&gt;The command line specification for scp&amp;nbsp;is:    &lt;/p&gt;
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ scp &lt;span class="o"&gt;[&lt;/span&gt;-P &amp;lt;port&amp;gt;&lt;span class="o"&gt;]&lt;/span&gt; &amp;lt;local_file&amp;gt; &amp;lt;remote_username&amp;gt;@&amp;lt;remote_hostname&amp;gt;:&amp;lt;remote_directory_location&amp;gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Lets assume we&amp;#8217;ll be connecting as &lt;code&gt;uid414&lt;/code&gt; to &lt;code&gt;remote.11.com&lt;/code&gt; using ssh via port &lt;code&gt;3337&lt;/code&gt;, and we want to the local file &lt;code&gt;results.zip&lt;/code&gt; to the remote file system location &lt;code&gt;/home/uid414&lt;/code&gt;. The corresponding scp command would be:
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ scp -P &lt;span class="m"&gt;3337&lt;/span&gt; results.zip uid414@remote.11.com:/home/uid414
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+One thing to note: If your current working directory isn&amp;#8217;t where &lt;code&gt;results.zip&lt;/code&gt; is saved, be sure to include the &lt;code&gt;/cygdrive&lt;/code&gt; prefix when specifying the path to the file. For example, if &lt;code&gt;results.zip&lt;/code&gt; is located in &lt;code&gt;U:/Archive&lt;/code&gt;, and your current working directory is some other location, from Cygwin the command should be:
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ scp -P &lt;span class="m"&gt;3337&lt;/span&gt; /cygdrive/u/Archive/results.zip uid414@remote.11.com:/home/uid414
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Also, if any directory names in filepath have spaces, surround the filename in double quotes. If &lt;code&gt;results.zip&lt;/code&gt; is instead saved to &lt;code&gt;U:/Local Archive&lt;/code&gt;,
+the corresponding scp command would be:
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ scp -P &lt;span class="m"&gt;3337&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;/cygdrive/u/Local Archive/results.zip&amp;quot;&lt;/span&gt; uid414@remote.11.com:/home/uid414
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Note that going the other way, copying files from a remote host to the localhost, is only possible if an ssh server is installed on the local client, and Windows does not come with an in-built ssh&amp;nbsp;server. &lt;/p&gt;
+&lt;p&gt;https://www.thomasmaurer.ch/2015/06/windows-and-powershell-support-for-ssh/&lt;/p&gt;</content><category term="Linux"></category></entry><entry><title>Connecting to Virtual Machine Instance via ssh</title><link href="https://jtrive84.github.io/connecting-to-virtual-machine-instance-via-ssh.html" rel="alternate"></link><published>2017-12-21T00:00:00-06:00</published><updated>2017-12-21T00:00:00-06:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-12-21:/connecting-to-virtual-machine-instance-via-ssh.html</id><summary type="html">&lt;p&gt;Connecting to a virtually hosted Ubuntu using&amp;nbsp;ssh&lt;/p&gt;</summary><content type="html">&lt;p&gt;If you have hypervisor software installed (such as VMWare Workstation of VirtualBox), 
+it&amp;#8217;s convenient to have the ability to connect to a running virtual machine instance 
+from your local client using ssh. In this post, we&amp;#8217;ll demonstrate how to setup ssh 
+connectivity from a Windows client to a virtual instance of Ubuntu 17.04 running on 
+VMWare Workstation. It is assumed that either PuTTy or Cygwin are installed on the 
+local Windows client, and that Ubuntu 17 has been setup and is available for use 
+through the VMWare Workstation interface.    &lt;br&gt;
+&lt;br&gt;
+To begin, boot into Ubuntu 17 from WMWare Workstation. Once loaded, run the following 
+from the terminal: &lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ sudo apt install openssh-client
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Followed by:
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ sudo apt install openssh-server
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Once installed, we&amp;#8217;ll need to modify a few settings in &lt;code&gt;/etc/ssh/sshd_config&lt;/code&gt;. From 
+the terminal, navigate to &lt;code&gt;/etc/ssh&lt;/code&gt;. Make a copy of sshd_config with the current 
+date and a &lt;code&gt;.bak&lt;/code&gt; extension:  &lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ &lt;span class="nb"&gt;cd&lt;/span&gt; /etc/ssh
+$ cp sshd_config sshd_config_YYYYMMDD.bak
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Next, open &lt;code&gt;sshd_config&lt;/code&gt; in your editor of choice. There are 3 settings we should change: 
+The &lt;code&gt;Port&lt;/code&gt;, &lt;code&gt;PermitRootLogin&lt;/code&gt; and &lt;code&gt;AllowUsers&lt;/code&gt; (which may not be present):  &lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;# Port 22
+# PermitRootLogin yes
+# AllowUsers jtrive84
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+We can change the ssh port to something other than 22 in &lt;code&gt;sshd_config&lt;/code&gt;. For this example, 
+let&amp;#8217;s change the port to &lt;code&gt;3337&lt;/code&gt;. In addition, we should set &lt;code&gt;PermitRootLogin&lt;/code&gt; to &lt;code&gt;no&lt;/code&gt;, 
+and if not present, add &lt;code&gt;AllowUsers&lt;/code&gt;, followed by your username only. If the comment 
+character preceeds a particular setting, be sure to remove it so the change can take effect. 
+Assuming the primary user&amp;#8217;s username is &lt;code&gt;user1&lt;/code&gt;, after making the changes, the settings should 
+read:     &lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;Port 3337
+PermitRootLogin no
+AllowUsers user1
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+In order to connect to your virtual instance via ssh, you&amp;#8217;ll need to set its networking 
+mode to bridged. This can be accomplished using the VMWare Workstation interface. 
+Navigate to &lt;em&gt;Player &amp;gt; Manage &amp;gt; Virtual Machine Settings &amp;gt; Network Adapter&lt;/em&gt;, then on 
+the right side select &lt;em&gt;Bridged: Connected directly to the physical network&lt;/em&gt;. Once set, 
+restart the virtual instance.    &lt;br&gt;
+&lt;br&gt;
+To determine whether the changes to sshd_config we recognized, open the terminal and 
+run the following:
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ sudo service ssh start
+$ sudo service ssh status
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+You&amp;#8217;ll see something similiar to:
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nt"&gt;ice&lt;/span&gt; &lt;span class="nt"&gt;-&lt;/span&gt; &lt;span class="nt"&gt;OpenBSD&lt;/span&gt; &lt;span class="nt"&gt;Secure&lt;/span&gt; &lt;span class="nt"&gt;Shell&lt;/span&gt; &lt;span class="nt"&gt;server&lt;/span&gt;
+   &lt;span class="nt"&gt;Loaded&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nt"&gt;loaded&lt;/span&gt; &lt;span class="o"&gt;(/&lt;/span&gt;&lt;span class="nt"&gt;lib&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;systemd&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;system&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;ssh&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nc"&gt;service&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt; &lt;span class="nt"&gt;enabled&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt; &lt;span class="nt"&gt;vendor&lt;/span&gt; &lt;span class="nt"&gt;preset&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nt"&gt;enabled&lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt;
+   &lt;span class="nt"&gt;Active&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nt"&gt;active&lt;/span&gt; &lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="nt"&gt;running&lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt; &lt;span class="nt"&gt;since&lt;/span&gt; &lt;span class="nt"&gt;Sun&lt;/span&gt; &lt;span class="nt"&gt;2017-12-01&lt;/span&gt; &lt;span class="nt"&gt;12&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="nd"&gt;13&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="nd"&gt;54&lt;/span&gt; &lt;span class="nt"&gt;CST&lt;/span&gt;&lt;span class="o"&gt;;&lt;/span&gt; &lt;span class="nt"&gt;1h&lt;/span&gt; &lt;span class="nt"&gt;2min&lt;/span&gt; &lt;span class="nt"&gt;ago&lt;/span&gt;
+ &lt;span class="nt"&gt;Main&lt;/span&gt; &lt;span class="nt"&gt;PID&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nt"&gt;848&lt;/span&gt; &lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="nt"&gt;sshd&lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt;
+    &lt;span class="nt"&gt;Tasks&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nt"&gt;1&lt;/span&gt; &lt;span class="o"&gt;(&lt;/span&gt;&lt;span class="nt"&gt;limit&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nt"&gt;19660&lt;/span&gt;&lt;span class="o"&gt;)&lt;/span&gt;
+   &lt;span class="nt"&gt;CGroup&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;system&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nc"&gt;slice&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;ssh&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nc"&gt;service&lt;/span&gt;
+           &lt;span class="err"&gt;└─&lt;/span&gt;&lt;span class="nt"&gt;848&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;usr&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;sbin&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nt"&gt;sshd&lt;/span&gt; &lt;span class="nt"&gt;-D&lt;/span&gt;
+
+&lt;span class="nt"&gt;Dec&lt;/span&gt; &lt;span class="nt"&gt;01&lt;/span&gt; &lt;span class="nt"&gt;12&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="nd"&gt;14&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="nd"&gt;06&lt;/span&gt; &lt;span class="nt"&gt;ubuntu&lt;/span&gt; &lt;span class="nt"&gt;sshd&lt;/span&gt;&lt;span class="cp"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;848&lt;/span&gt;&lt;span class="cp"&gt;]&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="nt"&gt;Server&lt;/span&gt; &lt;span class="nt"&gt;listening&lt;/span&gt; &lt;span class="nt"&gt;on&lt;/span&gt; &lt;span class="o"&gt;::&lt;/span&gt; &lt;span class="nt"&gt;port&lt;/span&gt; &lt;span class="nt"&gt;3337&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Notice that on the last line, we receive confirmation that the server is listening 
+on port 3337, which means our changes have been recognized by the service. We will 
+target port &lt;code&gt;3337&lt;/code&gt; when connecting to the virtual machine from our local client.     &lt;br&gt;
+We need one final piece of information prior to connecting: The local &lt;span class="caps"&gt;IP&lt;/span&gt; address 
+associated with our virtual instance. This can be obtained by running the following 
+command and searching for &lt;code&gt;inet&lt;/code&gt;:   &lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ ifconfig -a
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+Alternatively, you can run this command:
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ ip route get &lt;span class="m"&gt;8&lt;/span&gt;.8.8.8 &lt;span class="p"&gt;|&lt;/span&gt; awk &lt;span class="s1"&gt;&amp;#39;{print $NF; exit}&amp;#39;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+For the purposes of demonstration, assume the virtual instance&amp;#8217;s local &lt;span class="caps"&gt;IP&lt;/span&gt; address 
+is &lt;code&gt;192.168.0.12&lt;/code&gt;.    &lt;br&gt;
+Back on the local client, open Cygwin. As earlier, assume that the username for 
+the virtual instance is &lt;code&gt;user1&lt;/code&gt;. To login to Ubuntu, run:  &lt;br&gt;
+&lt;br&gt;&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ ssh -p &lt;span class="m"&gt;3337&lt;/span&gt; user1@192.168.0.12
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+The &lt;code&gt;-p 3337&lt;/code&gt; specifies the target port for ssh. &lt;code&gt;user1&lt;/code&gt; is the username, and 
+&lt;code&gt;192.168.0.12&lt;/code&gt; is the &lt;span class="caps"&gt;IP&lt;/span&gt; address of the virtual instance. Note that this &lt;span class="caps"&gt;IP&lt;/span&gt; 
+address is not static: It will change with each system&amp;nbsp;reboot.&lt;/p&gt;</content><category term="Linux"></category></entry><entry><title>Setting Up Key-Based Authentication to a Linux Server</title><link href="https://jtrive84.github.io/setting-up-key-based-authentication-to-a-linux-server.html" rel="alternate"></link><published>2017-06-12T00:00:00-05:00</published><updated>2017-06-12T00:00:00-05:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-06-12:/setting-up-key-based-authentication-to-a-linux-server.html</id><summary type="html">&lt;p&gt;Authenticating to a Linux server without a password over &lt;span class="caps"&gt;SSH&lt;/span&gt;&lt;/p&gt;</summary><content type="html">&lt;p&gt;In this post, we&amp;#8217;ll demonstrate how to setup automatic authentication to a Linux server using &lt;span class="caps"&gt;SSH&lt;/span&gt; and public key cryptography. Once properly configured, we&amp;#8217;ll need only  to provide the remote hostname to &lt;span class="caps"&gt;SSH&lt;/span&gt; to successfully&amp;nbsp;authenticate.   &lt;/p&gt;
+&lt;p&gt;&lt;span class="caps"&gt;SSH&lt;/span&gt; key pairs can be used to authenticate a client to a server. The client creates a key pair and then uploads the public key to a remote server it wishes to access. This is placed in a file called &lt;code&gt;authorized_keys&lt;/code&gt; within the ~/.ssh directory in the user&amp;#8217;s home directory on the remote&amp;nbsp;host.&lt;/p&gt;
+&lt;p&gt;To follow along with this post, it is assumed that &lt;a href="https://www.cygwin.com/"&gt;Cygwin&lt;/a&gt; is installed on a Windows client, and also that the user has access to a remote server accessible via Cygwin and &lt;span class="caps"&gt;SSH&lt;/span&gt;. For the code examples, commands entered and executed from the local Windows client are identified using the &lt;code&gt;local&amp;gt;&lt;/code&gt; prompt, and &lt;code&gt;remote&amp;gt;&lt;/code&gt; will be used to identify commands entered and executed from the remote server&amp;nbsp;environment.&lt;/p&gt;
+&lt;h2&gt;&lt;span class="caps"&gt;SSH&lt;/span&gt;&amp;nbsp;Authentication&lt;/h2&gt;
+&lt;p&gt;The &lt;span class="caps"&gt;SSH&lt;/span&gt; authentication process is as follows (see &lt;a href="https://www.digitalocean.com/community/tutorials/understanding-the-ssh-encryption-and-connection-process"&gt;here&lt;/a&gt; for more&amp;nbsp;information):&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;The client begins by sending an &lt;span class="caps"&gt;ID&lt;/span&gt; for the key pair it would like to authenticate with to the&amp;nbsp;server.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The server check&amp;#8217;s the authorized_keys file of the account that the client is attempting to log into for the key &lt;span class="caps"&gt;ID&lt;/span&gt;.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;If a public key with matching &lt;span class="caps"&gt;ID&lt;/span&gt; is found in the file, the server generates a random number and uses the public key to encrypt the&amp;nbsp;number.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The server sends the client this encrypted&amp;nbsp;message.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;If the client actually has the associated private key, it will be able to decrypt the message using that key, revealing the original&amp;nbsp;number.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The client combines the decrypted number with the shared session key that is being used to encrypt the communication, and calculates the &lt;span class="caps"&gt;MD5&lt;/span&gt; hash of this&amp;nbsp;value.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The client then sends this &lt;span class="caps"&gt;MD5&lt;/span&gt; hash back to the server as an answer to the encrypted number&amp;nbsp;message.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;The server uses the same shared session key and the original number that it sent to the client to calculate the &lt;span class="caps"&gt;MD5&lt;/span&gt; value on its own. It compares its own calculation to the one that the client sent back. If these two values match, it proves that the client was in possession of the private key and the client is&amp;nbsp;authenticated.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Setup&lt;/h2&gt;
+&lt;p&gt;Open Cygwin, and navigate to the Cygwin &lt;code&gt;/home/&amp;lt;username&amp;gt;&lt;/code&gt; directory (for this post, we&amp;#8217;ll assume the username for the local and remote hosts is &lt;code&gt;user1&lt;/code&gt;). The first step is to generate a&amp;nbsp;key-pair:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;local&amp;gt; &lt;span class="nb"&gt;cd&lt;/span&gt; /home/user1
+local&amp;gt; ssh-keygen -t rsa
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Accept the defaults for each option by pressing enter. After the first prompt, a &lt;code&gt;.ssh&lt;/code&gt; directory will be created in the &lt;code&gt;/home/user1&lt;/code&gt; directory on the local client, and it will contain the generated public and private keys (check out &lt;a href="http://www.mathaware.org/mam/06/Kaliski.pdf"&gt;this&lt;/a&gt; page for more information about the mathematics behind key generation). The public key will have the same name as the private key &lt;code&gt;id_rsa&lt;/code&gt;, but with a &lt;em&gt;.pub&lt;/em&gt; extension. You can display the contents of your generated public key cd&amp;#8217;ing into your &lt;em&gt;.ssh&lt;/em&gt; directory by passing &lt;em&gt;id_rsa.pub&lt;/em&gt; to &lt;em&gt;cat&lt;/em&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;local&amp;gt; &lt;span class="nb"&gt;cd&lt;/span&gt; .ssh
+local&amp;gt; cat id_rsa.pub
+
+ssh-rsa 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyFOyCQ2VawpyLAcUx3sbcdAHc5TYlorJ/1AEXp9OQ462I
+b7sQgAsPr3R/lBvBJ3rit6Nogbbl1Lm3c9Tl5JyOHRE88tp1uLpAfD3oEoGFgb5mSLz6yZ+6brPDS+PONiEi
+MJtaZ3+zKTZkBfPomzEMUjhynS3aSn73mdChXPumSsbgod6Q4ZJVgPtCMKkD2vEdglTkC4qKXoyVYhvED31R
+6qgW27tP+0bLGnyulK/PTtUQLCV+kQkB+FlZ54yQCumS2Os25WCXH5l7xGsIv1Lme3H+IezwUCuwHWsVsGqo
+bnWY7hikTu8QJLhNqAzYhc3m3iklS2bh2sO8I5kBYWNZ user1@local
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Next, open a new instance of Cygwin (this can be accomplished by pressing the Windows key + R, then entering &lt;em&gt;mintty&lt;/em&gt; then Enter if Cygwin has been added to your &lt;code&gt;PATH&lt;/code&gt; environmental variable). From the second terminal, we&amp;#8217;re going&amp;nbsp;to:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Login to the remote server via &lt;span class="caps"&gt;SSH&lt;/span&gt;&lt;/li&gt;
+&lt;li&gt;Create an .ssh folder in /home/user1  if it doesn&amp;#8217;t already&amp;nbsp;exist&lt;/li&gt;
+&lt;li&gt;Use the &lt;code&gt;scp&lt;/code&gt; command to securely copy the public key (&lt;em&gt;id_rsa.pub&lt;/em&gt;) from our local &lt;em&gt;/home/user1/.ssh&lt;/em&gt; directory to our remote &lt;em&gt;/home/user1/.ssh&lt;/em&gt;&amp;nbsp;directory&lt;/li&gt;
+&lt;li&gt;Append the contents of &lt;em&gt;id_rsa.pub&lt;/em&gt; to &lt;em&gt;authorized_keys&lt;/em&gt;, a file that we&amp;#8217;ll create on the remote&amp;nbsp;host&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;We login to the remote server, then check whether or not the &lt;em&gt;.ssh&lt;/em&gt; directory exists in &lt;em&gt;/home/user1&lt;/em&gt;.
+In our case, it deosn&amp;#8217;t, so we create&amp;nbsp;it:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;local&amp;gt; ssh -p &lt;span class="m"&gt;3333&lt;/span&gt; user1@remote
+
+&lt;span class="c1"&gt;# now on remote host:&lt;/span&gt;
+remote&amp;gt; &lt;span class="nb"&gt;cd&lt;/span&gt; /home/user1
+remote&amp;gt; ls -1a .ssh
+
+&lt;span class="c1"&gt;# nothing returned, so we create it:&lt;/span&gt;
+remote&amp;gt; mkdir .ssh
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Notice in the first command, &lt;em&gt;ssh&lt;/em&gt; was accompanied by &lt;code&gt;-p 3333&lt;/code&gt;. This is an example of port forwarding, and is intended as an added security measure. If your server runs &lt;span class="caps"&gt;SSH&lt;/span&gt; on its standard port (22), you can omit this&amp;nbsp;argument. &lt;/p&gt;
+&lt;p&gt;To find the port &lt;span class="caps"&gt;SSH&lt;/span&gt; is using on your remote server, you can&amp;nbsp;run:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;remote&amp;gt; &lt;span class="nb"&gt;echo&lt;/span&gt; &lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;SSH_CLIENT&lt;/span&gt;&lt;span class="p"&gt;##* &lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;
+&lt;span class="m"&gt;3333&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Alternatively, if you can access to the &lt;em&gt;/etc/ssh/sshd_config&lt;/em&gt; file,&amp;nbsp;run:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;remote&amp;gt; grep Port /etc/ssh/sshd_config
+grep: /etc/ssh/sshd_config: Permission denied
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;But in this case, the user does not have&amp;nbsp;access.&lt;/p&gt;
+&lt;p&gt;Back at the first terminal, we need to copy &lt;em&gt;id_rsa.pub&lt;/em&gt; to the remote client via &lt;em&gt;scp&lt;/em&gt; (&amp;#8216;secure copy&amp;#8217;). Notice the port specification for &lt;em&gt;scp&lt;/em&gt; is different that with &lt;span class="caps"&gt;SSH&lt;/span&gt;: &lt;code&gt;-p&lt;/code&gt; specifies a port other than standard for &lt;span class="caps"&gt;SSH&lt;/span&gt;, whereas &lt;em&gt;scp&lt;/em&gt; uses&lt;code&gt;-P&lt;/code&gt;. We&amp;nbsp;enter:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;local&amp;gt; scp -P &lt;span class="m"&gt;3333&lt;/span&gt; id_rsa.pub user1@remote:/home/user1/.ssh
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We&amp;#8217;re using scp via port &lt;em&gt;3333&lt;/em&gt; to copy &lt;em&gt;id_rsa.pub&lt;/em&gt; to &lt;em&gt;/home/user1/.ssh&lt;/em&gt; on &lt;em&gt;remote&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;After pressing enter, , you’ll be prompted twice: The first time, press enter. The second time, enter your password. Upon doing so, you will receive a message indicating that the remote server has been added to the list of known&amp;nbsp;hosts. &lt;/p&gt;
+&lt;p&gt;Back at the second terminal, &lt;code&gt;ls –1&lt;/code&gt; to verify that the public key was successfully copied over (Optionally, you can run &lt;code&gt;cat id_rsa.pub&lt;/code&gt; to ensure that the key looks like it did when we first printed it to the terminal after it was&amp;nbsp;created). &lt;/p&gt;
+&lt;p&gt;Next, we&amp;#8217;re going to redirect the contents of &lt;em&gt;id_rsa.pub&lt;/em&gt; into a file we&amp;#8217;re going to call &lt;em&gt;authorized_keys&lt;/em&gt;, then compare the two files to ensure their identical. If so, we can delete the remote copy of &lt;em&gt;id_rsa.pub&lt;/em&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;remote&amp;gt; cat id_rsa.pub &amp;gt; authorized_keys
+remote&amp;gt; diff id_rsa.pub authorized_keys
+
+&lt;span class="c1"&gt;# no difference; delete id_rsa.pub:&lt;/span&gt;
+remote&amp;gt; rm -f id_rsa.pub
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Finally, exit out of both terminals and open a new one. Login to the remote server as usual using &lt;span class="caps"&gt;SSH&lt;/span&gt;. The first login after setting up keys you may be prompted with a message requiring a yes/no response, but if the keys have been correctly configured, you should not be prompted for a password. If this is the case, congratulations! You&amp;#8217;ve setup automatic authentication to your remote&amp;nbsp;server!&lt;/p&gt;
+&lt;h2&gt;&lt;span class="caps"&gt;SSH&lt;/span&gt;&amp;nbsp;Configuration&lt;/h2&gt;
+&lt;p&gt;It&amp;#8217;s possible to create an &lt;span class="caps"&gt;SSH&lt;/span&gt; configuration file which allows you to bypass entering a port specification (‘-p 3333’) at each login. From the local client, in &lt;em&gt;/home/user1/.ssh&lt;/em&gt;, create a file with notepad and name it &lt;em&gt;config&lt;/em&gt;. Note that what Cygwin sees as &lt;em&gt;/home/user1/.ssh&lt;/em&gt;, Windows sees as &lt;em&gt;C:\cygwin64\home\user1.ssh&lt;/em&gt;, so when notepad prompts you to save the file, save it to &lt;em&gt;C:\cygwin64\home\user1.ssh&lt;/em&gt;. In addition, &lt;strong&gt;make sure to save &lt;em&gt;config&lt;/em&gt; without a file extension&lt;/strong&gt;. When you go to save, in the &amp;#8216;Save as type:&amp;#8217; dropdown, choose &amp;#8216;All Files (*.*)&amp;#8217;, and enter &lt;em&gt;config&lt;/em&gt; without extension for the &lt;em&gt;File name:&lt;/em&gt;. If you don&amp;#8217;t do this, the file will be saved as &lt;em&gt;config.txt&lt;/em&gt;, and will not be read by &lt;span class="caps"&gt;SSH&lt;/span&gt; at&amp;nbsp;login.&lt;/p&gt;
+&lt;p&gt;In the config file, enter the options specific to your login&amp;nbsp;details:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;Host remote
+    Hostname remote.com
+    User user1
+    Port &lt;span class="m"&gt;3333&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Once saved, open Cygwin, and you will only need to enter the following to login to the remote&amp;nbsp;server:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;local&amp;gt; ssh remote
+.
+.
+.
+remote&amp;gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Troubleshooting&lt;/h2&gt;
+&lt;p&gt;If after following the instructions you’re still required to authenticate with a password, it’s almost certainly a permission issue. You may need to change permissions for the following files and&amp;nbsp;directories:&lt;/p&gt;
+&lt;p&gt;On &lt;em&gt;local&lt;/em&gt;:      &lt;br&gt;
+&lt;em&gt; /home/user1/.ssh  (700)   &lt;br&gt;
+&lt;/em&gt; /home/user1/.ssh/id_rsa&amp;nbsp;(600)   &lt;/p&gt;
+&lt;p&gt;On &lt;em&gt;remote&lt;/em&gt;:      &lt;br&gt;
+&lt;em&gt; /home/user1/.ssh (700)   &lt;br&gt;
+&lt;/em&gt; /home/user1/.ssh/authorized_key&amp;nbsp;(644)    &lt;/p&gt;
+&lt;p&gt;(For more information about file permissions visit &lt;a href="http://linuxcommand.org/lc3_lts0090.php"&gt;this&lt;/a&gt;&amp;nbsp;page)&lt;/p&gt;
+&lt;p&gt;The required octal permissions to setup ssh authentication are listed after each file/directory above. These settings should be assigned by default, but in some instances may vary. To find octal file permissions for your files/directories, run the&amp;nbsp;following:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ stat --format %a &amp;lt;file_or_directory&amp;gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;For example, if I wanted to check the directory permission of &lt;em&gt;.ssh&lt;/em&gt; on my server, I’d&amp;nbsp;run:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;remote&amp;gt; stat –format %a /home/user1/.ssh
+&lt;span class="m"&gt;700&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;To change permissions, use the &lt;em&gt;chmod&lt;/em&gt; command. For example, if my &lt;em&gt;.ssh&lt;/em&gt; directory permission came back as 600, I could change it to 700 like&amp;nbsp;so:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;remote&amp;gt; stat --format %a /home/user1/.ssh
+&lt;span class="m"&gt;600&lt;/span&gt;
+&lt;span class="c1"&gt;# change permission to 700:&lt;/span&gt;
+remote&amp;gt; chmod &lt;span class="m"&gt;700&lt;/span&gt; /home/user1/.ssh
+remote&amp;gt; stat --format %a /home/user1/.ssh
+&lt;span class="m"&gt;700&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;</content><category term="Linux"></category></entry><entry><title>X11-Forwarding Applications from Linux Server to Windows</title><link href="https://jtrive84.github.io/x11-forwarding-applications-from-linux-server-to-windows.html" rel="alternate"></link><published>2017-05-16T15:00:00-05:00</published><updated>2017-05-16T15:00:00-05:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-05-16:/x11-forwarding-applications-from-linux-server-to-windows.html</id><summary type="html">&lt;p&gt;Demonstration of X11-forwarding applications from Linux Server to&amp;nbsp;Windows&lt;/p&gt;</summary><content type="html">&lt;p&gt;In Enterprise settings, it&amp;#8217;s common for analysts to have access to a shared Linux server to which they can offload long-running, computationally-intensive processes, leaving the analyst&amp;#8217;s client available for less demanding tasks. In some cases, the Linux server might only be accessible via command-line&amp;nbsp;interface. &lt;/p&gt;
+&lt;p&gt;In this post, we&amp;#8217;ll demonstrate how to setup and utilize X11 forwarding over ssh. In our example, we will forward the jupyter qtconsole via  X11 over ssh to our Windows&amp;nbsp;client. &lt;/p&gt;
+&lt;p&gt;To follow along with this demonstration, these items are assumed to be available and/or&amp;nbsp;installed:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;A Windows&amp;nbsp;client&lt;/li&gt;
+&lt;li&gt;Cygwin with X Server installed (on the Windows&amp;nbsp;client)&lt;/li&gt;
+&lt;li&gt;ssh access to a Linux&amp;nbsp;Server&lt;/li&gt;
+&lt;li&gt;A graphical application to forward from the Linux Server (gedit, firefox, ipython,&amp;nbsp;etc&amp;#8230;)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Setup&lt;/h2&gt;
+&lt;p&gt;From Cygwin on the Windows cleint,&amp;nbsp;enter:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ startxwin
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;This starts an X-Server on the Windows client, which enables graphical applications running on the Linux server to be forwarded and displayed locally. A large amount of text will be dumped to the screen. When it completes, enter &lt;span class="caps"&gt;CTRL&lt;/span&gt; + C to get the prompt&amp;nbsp;back.&lt;/p&gt;
+&lt;p&gt;We&amp;#8217;ll need to set the &lt;code&gt;DISPLAY&lt;/code&gt; environmental variable in order for the remote application to render.
+Again from Cygwin,&amp;nbsp;run:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ &lt;span class="nb"&gt;export&lt;/span&gt; &lt;span class="nv"&gt;DISPLAY&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;:0.0
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Login to the Linux server via ssh as normal, but include the &lt;code&gt;-X&lt;/code&gt; flag, which enables X-forwarding. If you connect to the server using a port other than the standard 22 (say, 3333), specify the &lt;code&gt;X&lt;/code&gt; and &lt;code&gt;p&lt;/code&gt; flags together followed by the port&amp;nbsp;number:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ ssh -Xp &lt;span class="m"&gt;3333&lt;/span&gt; username@servername.com
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;To test whether everything has been setup properly,&amp;nbsp;run:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ xlogo
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The xlogo should render on your screen, which looks&amp;nbsp;like:&lt;/p&gt;
+&lt;div style="text-align:center"&gt;
+&lt;p&gt;&lt;img alt="xlogo" src="images/xlogo.png" title="xlogo rendering"&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;p&gt;In addition, you can&amp;nbsp;run:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ xclock
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Which should&amp;nbsp;render:&lt;/p&gt;
+&lt;div style="text-align:center"&gt;
+&lt;p&gt;&lt;img alt="xclock" src="images/xclock.png" title="xclock rendering"&gt;&lt;/p&gt;
+&lt;/div&gt;
+&lt;p&gt;If both of these objects rendered on your Windows client, you&amp;#8217;re good to&amp;nbsp;go!&lt;/p&gt;
+&lt;p&gt;If not, it&amp;#8217;s possible that X Server wasn&amp;#8217;t included as part of your Cygwin installation. Either go back and install it, or , alternatively, download &lt;a href="https://sourceforge.net/projects/xming/"&gt;xming&lt;/a&gt;, which is an X Window System Server for&amp;nbsp;Windows.     &lt;/p&gt;
+&lt;p&gt;From the terminal connected to the remote server, run the command to launch the jupyter&amp;nbsp;qtconsole:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ python3 jupyter-qtconsole
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Which should result in&amp;nbsp;rendering:&lt;/p&gt;
+&lt;div style="text-align:center"&gt;
+&lt;p&gt;&lt;img alt="qtconsole" src="images/qtconsole.png" title="qtconsole rendering"&gt;&lt;/p&gt;
+&lt;/div&gt;</content><category term="Linux"></category><category term="bash"></category></entry><entry><title>Installing Applications on Linux without root</title><link href="https://jtrive84.github.io/installing-applications-on-linux-without-root.html" rel="alternate"></link><published>2017-02-03T15:00:00-06:00</published><updated>2017-02-03T15:00:00-06:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-02-03:/installing-applications-on-linux-without-root.html</id><summary type="html">&lt;p&gt;How to install programs on Linux without root&amp;nbsp;access.&lt;/p&gt;</summary><content type="html">&lt;p&gt;This post demonstrates how to install software from source on a Linux system on which the user does not have root access. We will walk through the installation of Emacs &lt;span class="amp"&gt;&amp;amp;&lt;/span&gt; tmux. For this example, we&amp;#8217;ll assume the user has created a folder named &lt;em&gt;local&lt;/em&gt; in their &lt;em&gt;/home/username/&lt;/em&gt; directory to which Emacs and tmux will be&amp;nbsp;installed. &lt;/p&gt;
+&lt;h3&gt;Installing&amp;nbsp;Emacs&lt;/h3&gt;
+&lt;p&gt;We&amp;#8217;ll start with Emacs. Download the latest source archive &lt;a href="http://gnu.mirror.constant.com/emacs/"&gt;here&lt;/a&gt;, and copy it to &lt;em&gt;/home/username/&lt;/em&gt;. 
+Extract the contents of the source archive (assuming we&amp;#8217;ve downloaded &lt;em&gt;emacs-24.5.tar.gz&lt;/em&gt;):&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ tar -xzvf emacs-24.5.tar.gz 
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;An &lt;em&gt;emacs-24.5&lt;/em&gt; folder will be extracted to the directory in which you initially copied the source archive.&lt;br&gt;
+We&amp;#8217;re going to &lt;em&gt;cd&lt;/em&gt; into the &lt;em&gt;emacs-24.5&lt;/em&gt; folder and run the &lt;code&gt;configure&lt;/code&gt; script, making sure to specify the desired installation location by passing the path (&lt;em&gt;/home/username/local&lt;/em&gt;) to the &lt;em&gt;&amp;#8212;prefix&lt;/em&gt;&amp;nbsp;flag:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ &lt;span class="nb"&gt;cd&lt;/span&gt; emacs-22.1
+$ ./configure --prefix&lt;span class="o"&gt;=&lt;/span&gt;/home/username/local
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Upon successful completion, a Makefile will be created in the same directory &lt;code&gt;configure&lt;/code&gt; was called from. Run the&amp;nbsp;Makefile:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ make &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; make install
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;If all goes as planned, &lt;em&gt;emacs&lt;/em&gt; should be present in &lt;em&gt;/home/username/local/bin&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;In order to use applications installed to the &lt;em&gt;local&lt;/em&gt; directory from any directory location, append &lt;em&gt;/home/username/local/bin&lt;/em&gt; to the &lt;code&gt;PATH&lt;/code&gt; environmental variable. Open up the &lt;code&gt;.bashrc&lt;/code&gt; file present in &lt;em&gt;/home/username&lt;/em&gt;, and at the bottom,&amp;nbsp;add:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nb"&gt;export&lt;/span&gt; &lt;span class="nv"&gt;PATH&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PATH&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;:/home/username/local/bin
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;If &lt;code&gt;.bashrc&lt;/code&gt; doesn&amp;#8217;t exist in your home directory, you can create&amp;nbsp;it.&lt;/p&gt;
+&lt;p&gt;Save &lt;code&gt;.bashrc&lt;/code&gt;, then either logout and log back in to the terminal, or run the&amp;nbsp;following:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ &lt;span class="nb"&gt;source&lt;/span&gt; .bashrc
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Now, running &lt;code&gt;emacs --version&lt;/code&gt; should generate the following&amp;nbsp;output:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ emacs --version
+GNU Emacs &lt;span class="m"&gt;24&lt;/span&gt;.5.1
+Copyright &lt;span class="o"&gt;(&lt;/span&gt;C&lt;span class="o"&gt;)&lt;/span&gt; &lt;span class="m"&gt;2015&lt;/span&gt; Free Software Foundation, Inc.
+GNU Emacs comes with ABSOLUTELY NO WARRANTY.
+You may redistribute copies of Emacs
+under the terms of the GNU General Public License.
+For more information about these matters, see the file named COPYING.
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;h2&gt;Installing&amp;nbsp;tmux&lt;/h2&gt;
+&lt;p&gt;Installing tmux is slightly more difficult due to a dependency on the &lt;a href="http://libevent.org/"&gt;libevent&lt;/a&gt; library, which wasn&amp;#8217;t pre-installed in my case. If &lt;em&gt;libevent&lt;/em&gt; is present in your &lt;em&gt;/usr/lib&lt;/em&gt; directory, there&amp;#8217;s no need to download and install it. You can skip to the &lt;strong&gt;tmux Installation&lt;/strong&gt;&amp;nbsp;section.&lt;/p&gt;
+&lt;h3&gt;libevent&amp;nbsp;Installation&lt;/h3&gt;
+&lt;p&gt;Assuming the &lt;em&gt;/home/username/local&lt;/em&gt; directory discussed in the Emacs walkthrough has been created, we&amp;#8217;re going to create a few additional directories. First, check in &lt;em&gt;/home/username/local&lt;/em&gt; to determine whether it contains a &lt;em&gt;bin&lt;/em&gt; directory. If it exists, do not recreate it. If it does not exist, run the following from the&amp;nbsp;shell:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ mkdir /home/username/local/bin
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Next, create two additional directories: &lt;em&gt;/home/username/local/include&lt;/em&gt; and &lt;em&gt;/home/username/local/lib&lt;/em&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ mkdir /home/username/local/include
+$ mkdir /home/username/local/lib
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;em&gt;lib&lt;/em&gt; will contain the actual libevent library, and &lt;em&gt;include&lt;/em&gt; will hold the header files associated with &lt;em&gt;libevent&lt;/em&gt;.  &lt;/p&gt;
+&lt;p&gt;To verify that all necessary directories have been created,&amp;nbsp;run:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ &lt;span class="nb"&gt;cd&lt;/span&gt; /home/username/local
+$ ls -1
+&lt;span class="c1"&gt;# should output =&amp;gt;&lt;/span&gt;
+bin
+include
+lib
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Your output should look&amp;nbsp;identical.&lt;/p&gt;
+&lt;p&gt;Next, cd into the directory to where the &lt;em&gt;libevent&lt;/em&gt; archive was downloaded. Here, we&amp;#8217;ll assume we&amp;#8217;ve downloaded &lt;em&gt;libevent-2.1.18-stable.tar.gz&lt;/em&gt; to the &lt;em&gt;/home/username&lt;/em&gt; directory. Once there, run the&amp;nbsp;following:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ &lt;span class="nb"&gt;cd&lt;/span&gt; /home/username
+$ tar -xzvf libevent-2.1.18-stable.tar.gz
+$ &lt;span class="nb"&gt;cd&lt;/span&gt; libevent-2.1.18-stable
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We extracted the &lt;em&gt;libevent&lt;/em&gt; archive, and cd&amp;#8217;d into the extracted&amp;nbsp;folder. &lt;/p&gt;
+&lt;p&gt;Within the &lt;em&gt;libevent-2.1.18-stable&lt;/em&gt; folder, there exists a script named &lt;code&gt;configure&lt;/code&gt;. Run the &lt;code&gt;configure&lt;/code&gt; script
+with an additional argument indicating where the library should install itself. Since we want it installed to
+/home/username/local,&amp;nbsp;run:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ ./configure --prefix&lt;span class="o"&gt;=&lt;/span&gt;/home/username/local
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;If you omit the &lt;code&gt;--prefix=path&lt;/code&gt; flag and you do not have root access, &lt;code&gt;configure&lt;/code&gt; would exit with an error, without 
+installing&amp;nbsp;anything. &lt;/p&gt;
+&lt;p&gt;After &lt;code&gt;configure&lt;/code&gt; completes and the prompt is returned (you&amp;#8217;ll see a lot of text output to the terminal as &lt;code&gt;configure&lt;/code&gt; runs), run the &lt;code&gt;make&lt;/code&gt; command:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ make &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; make install
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;code&gt;configure&lt;/code&gt; checks whether or not all build dependencies have been satisfied, and &lt;code&gt;make&lt;/code&gt; tells the compiler and linker how to build/install the&amp;nbsp;application/library.&lt;/p&gt;
+&lt;p&gt;After &lt;code&gt;make&lt;/code&gt; completes, you should see &lt;code&gt;libevent&lt;/code&gt; installed to &lt;em&gt;/home/username/local/lib&lt;/em&gt;.&lt;/p&gt;
+&lt;p&gt;Next, we&amp;#8217;ll follow roughly the same process to install &lt;code&gt;tmux&lt;/code&gt;.&lt;/p&gt;
+&lt;h3&gt;tmux&amp;nbsp;Installation&lt;/h3&gt;
+&lt;p&gt;From the terminal, change directory back to where you downloaded the source archives (in our case, &lt;em&gt;/home/username&lt;/em&gt;). Feel free to delete the &lt;code&gt;libevent&lt;/code&gt; files and folders in &lt;em&gt;/home/username&lt;/em&gt;.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ &lt;span class="nb"&gt;cd&lt;/span&gt; /home/username
+$ rm –rf *libevent*
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Next, extract the tmux source directory like we did for &lt;code&gt;libevent&lt;/code&gt;, then cd into the extracted&amp;nbsp;directory:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ tar –xzvf tmux-2.3.tar.gz
+$ &lt;span class="nb"&gt;cd&lt;/span&gt; tmux-2.3
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Within the &lt;em&gt;tmux-2.3&lt;/em&gt; folder, again you&amp;#8217;ll find a &lt;code&gt;configure&lt;/code&gt; script. It should be run with the same prefix used earlier.
+But prior to running &lt;code&gt;configure&lt;/code&gt;, we need to specify the location of &lt;em&gt;libevent&lt;/em&gt; and its associated header files (the &lt;em&gt;include&lt;/em&gt; directory), otherwise &lt;code&gt;tmux&lt;/code&gt; will fail to build and will not install, since it will not find &lt;em&gt;libevent&lt;/em&gt; in the system-wide library&amp;nbsp;folders.&lt;/p&gt;
+&lt;p&gt;The command that follows looks complicated, but it’s pretty straightforward. Here’s a description of the&amp;nbsp;components:   &lt;/p&gt;
+&lt;p&gt;&lt;code&gt;env&lt;/code&gt; Let&amp;#8217;s you modify the environment in which &lt;code&gt;configure&lt;/code&gt; will run by passing in variable definitions.       &lt;br&gt;
+&lt;code&gt;CPPFLAGS&lt;/code&gt; tells the linker where to look for &lt;em&gt;libevent&lt;/em&gt;’s header files.   &lt;br&gt;
+&lt;code&gt;LDFLAGS&lt;/code&gt; tells the linker where &lt;em&gt;libevent&lt;/em&gt; is&amp;nbsp;located.      &lt;/p&gt;
+&lt;p&gt;Enter and execute the following. Don’t forget the single quotes, and no spaces on either side of &lt;code&gt;=&lt;/code&gt;.
+(As a quick sanity check, you should still be in &lt;em&gt;/home/username/tmux-2.3&lt;/em&gt;. Verify this by running &lt;code&gt;pwd&lt;/code&gt;). &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ env &lt;span class="nv"&gt;CPPFLAGS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;-I/home/username/local/include&amp;#39;&lt;/span&gt; &lt;span class="nv"&gt;LDFLAGS&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;-L/home/username/local/lib&amp;#39;&lt;/span&gt; ./configure --prefix&lt;span class="o"&gt;=&lt;/span&gt;/home/username/local
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;A bunch of text will be generated. &lt;code&gt;configure&lt;/code&gt; checks to make sure you have everything that&amp;#8217;s needed to
+install &lt;code&gt;tmux&lt;/code&gt;. (If you tried installing &lt;code&gt;tmux&lt;/code&gt; prior to installing &lt;em&gt;libevent&lt;/em&gt;, &lt;code&gt;configure&lt;/code&gt; would have generated an error indicating that &lt;em&gt;libevent&lt;/em&gt; wasn’t installed or isn&amp;#8217;t available).
+After &lt;code&gt;configure&lt;/code&gt; completes and the prompt is returned, you’re going to run the &lt;code&gt;make&lt;/code&gt; command, just as&amp;nbsp;before:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ make &lt;span class="o"&gt;&amp;amp;&amp;amp;&lt;/span&gt; make install
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;After &lt;code&gt;make&lt;/code&gt; completes, you will find that &lt;code&gt;tmux&lt;/code&gt; should be installed to &lt;em&gt;/home/username/local/bin&lt;/em&gt;.&lt;/p&gt;
+&lt;h3&gt;Updating System&amp;nbsp;Path&lt;/h3&gt;
+&lt;p&gt;Lastly, we need to update the system &lt;em&gt;&lt;span class="caps"&gt;PATH&lt;/span&gt;&lt;/em&gt; environmental variable in &lt;em&gt;.bashrc&lt;/em&gt; so tmux can be called from bash without having to provide the absolute path to the executable each time you call it. If you didn&amp;#8217;t do it for the Emacs install above, carry out the&amp;nbsp;following:&lt;/p&gt;
+&lt;p&gt;Open up the &lt;code&gt;.bashrc&lt;/code&gt; file present in &lt;em&gt;/home/username&lt;/em&gt;, and at the bottom,&amp;nbsp;add:    &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nb"&gt;export&lt;/span&gt; &lt;span class="nv"&gt;PATH&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PATH&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;:/home/username/local/bin
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;In order to use applications installed to the &lt;em&gt;local&lt;/em&gt; directory from any directory location, append &lt;em&gt;/home/username/local/bin&lt;/em&gt; to the &lt;code&gt;PATH&lt;/code&gt; environmental variable. Open up the &lt;code&gt;.bashrc&lt;/code&gt; file present in &lt;em&gt;/home/username&lt;/em&gt;, and at the bottom,&amp;nbsp;add:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="nb"&gt;export&lt;/span&gt; &lt;span class="nv"&gt;PATH&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="si"&gt;${&lt;/span&gt;&lt;span class="nv"&gt;PATH&lt;/span&gt;&lt;span class="si"&gt;}&lt;/span&gt;:/home/username/local/bin
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Save &lt;code&gt;.bashrc&lt;/code&gt;, then either logout and log back in to the terminal, or run the&amp;nbsp;following:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ &lt;span class="nb"&gt;source&lt;/span&gt; .bashrc
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Now, running &lt;code&gt;tmux -V&lt;/code&gt; should generate the following&amp;nbsp;output:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ tmux -V
+tmux &lt;span class="m"&gt;2&lt;/span&gt;.3
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;That&amp;#8217;s&amp;nbsp;it!&lt;/p&gt;
+&lt;p&gt;In this post, we covered how to install applications from source on Linux without root access. Package managers should be used in situations in which they are available, but when they&amp;#8217;re not, installing from source may be your only option. Happy&amp;nbsp;coding!&lt;/p&gt;</content><category term="Linux"></category><category term="bash"></category></entry></feed>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>User-Defined Binary Operators in R - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/user-defined-binary-operators-in-r.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="R" />
+        <meta name="description" content="Implementing user-defined binary operators in R" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="User-Defined Binary Operators in R"/>
+        <meta property="og:url" content="https://jtrive84.github.io/user-defined-binary-operators-in-r.html"/>
+        <meta property="og:description" content="Implementing user-defined binary operators in R"/>
+        <meta property="article:published_time" content="2018-05-04" />
+            <meta property="article:section" content="R" />
+            <meta property="article:tag" content="R" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/r.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out R ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/user-defined-binary-operators-in-r.html"
+                       rel="bookmark"
+                       title="Permalink to User-Defined Binary Operators in R">
+                        User-Defined Binary Operators in&nbsp;R
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-05-04T00:00:00-05:00"> 2018-05-04</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/r.html">R</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/r.html">R</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>I work as an Actuarial Consultant in Reserving Analytics at <span class="caps">CNA</span> Financial in Chicago, <span class="caps">IL</span>. Throughout the Actuarial and Predictive Analytics teams, convention dictates that any new applications intended to be shared with and used by other analysts should be implemented in R. This makes a lot of sense given the nature of actuarial analysis, and despite not always wanting to do so, have followed the convention myself generally.        <br>
+Having spent the majority of my time outside of <span class="caps">CNA</span> developing in Python, one of the things I miss most (when working in R) is Python&#8217;s in-built string methods and string manipulation functions. Even though base R exposes a large number of builtin functions intended for use with strings and string manipulation, the two methods I miss the most when working in R 
+are <code>startswith</code> and <code>endswith</code>. Here&#8217;s how they work in Python:
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="s2">&quot;apple&quot;</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;e&quot;</span><span class="p">)</span>
+<span class="bp">True</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="s2">&quot;rubbersoul&quot;</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;rubber&quot;</span><span class="p">)</span>
+<span class="bp">True</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="s2">&quot;billiondollar&quot;</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;babies&quot;</span><span class="p">)</span>
+<span class="bp">False</span>
+</pre></div>
+
+
+<p><br>
+Everything in Python is an object, and all Python string objects expose these two methods (and many others) by default. 
+I wanted to expose the same functionality in R while maintaining the simplicity of the Python approach. I found this could be readily accomplished with R&#8217;s user-defined binary operators. 
+<br></p>
+<h3>Binary&nbsp;Operators</h3>
+<p>User-defined binary operators in R consist of a string of characters between two &#8220;%&#8221; characters<a href="#Footnotes:">1</a>. Some frequently used builtin binary operators include <code>%/%</code> for integer division and <code>%%</code>, which represents the modulus operator. 
+<br>
+Declaring a binary operator is identical to declaring any other user-defined function, except for how the name is specified.
+Here&#8217;s how the <code>%startswith%</code> and <code>%endswith%</code> operators were implemented:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># Example of declaring user-defined binary operators in R </span>
+
+<span class="sb">`%startswith%`</span> <span class="o">=</span> <span class="kr">function</span><span class="p">(</span>teststr<span class="p">,</span> testchars<span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># `teststr`   =&gt; The target string.</span>
+    <span class="c1"># `testchars` =&gt; The character(s) to test for in `teststr`. </span>
+    <span class="kr">return</span><span class="p">(</span><span class="kp">grepl</span><span class="p">(</span><span class="kp">paste0</span><span class="p">(</span><span class="s">&quot;^&quot;</span><span class="p">,</span>testchars<span class="p">),</span>teststr<span class="p">))</span>
+<span class="p">}</span>
+
+<span class="sb">`%endswith%`</span> <span class="o">=</span> <span class="kr">function</span><span class="p">(</span>teststr<span class="p">,</span> testchars<span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># `teststr`   =&gt; The target string.</span>
+    <span class="c1"># `testchars` =&gt; The character(s) to test for in `teststr`. </span>
+    <span class="kr">return</span><span class="p">(</span><span class="kp">grepl</span><span class="p">(</span><span class="kp">paste0</span><span class="p">(</span>testchars<span class="p">,</span><span class="s">&quot;$&quot;</span><span class="p">),</span>teststr<span class="p">))</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p><br>
+Once read in to the current session, both individual strings and vectors of strings can be passed to either operator to test for the specified leading or trailing character(s). 
+<br>
+For example, if I had the following vector:
+<br></p>
+<div class="highlight"><pre><span></span>months <span class="o">=</span> <span class="kt">c</span><span class="p">(</span><span class="s">&quot;January&quot;</span><span class="p">,</span> <span class="s">&quot;February&quot;</span><span class="p">,</span> <span class="s">&quot;March&quot;</span><span class="p">,</span> <span class="s">&quot;April&quot;</span><span class="p">,</span> <span class="s">&quot;May&quot;</span><span class="p">,</span> <span class="s">&quot;June&quot;</span><span class="p">,</span> <span class="s">&quot;July&quot;</span><span class="p">,</span> 
+           <span class="s">&quot;August&quot;</span><span class="p">,</span> <span class="s">&quot;September&quot;</span><span class="p">,</span> <span class="s">&quot;October&quot;</span><span class="p">,</span> <span class="s">&quot;November&quot;</span><span class="p">,</span> <span class="s">&quot;December&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+And wanted to test whether or not the elements of <code>months</code> start with <code>"J"</code>, we could use <code>%startswith%</code> as follows:
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> months <span class="o">%startswith%</span> <span class="s">&quot;J&quot;</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span>  <span class="kc">TRUE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span>  <span class="kc">TRUE</span>  <span class="kc">TRUE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span>
+</pre></div>
+
+
+<p><br>
+Similarly, to check whether elements of <code>months</code> end with <code>"ber"</code>, we&#8217;d run:
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> months <span class="o">%endswith%</span> <span class="s">&quot;ber&quot;</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span> <span class="kc">FALSE</span>  <span class="kc">TRUE</span>  <span class="kc">TRUE</span>  <span class="kc">TRUE</span>  <span class="kc">TRUE</span>
+</pre></div>
+
+
+<p><br>
+To obtain the indicies of the elements of <code>months</code> ending with <code>"ber"</code>, we can use <code>%endswith%</code> in conjunction with <code>which</code>:
+<br></p>
+<div class="highlight"><pre><span></span>&gt; months %endswith% &quot;ber&quot;
+[1] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE
+&gt; which(months %endswith% &quot;ber&quot;)
+[1]  9 10 11 12
+&gt; months[which(months %endswith% &quot;ber&quot;)]
+[1] &quot;September&quot; &quot;October&quot;   &quot;November&quot;  &quot;December&quot; 
+</pre></div>
+
+
+<p><br></p>
+<p>These were trivial examples, but user-defined binary operators can be used to great effect when applied to a large collection of&nbsp;strings. </p>
+<h3>Footnotes:</h3>
+<ol>
+<li>Adler, Joseph (2010). <em>R in a Nutshell</em>. O&#8217;Reilly Media&nbsp;Inc   </li>
+</ol>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

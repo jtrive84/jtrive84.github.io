@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Evaluating Classifier Performance in scikit-learn - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/evaluating-classifier-performance-in-scikit-learn.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python,Statistical Modeling" />
+        <meta name="description" content="Assessing the quality of machine learning classifiers with scikit-learn" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Evaluating Classifier Performance in scikit-learn"/>
+        <meta property="og:url" content="https://jtrive84.github.io/evaluating-classifier-performance-in-scikit-learn.html"/>
+        <meta property="og:description" content="Assessing the quality of machine learning classifiers with scikit-learn"/>
+        <meta property="article:published_time" content="2017-08-13" />
+            <meta property="article:section" content="Machine Learning" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:tag" content="Statistical Modeling" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/machine-learning.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Machine Learning ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/evaluating-classifier-performance-in-scikit-learn.html"
+                       rel="bookmark"
+                       title="Permalink to Evaluating Classifier Performance in scikit-learn">
+                        Evaluating Classifier Performance in&nbsp;scikit-learn
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-08-13T00:00:00-05:00"> 2017-08-13</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/machine-learning.html">Machine Learning</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+        /
+	<a href="https://jtrive84.github.io/tag/statistical-modeling.html">Statistical Modeling</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>When implementing a machine learning classifier, best practices dictate training the model on 60-70% of the 
+dataset of interest, and preserving 30-40% of the data for adequacy testing after the model has been fit. 
+While there are many variations of this theme, such as splitting the dataset into train, evaluation and test 
+sets, or using k-fold cross-validation, the core tenet is the same: <em>Don&#8217;t evaluate your model on the same 
+data used to fit it</em>. I believe the <a href="http://scikit-learn.org/stable/modules/cross_validation.html">scikit-learn documentation</a> 
+sums it up best in&nbsp;stating:     </p>
+<p><br>
+<em>Learning the parameters of a prediction function and testing it on the same data is a  methodological 
+mistake: a model that would just repeat the labels of the samples that it has just   seen would have a 
+perfect score but would fail to predict anything useful on yet-unseen data. This   situation is called 
+overfitting. To avoid it, it is common practice when performing a (supervised) machine learning experiment 
+to hold out part of the available data as a test set X_test, y_test. Note that the word “experiment” is 
+not intended to denote academic use only, because even in commercial settings machine learning usually starts 
+out experimentally.</em>
+<br></p>
+<p>scikit-learn makes splitting datasets into training and test sets painless by exposing the <code>train_test_split</code> method 
+from the <code>model_evaluation</code> sub-module. We&#8217;ll demonstrate how it&#8217;s used shortly.      <br>
+<br>  <br>
+For the remainder of the post, we&#8217;ll be referring to <code>mw.csv</code>, which can be 
+found <a href="https://gist.github.com/jtrive84/c87434e3d7838a49fbc5263f9af96bbc">here</a>. Our goal will be to correctly 
+catagorize each individual as male or female (1=male, 2=female) based on a combination of the individual&#8217;s height, 
+hand length and foot&nbsp;length.   </p>
+<p>Next, we read in the dataset using pandas, and clean it up using scikit-learn&#8217;s pre-processing utilities. Then, using 
+<code>train_test_split</code>, we split the dataset into train and test sets in the proportion desired (here, we selected .33 for <code>test_size</code>). </p>
+<p><br>   </p>
+<div class="highlight"><pre><span></span><span class="c1">#=============================================</span>
+<span class="c1"># Dataset Preprocessing                      |</span>
+<span class="c1">#=============================================</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">StandardScaler</span>
+
+
+<span class="c1"># read in dataset, separating explanatory variables from response =&gt;</span>
+<span class="n">fpath</span> <span class="o">=</span> <span class="s2">&quot;E:</span><span class="se">\\</span><span class="s2">Datasets</span><span class="se">\\</span><span class="s2">Binary_Response</span><span class="se">\\</span><span class="s2">Men_Women</span><span class="se">\\</span><span class="s2">mw.csv&quot;</span>
+<span class="n">df</span>  <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">([</span><span class="s1">&#39;GENDER&#39;</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;GENDER&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">x</span><span class="o">==</span><span class="mi">2</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+
+<span class="c1"># split data into training and test sets =&gt;</span>
+<span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span>
+                                <span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=.</span><span class="mi">33</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+
+<span class="c1"># scale explanatory variables =&gt;</span>
+<span class="n">sclr</span> <span class="o">=</span> <span class="n">StandardScaler</span><span class="p">()</span>
+<span class="n">X_train</span> <span class="o">=</span> <span class="n">sclr</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
+<span class="n">X_test</span>  <span class="o">=</span> <span class="n">sclr</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br> 
+In the pre-processing step, we scaled <span class="caps">HEIGHT</span>, FOOT_LENGTH and HAND_LENGTH to be on the same basis 
+using <code>StandardScaler</code>. Note that we called <code>fit_transform</code> on <em>X_train</em>, but called <code>transform</code> on <em>X_test</em>. 
+This is because we&#8217;re transforming the test dataset to be on the same basis as the training dataset, but not letting 
+it influence the scale of the transformation. 
+<br>    </p>
+<p>We fit the model to the training dataset. We fit a collection of binary classifiers simultaneously, then demonstrate 
+the tools and techniques we can leverage to evaluate model performance. In the code that follows, we fit a Gaussian 
+Naive Bayes, k-Nearest Neighbors, Logistic Regression and Random Forest classifiers:    <br>
+<br>         </p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.naive_bayes</span> <span class="kn">import</span> <span class="n">GaussianNB</span>
+<span class="kn">from</span> <span class="nn">sklearn.neighbors</span> <span class="kn">import</span> <span class="n">KNeighborsClassifier</span>
+<span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LogisticRegression</span>
+<span class="kn">from</span> <span class="nn">sklearn.ensemble</span> <span class="kn">import</span> <span class="n">RandomForestClassifier</span>
+
+<span class="c1">#==============================================</span>
+<span class="c1"># Gaussian Naive Bayes Classifier             |</span>
+<span class="c1">#==============================================</span>
+<span class="n">nb_clf</span> <span class="o">=</span> <span class="n">GaussianNB</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+<span class="c1"># get estimated class predictions and probabilities =&gt;</span>
+<span class="n">nb_y_hat</span> <span class="o">=</span> <span class="n">nb_clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<span class="n">nb_p_hat</span> <span class="o">=</span> <span class="n">nb_clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">]</span>
+
+
+<span class="c1">#=============================================</span>
+<span class="c1"># kNN Classifier                             |</span>
+<span class="c1">#=============================================</span>
+<span class="n">knn_clf</span> <span class="o">=</span> <span class="n">KNeighborsClassifier</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+<span class="c1"># get estimated class predictions and probabilities =&gt;</span>
+<span class="n">knn_y_hat</span> <span class="o">=</span> <span class="n">knn_clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<span class="n">knn_p_hat</span> <span class="o">=</span> <span class="n">knn_clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">]</span>
+
+
+<span class="c1">#=============================================</span>
+<span class="c1"># Logistic Regression Classifier             |</span>
+<span class="c1">#=============================================</span>
+<span class="n">lr_clf</span> <span class="o">=</span> <span class="n">LogisticRegression</span><span class="p">(</span><span class="n">C</span><span class="o">=</span><span class="mf">1e10</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+<span class="c1"># pass test set to classifier to evaluate model fit =&gt;</span>
+<span class="n">lr_y_hat</span> <span class="o">=</span> <span class="n">lr_clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<span class="n">lr_y_hat</span> <span class="o">=</span> <span class="n">lr_clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">]</span>
+
+
+<span class="c1"># =============================================</span>
+<span class="c1"># Random Forest Classifier                    |</span>
+<span class="c1"># =============================================</span>
+<span class="n">rf_clf</span> <span class="o">=</span> <span class="n">RandomForestClassifier</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">)</span>
+
+<span class="c1"># pass test set to classifier to evaluate model fit =&gt;</span>
+<span class="n">rf_y_hat</span> <span class="o">=</span> <span class="n">rf_clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+<span class="n">rf_p_hat</span>  <span class="o">=</span> <span class="n">rf_clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_test</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+
+
+<p><br>          <br>
+For each classifier, the first step is fitting the model 
+to the training data. After the model is fit, we pass the test dataset to each classifier. For each 
+model, we have two resulting evaluations: vectors ending with &#8216;_y_hat&#8217; represent the class predicition 
+for each individual for that particular model: For our sample dataset, this will either be <code>1</code> if the 
+prediction is &#8216;Male&#8217; or <code>0</code> if the prediction is &#8216;Female&#8217; (we changed &#8216;Female&#8217; from <code>2</code> to <code>0</code> in the 
+pre-processing step above). The vectors ending with &#8216;_p_hat&#8217; give the probability of the classification 
+for each individual by that particular model: The probability associated with a predicition lends insight 
+into the model&#8217;s confidence of a given classification (an individual classified as &#8216;Male&#8217; with 98% probability 
+by a given model has a much higher degree of confidence in the classification than if it was 51%). 
+The probabilities associated with a classification are used for model assessment via <em><span class="caps">ROC</span> Curves</em>, which will 
+be demonstrated shortly. But first, lets learn of some of the metrics used to assess the quality of our machine 
+learning classifiers.  <br>
+<br>   </p>
+<h2>Precision and&nbsp;Recall</h2>
+<p><em>Precision</em> is a measure of result relevancy, while <em>Recall</em> is a measure of how many relevant results are returned. 
+Precision measures the fraction of positive predictions that are correct, whereas <em>Recall</em> measures the fraction 
+of all positive instances the classifier correctly identifies as&nbsp;positive.   </p>
+<p>Before presenting formulaic representations of precision and recall, some clarification of the terminology will help 
+with interpreting the quantitive&nbsp;representation:</p>
+<ul>
+<li><em>True/False</em> refers to whether the model&#8217;s predicition is correct or&nbsp;incorrect.</li>
+<li><em>Positive/Negative</em> refers to whether the model predicted the positive or negative&nbsp;class. </li>
+<li><em>P</em> is the number of positive instances in the actual&nbsp;dataset.</li>
+<li><em>N</em> is the number of negative instances in the actual&nbsp;dataset.</li>
+</ul>
+<p>It immediately follows&nbsp;that:</p>
+<ul>
+<li><strong>True Positive</strong> (<span class="caps">TP</span>) - The model of interest correctly predicts the positive&nbsp;class</li>
+<li><strong>True Negative</strong> (<span class="caps">TN</span>) - The model of interest correctly predicts the negative&nbsp;class</li>
+<li><strong>False Positive</strong> (<span class="caps">FP</span>) - The model of interest incorrectly predicts the positive class (Type I&nbsp;error)</li>
+<li><strong>False Negative</strong> (<span class="caps">FN</span>) - The model of interest incorrectly predicts the negative class (Type <span class="caps">II</span>&nbsp;error)</li>
+</ul>
+<p>Now for some definitions:  <br>
+<br>  <br>
+<em>Accuracy</em> is defined&nbsp;as:    </p>
+<div class="math">$$
+\begin{aligned}
+ACC = \frac {TP+TN}{P+N} = \frac {TP+TN}{TP+TN+FP+FN}
+\end{aligned}
+$$</div>
+<p>The accuracy measure in and of itself is not sufficent in assessing the quality of a classifier. 
+Consider a dataset in which the occurance of the positive class is a rare event: Assume only 3% of 
+observations are classified as positive. Thus, if a model naively predicts the negative class for 
+each observation, such a model would achieve 97% accuracy! This is why it is important to consider 
+additional metrics, such as the following:  <br>
+<br>   </p>
+<p><em>Precision</em> is the fraction of positive predictions that are&nbsp;correct:</p>
+<div class="math">$$       
+\begin{aligned}
+Precision = \frac{TP}{TP+FP}
+\end{aligned}
+$$</div>
+<p><br>   <br>
+<em>Recall</em> is the fraction of all positive instances a classifier correctly predicts as&nbsp;positive: </p>
+<div class="math">$$  
+\begin{aligned}
+Recall = \frac{TP}{TP+FN}
+\end{aligned}
+$$</div>
+<p><br>  <br>
+<em>False Positive Rate</em> is the fraction of all negative instances the classifier incorrectly identifies as&nbsp;positive:</p>
+<div class="math">$$
+\begin{aligned}
+FPR = \frac{FP}{TN+FP}
+\end{aligned}
+$$</div>
+<p>
+<br>  </p>
+<p>The <span class="math">\(F_{1}\)</span> score combines precision and recall, which returns their harmonic&nbsp;mean:</p>
+<div class="math">$$   
+\begin{aligned}
+F_{1} = 2 \frac{Precision * Recall}{Precision + Recall}
+\end{aligned}
+$$</div>
+<p>
+<br>     </p>
+<p>A given classifier&#8217;s true positive, true negative, false positive and false negative predictions can be 
+combined and represented together concisely in a <em>confusion matrix</em>, which we discuss&nbsp;next.</p>
+<p><br></p>
+<h2>Confusion&nbsp;Matrix</h2>
+<p>The <em>confusion matrix</em> can be used to evaluate the accuracy of a classifier. From the 
+scikit-learn <a href="http://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html">docs</a>:</p>
+<p><em>By definition a confusion matrix <span class="math">\(C\)</span> is such that <span class="math">\(C_{i, j}\)</span> is equal to the number of observations known to be in 
+group i but predicted to be in group j. Thus in binary classification, the count of true negatives is <span class="math">\(C_{0,0}\)</span>, 
+false negatives is <span class="math">\(C_{1,0}\)</span>, true positives is <span class="math">\(C_{1,1}\)</span> and false positives is <span class="math">\(C_{0,1}\)</span>.</em>
+<br></p>
+<p>In the following code segment, we demonstrate how to generate the confusion matrix for our k-Nearest Neighbors classifier above:   <br>
+<br>     </p>
+<div class="highlight"><pre><span></span><span class="c1"># ==========================================</span>
+<span class="c1">#  Plot Confusion Matrix                   |</span>
+<span class="c1"># ==========================================</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="kn">as</span> <span class="nn">sns</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set_context</span><span class="p">(</span><span class="s1">&#39;notebook&#39;</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">confusion_matrix</span>
+
+<span class="n">actual_response</span> <span class="o">=</span> <span class="n">y_test</span>
+<span class="n">predicted_response</span> <span class="o">=</span> <span class="n">knn_y_pred</span>
+<span class="n">cm</span> <span class="o">=</span> <span class="n">confusion_matrix</span><span class="p">(</span><span class="n">actual_response</span><span class="p">,</span> <span class="n">predicted_response</span><span class="p">)</span>
+
+<span class="n">sns</span><span class="o">.</span><span class="n">heatmap</span><span class="p">(</span><span class="n">cm</span><span class="p">,</span> <span class="n">square</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">annot</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">cbar</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Predicted Value&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Actual Value&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>          <br>
+Running the code above generates the following: <br>
+<br> <br>
+<p align="center"> 
+<img alt="confusion" src="/images/confusion.png" title="confusion matrix">
+</p> <br>
+<br>     </p>
+<p>Therefore, the k-Nearest Neighbors classifier predicted 22 true negatives, 
+4 false negatives, 2 false positives and 24 true positives.    <br>
+<br>      </p>
+<h2><span class="caps">ROC</span>&nbsp;Curve</h2>
+<p>The <a href="https://en.wikipedia.org/wiki/Receiver_operating_characteristic"><span class="caps">ROC</span> curve</a> (Receiver Operating Characteristic) is a 
+plot often used used in assessing the quality of a binary classifier as the discrimination threshold is varied. Let&#8217;s define 
+some additional metrics, some of which are used directly in generating the <span class="caps">ROC</span> curve:     <br>
+<br>  <br>
+The True Positive Rate (same as recall, a.k.a. sensitivity, hit&nbsp;rate):</p>
+<div class="math">$$
+\begin{aligned}
+TPR = \frac{TP}{TP+FN} = \frac {TP}{P}
+\end{aligned}
+$$</div>
+<p>
+<br>
+The False Positive Rate (a.k.a. Type-I error,&nbsp;fall-out):</p>
+<div class="math">$$
+\begin{aligned}
+FPR = \frac {FP}{FP+TN} = 1 = TNR
+\end{aligned}
+$$</div>
+<p>
+<br><br>
+The True Negative Rate (a.k.a.&nbsp;specificity):</p>
+<div class="math">$$
+\begin{aligned}
+TNR = \frac {TN}{TN+FP} = \frac {TN}{N}
+\end{aligned}
+$$</div>
+<p>
+<br>      <br>
+The False Negative Rate (a.k.a. miss rate, Type-<span class="caps">II</span>&nbsp;error):</p>
+<div class="math">$$
+\begin{aligned}
+FNR = \frac {FN}{FN+TP} = 1 - TPR
+\end{aligned}
+$$</div>
+<p><br></p>
+<p>The <span class="caps">ROC</span> curve leverages two of these metrics: <span class="math">\(TPR\)</span> and <span class="math">\(FPR\)</span>. 
+Convention dictates plotting <span class="math">\(TPR\)</span> as a function of <span class="math">\(FPR\)</span>, with <span class="math">\(TPR\)</span> on the y-axis and <span class="math">\(FPR\)</span> along the&nbsp;x-axis. </p>
+<p>The area under the <span class="caps">ROC</span> curve (<span class="caps">AUC</span>) is used to assess model quality. The higher the <span class="caps">AUC</span>, the better the model. 
+A high area under the curve represents both high recall and high precision, where high precision relates to a low 
+false positive rate, and high recall relates to a low false negative rate. High scores for both show that the 
+classifier is returning accurate results (high precision), as well as returning a majority of all positive results 
+(high recall).   <br>
+<br>     <br>
+Next we demonstrate how to plot <span class="caps">ROC</span> Curves for each of our 4 classifiers and calculate their respective <span class="caps">AUC</span> scores. 
+<span class="caps">AUC</span> scores are generally between .5-1.0, with .5 representing random guessing, and 1.0 representing perfect classification 
+for all observations. As with everything else, scikit-learn makes obtaining these metrics as straighforward as&nbsp;possible:</p>
+<p><br>     </p>
+<div class="highlight"><pre><span></span><span class="c1"># ==========================================</span>
+<span class="c1">#  Plot ROC curve for each classifier      |</span>
+<span class="c1"># ==========================================</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">roc_curve</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="kn">as</span> <span class="nn">sns</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set_context</span><span class="p">(</span><span class="s1">&#39;notebook&#39;</span><span class="p">)</span>
+
+<span class="n">fpr1</span><span class="p">,</span> <span class="n">tpr1</span><span class="p">,</span> <span class="n">thresholds1</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">rf_p_hat</span><span class="p">,</span>  <span class="n">pos_label</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">fpr2</span><span class="p">,</span> <span class="n">tpr2</span><span class="p">,</span> <span class="n">thresholds2</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">lr_p_hat</span><span class="p">,</span>  <span class="n">pos_label</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">fpr3</span><span class="p">,</span> <span class="n">tpr3</span><span class="p">,</span> <span class="n">thresholds3</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">nb_p_hat</span><span class="p">,</span>  <span class="n">pos_label</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">fpr4</span><span class="p">,</span> <span class="n">tpr4</span><span class="p">,</span> <span class="n">thresholds4</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">knn_p_hat</span><span class="p">,</span> <span class="n">pos_label</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fpr1</span><span class="p">,</span> <span class="n">tpr1</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Random Forest&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fpr2</span><span class="p">,</span> <span class="n">tpr2</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Logistic Regression&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fpr3</span><span class="p">,</span> <span class="n">tpr3</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Naive Bayes&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fpr4</span><span class="p">,</span> <span class="n">tpr4</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;kNN&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;--&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">([</span><span class="o">-.</span><span class="mo">05</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">,</span> <span class="o">-.</span><span class="mo">05</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;False Positive Rate (FPR)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;True Positive Rate (TPR)&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower right&#39;</span><span class="p">,</span><span class="n">prop</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;size&#39;</span><span class="p">:</span><span class="mi">20</span><span class="p">},</span> <span class="n">frameon</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>  <br>
+Running this generates the following plot:
+<br>
+<p align="center"> 
+<img alt="roc" src="/images/roc.png" title="roc curves">
+</p> <br>
+<br>    </p>
+<p>Then, to obtain each classifiers <span class="caps">AUC</span> score, we run:   <br>
+<br>    </p>
+<div class="highlight"><pre><span></span><span class="c1"># ==========================================</span>
+<span class="c1">#  Plot AUC score for each classifier      |</span>
+<span class="c1"># ==========================================</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">roc_auc_score</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Random Forest AUC Score      : {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">rf_p_hat</span><span class="p">)))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Logistic Regression AUC Score: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">lr_p_hat</span><span class="p">)))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Naive Bayes AUC Score        : {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">nb_p_hat</span><span class="p">)))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;kNN AUC Score                : {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">roc_auc_score</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">knn_p_hat</span><span class="p">)))</span>
+
+<span class="n">Random</span> <span class="n">Forest</span> <span class="n">AUC</span> <span class="n">Score</span>      <span class="p">:</span> <span class="mf">0.9174107142857144</span>
+<span class="n">Logistic</span> <span class="n">Regression</span> <span class="n">AUC</span> <span class="n">Score</span><span class="p">:</span> <span class="mf">0.9241071428571428</span>
+<span class="n">Naive</span> <span class="n">Bayes</span> <span class="n">AUC</span> <span class="n">Score</span>        <span class="p">:</span> <span class="mf">0.9508928571428571</span>
+<span class="n">kNN</span> <span class="n">AUC</span> <span class="n">Score</span>                <span class="p">:</span> <span class="mf">0.9419642857142858</span>
+</pre></div>
+
+
+<p><br>    <br>
+In terms of <span class="caps">AUC</span> score, the Naive Bayes classifier performs best. <br>
+<br>           </p>
+<p>A convenient method of obtaining important classifier metrics is provided in <code>metrics.classification_report</code>. 
+It takes for arguments the test set labels and the classifier&#8217;s class predictions for those observations, 
+along with the labels for the class in question. <code>classification_report</code> then generates a table with precision, 
+recall, f1-score and support:
+<br>   </p>
+<div class="highlight"><pre><span></span><span class="c1"># ==========================================</span>
+<span class="c1">#  Print classification_report             |</span>
+<span class="c1"># ==========================================</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">classification_report</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="n">classification_report</span><span class="p">(</span><span class="n">y_test</span><span class="p">,</span> <span class="n">nb_y_hat</span><span class="p">,</span> <span class="n">target_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Male&#39;</span><span class="p">,</span> <span class="s1">&#39;Female&#39;</span><span class="p">]))</span>
+
+             <span class="n">precision</span>    <span class="n">recall</span>  <span class="n">f1</span><span class="o">-</span><span class="n">score</span>   <span class="n">support</span>
+
+       <span class="n">Male</span>       <span class="mf">0.88</span>      <span class="mf">0.88</span>      <span class="mf">0.88</span>        <span class="mi">24</span>
+     <span class="n">Female</span>       <span class="mf">0.89</span>      <span class="mf">0.89</span>      <span class="mf">0.89</span>        <span class="mi">28</span>
+
+<span class="n">avg</span> <span class="o">/</span> <span class="n">total</span>       <span class="mf">0.88</span>      <span class="mf">0.88</span>      <span class="mf">0.88</span>        <span class="mi">52</span>
+</pre></div>
+
+
+<p><br>
+Once a model has been fit&#8230;the work has only just begun! In order to implement and productionalize well-tuned, fully-functional machine learning models, a good deal of time needs to be spent not only in determining optimal hyperparameter settings, but also in considering the proper precision/recall tradeoff that makes the most sense for problem domain in question.  <br>
+<br>      </p>
+<p>We&#8217;ve only scratched the surface of what scikit-learn offers with respect to model assessment utilities. 
+Make an effort to explore the documentation (which is first rate), and make it a goal to internalize a new 
+aspect of the <span class="caps">API</span> you weren&#8217;t previously familiar with everytime you visit. In no time at all, you&#8217;ll have 
+gained familiarity with the most important utilities, which you&#8217;ll be able to leverage to your advantage when 
+faced with the prospect of having to solve a problem with a non-obvious solution.          <br>
+Until next time, happy&nbsp;coding!</p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

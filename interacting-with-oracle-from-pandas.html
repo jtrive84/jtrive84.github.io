@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Interacting with Oracle from Pandas - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/interacting-with-oracle-from-pandas.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python,Oracle" />
+        <meta name="description" content="Leveraging Pandas to read and write tables in an Oracle database" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Interacting with Oracle from Pandas"/>
+        <meta property="og:url" content="https://jtrive84.github.io/interacting-with-oracle-from-pandas.html"/>
+        <meta property="og:description" content="Leveraging Pandas to read and write tables in an Oracle database"/>
+        <meta property="article:published_time" content="2018-12-20" />
+            <meta property="article:section" content="Python" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:tag" content="Oracle" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Python ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/interacting-with-oracle-from-pandas.html"
+                       rel="bookmark"
+                       title="Permalink to Interacting with Oracle from Pandas">
+                        Interacting with Oracle from&nbsp;Pandas
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-12-20T00:00:00-06:00"> 2018-12-20</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/python.html">Python</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+        /
+	<a href="https://jtrive84.github.io/tag/oracle.html">Oracle</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>Databases are ubiquitous. Any non-trivial application intended for use within 
+the enterprise will almost certainly read from or write to a database at some 
+point. In fact, part of the reason analysts have turned to programming 
+languages like Python (and R) for data manipulation tasks is the higher level 
+of abstraction with respect to database interfaces. In R, the general database 
+interface is <span class="caps">DBI</span>. In Python it is referred to as the Database <span class="caps">API</span>-2.0
+(see <a href="https://www.python.org/dev/peps/pep-0249/"><span class="caps">PEP249</span></a> for more 
+information). The purpose of these interfaces is to expose a set of methods 
+for database interaction that are consistent across vendors (for example, a 
+method used to retrieve a table from an Oracle database is the same method 
+used to retrieve a table from a Postgres or Microsoft SQLServer database). The 
+remainder of this post focuses specifically on interacting with data in an 
+Oracle database from&nbsp;Pandas.</p>
+<p>The canonical Python-Oracle interface is cx_Oracle. cx_Oracle isn&#8217;t 
+distributed as part of the Python Standard Library, nor is it included as part 
+of the Anaconda distribution, and therefore needs to be installed separately 
+via pip or conda. To verify that the package has been installed properly, 
+open a command prompt (Press Windows key + R, then type &#8220;cmd&#8221;), and enter the&nbsp;following:    </p>
+<div class="highlight"><pre><span></span>C:<span class="se">\&gt;</span> python -c <span class="s2">&quot;import cx_Oracle; print(cx_Oracle.__version__)&quot;</span>
+<span class="m">7</span>.0.0
+</pre></div>
+
+
+<p>If instead of a version number, a message indicating that <em>&#8216;python&#8217; is not 
+recognized as an internal or external command, operable program or batch file</em>, 
+verify that the directory containing the Python executable is included as part 
+of your system or user <code>PATH</code> environment&nbsp;variable.            </p>
+<p>In the examples that follow, we&#8217;ll demonstrate how to create a database 
+connection, retrieve tables, manipulate the dataset and finally export the 
+data back to the database under a different tablename. In order to follow 
+along with the examples, the following 3rd-party packages need to be&nbsp;installed:</p>
+<ul>
+<li>cx_Oracle</li>
+<li>Pandas</li>
+<li>sqlalchemy</li>
+</ul>
+<h3>Initializing a Database&nbsp;Connection</h3>
+<p>Once cx_Oracle has been installed, we need to create a database connection. 
+Note that in a previous 
+<a href="https://jtrive84.github.io/introduction-to-cx_oracle.html">post</a>, we covered 
+how to retrieve Oracle table data using cx_Oracle directly. Although this 
+approach is possible, accessing Oracle table data via Pandas is much preferred 
+as it simplifies the most commonly performed&nbsp;actions.      </p>
+<p>cx_Oracle&#8217;s native database connection allows for one-way transactions only: 
+Table data can be retrieved, but cannot be written. However, if we instead 
+initialize our connection using SQLAlchemy, we allow for bi-directional i/o
+from the start, which can be very useful. This requires the SQLAlchemy library 
+(which is included as part of the Anaconda distribution). The syntax to create 
+a database connection with SQLAlchemy&nbsp;is:</p>
+<div class="highlight"><pre><span></span>&quot;oracle://&lt;USER&gt;:&lt;PASSWORD&gt;@&lt;DATABASE&gt;&quot;
+</pre></div>
+
+
+<p>For example, to connect to the &#8220;<span class="caps">DEV</span>&#8221; schema/user in database &#8220;<span class="caps">DB</span>&#8221; with 
+password &#8220;password&#8221;, the connection would be 
+specified&nbsp;as:   </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cx_Oracle</span>
+<span class="kn">import</span> <span class="nn">sqlalchemy</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;DB&quot;</span>
+<span class="n">SCHEMA</span>   <span class="o">=</span> <span class="s2">&quot;DEV&quot;</span>
+<span class="n">PASSWORD</span> <span class="o">=</span> <span class="s2">&quot;password&quot;</span>
+<span class="n">connstr</span>  <span class="o">=</span> <span class="s2">&quot;oracle://{}:{}@{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">SCHEMA</span><span class="p">,</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="n">DATABASE</span><span class="p">)</span>
+<span class="n">conn</span>     <span class="o">=</span> <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">create_engine</span><span class="p">(</span><span class="n">connstr</span><span class="p">)</span>
+</pre></div>
+
+
+<p>If you&#8217;re using Python 3.6 or later, you can use&nbsp;f-strings:      </p>
+<div class="highlight"><pre><span></span><span class="n">connstr</span> <span class="o">=</span> <span class="n">f</span><span class="s2">&quot;oracle://{SCHEMA}:{PASSWORD}@{DATABASE}&quot;</span>
+</pre></div>
+
+
+<p>Once the database connection has been established, we can retrieve datasets 
+using the Pandas <em>read_sql_query</em> function. It takes for arguments any valid 
+<span class="caps">SQL</span> statement along with a connection object referencing the target database. 
+For example, assume we have a table named &#8220;SEVERITY_CDFS&#8221; in the &#8220;<span class="caps">DB</span>&#8221; schema 
+containing 150-point discretized severity distributions for various lines of 
+business. A sample of what the data looks can can be obtained 
+<a href="https://gist.github.com/jtrive84/a02a24ce33e2caf5c6e5785354b7163b">here</a>. We 
+retrieve the table as follows (we repeat the earlier code for&nbsp;convenience):         </p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Demonstrate how to query Oracle datasets using Python</span>
+<span class="sd">and Pandas.</span>
+<span class="sd">Required 3rd-party Packages: cx_Oracle, sqlalchemy, pandas</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">cx_Oracle</span>
+<span class="kn">import</span> <span class="nn">sqlalchemy</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="c1"># Suppress scientific notation when printing DataFrame objects.</span>
+<span class="c1"># We choose to display floats with 5 decimals. Modify as needed.</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">float_format</span> <span class="o">=</span> <span class="s1">&#39;{:.5f}&#39;</span><span class="o">.</span><span class="n">format</span>
+
+<span class="c1"># Specifiy database connection details and establish connection.</span>
+<span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;DB&quot;</span>
+<span class="n">SCHEMA</span>   <span class="o">=</span> <span class="s2">&quot;DEV&quot;</span>
+<span class="n">PASSWORD</span> <span class="o">=</span> <span class="s2">&quot;password&quot;</span>
+<span class="n">connstr</span>  <span class="o">=</span> <span class="s2">&quot;oracle://{}:{}@{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">SCHEMA</span><span class="p">,</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="n">DATABASE</span><span class="p">)</span>
+<span class="n">conn</span>     <span class="o">=</span> <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">create_engine</span><span class="p">(</span><span class="n">connstr</span><span class="p">)</span>
+
+<span class="c1"># Specify the table to query. Note that SQL should be a </span>
+<span class="c1"># valid SQL statement.</span>
+<span class="n">TABLENAME</span> <span class="o">=</span> <span class="s2">&quot;SEVERITY_CDFS&quot;</span>
+<span class="n">SQL</span>  <span class="o">=</span> <span class="s2">&quot;SELECT * FROM {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">TABLENAME</span><span class="p">)</span>
+<span class="n">cdfs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql_query</span><span class="p">(</span><span class="n">SQL</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+</pre></div>
+
+
+<p>The object returned by <em>read_sql_query</em> is a Pandas DataFrame. This is a 
+2-dimensional tabular data structure with a large number of useful attributes 
+and methods. We can verify cdfs is a DataFrame by calling Python&#8217;s <code>type</code> 
+function on&nbsp;cdfs:        </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="nb">type</span><span class="p">(</span><span class="n">cdfs</span><span class="p">)</span>
+<span class="n">pandas</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span>
+</pre></div>
+
+
+<p>If you need to retrieve an entire table without filtering conditions specified 
+in <span class="caps">SQL</span>, Pandas offers the <em>read_sql_table</em> function, which takes for its first 
+argument a tablename that resides in the target schema as opposed to a <span class="caps">SQL</span> 
+statement. Note that <em>read_sql_table</em> is only valid for SQLAlchemy connection 
+objects, and wouldn&#8217;t work with a standard cx_Oracle connection. In the next 
+example, we retrieve the same table as before, but replace <em>read_sql_query</em> 
+with <em>read_sql_table</em>:       </p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Demonstrate how to query Oracle datasets using Python</span>
+<span class="sd">and Pandas.</span>
+<span class="sd">Required 3rd-party Packages: cx_Oracle, sqlalchemy, pandas</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">cx_Oracle</span>
+<span class="kn">import</span> <span class="nn">sqlalchemy</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="c1"># Suppress scientific notation when printing DataFrame objects.</span>
+<span class="c1"># We choose to display floats with 5 decimals. Modify as needed.</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">float_format</span> <span class="o">=</span> <span class="s1">&#39;{:.5f}&#39;</span><span class="o">.</span><span class="n">format</span>
+
+<span class="c1"># Specify database connection details and establish connection.</span>
+<span class="n">DATABASE</span> <span class="o">=</span> <span class="s2">&quot;DB&quot;</span>
+<span class="n">SCHEMA</span>   <span class="o">=</span> <span class="s2">&quot;DEV&quot;</span>
+<span class="n">PASSWORD</span> <span class="o">=</span> <span class="s2">&quot;password&quot;</span>
+<span class="n">connstr</span>  <span class="o">=</span> <span class="s2">&quot;oracle://{}:{}@{}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">SCHEMA</span><span class="p">,</span> <span class="n">PASSWORD</span><span class="p">,</span> <span class="n">DATABASE</span><span class="p">)</span>
+<span class="n">conn</span>     <span class="o">=</span> <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">create_engine</span><span class="p">(</span><span class="n">connstr</span><span class="p">)</span>
+
+<span class="c1"># Specify the table to query. Note that SQL should be a </span>
+<span class="c1"># valid SQL statement.</span>
+<span class="n">TABLENAME</span> <span class="o">=</span> <span class="s2">&quot;SEVERITY_CDFS&quot;</span>
+<span class="n">cdfs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql_table</span><span class="p">(</span><span class="n">TABLENAME</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">conn</span><span class="p">)</span>
+</pre></div>
+
+
+<p>The only difference is the elimination of the <span class="caps">SQL</span> statement. In this version, 
+the target tablename is passed to the function&nbsp;directly.   </p>
+<h4>Iterative Data&nbsp;Retrieval</h4>
+<p>For very large datasets, it may be inefficient to return all records in a 
+single round trip. Pandas allows datasets to be queried incrementally by 
+providing a <code>chunksize</code> parameter within <em>read_sql_query</em> (also applies to 
+<em>read_sql_table</em>). <code>chunksize</code> specifies how many records should be retrieved 
+at each iteration. The call is identical to the original, except when 
+<code>chunksize</code> is specified, an iterator referencing the dataset is returned 
+instead of the dataset&nbsp;itself.     </p>
+<p>To demonstrate, we read &#8220;SEVERITY_CDFS&#8221; as before, but this time in 1000 
+record&nbsp;blocks:         </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">TABLENAME</span> <span class="o">=</span> <span class="s2">&quot;SEVERITY_CDFS&quot;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">SQL</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">TABLENAME</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">ref</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql_query</span><span class="p">(</span><span class="n">SQL</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">type</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+<span class="n">generator</span>
+</pre></div>
+
+
+<p>Notice that <code>ref</code> is&nbsp;generator. </p>
+<p>Here&#8217;s an approach that can be used to retrieve and compile the dataset into a 
+single DataFrame after exhausting the generator bound from the call to 
+<em>read_sql_query</em> with <code>chunksize=1000</code>:         </p>
+<div class="highlight"><pre><span></span><span class="n">TABLENAME</span> <span class="o">=</span> <span class="s2">&quot;SEVERITY_CDFS&quot;</span>
+<span class="n">SQL</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">TABLENAME</span><span class="p">)</span>
+<span class="n">ref</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_sql_query</span><span class="p">(</span><span class="n">SQL</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+
+<span class="c1"># Process ref generator using a list comprehension.</span>
+<span class="n">cdfs_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ref</span><span class="p">]</span>
+
+<span class="c1"># Verically concatenate DataFrames in cdfs_list into a single</span>
+<span class="c1"># DataFrame via pd.concat.</span>
+<span class="n">cdfs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">cdfs_list</span><span class="p">)</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Another motivation for interacting with Oracle through Pandas is the fact that 
+the result is returned as a DataFrame object, which is a powerful, versatile 
+data structure with a wide range of potential uses. We next describe a few 
+useful routines that can be applied to DataFrames. Assume that the cdfs table 
+has been&nbsp;retrieved. </p>
+<p>To obtain the fieldnames of the queried dataset, use the <code>columns</code> attribute:         </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">columns</span>
+<span class="n">Index</span><span class="p">([</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span> <span class="s1">&#39;CDF_ENUM&#39;</span><span class="p">,</span> <span class="s1">&#39;CDF&#39;</span><span class="p">,</span> <span class="s1">&#39;LOSS&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;object&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>To obtain the dimensions of the retrieved dataset, use the <code>shape</code> attribute. 
+The result is a tuple consisting of <code>(nrows, ncols)</code>:                </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">shape</span>
+<span class="p">(</span><span class="mi">16650</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+</pre></div>
+
+
+<p>To determine the datatypes associated with each field in cdfs, call the 
+<code>dtypes</code> attribute:     </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">dtypes</span>
+<span class="n">ID</span>        <span class="nb">object</span>
+<span class="n">CDF_ENUM</span>  <span class="n">int64</span>
+<span class="n">CDF</span>       <span class="n">float64</span>
+<span class="n">LOSS</span>      <span class="n">float64</span>
+<span class="n">dtype</span><span class="p">:</span> <span class="nb">object</span>
+</pre></div>
+
+
+<p>We can sort cdfs by &#8220;<span class="caps">ID</span>&#8221; and &#8220;CDF_ENUM&#8221;, then review the first few records 
+using <code>head</code>:              </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span> <span class="o">=</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">sort_values</span><span class="p">([</span><span class="s2">&quot;ID&quot;</span><span class="p">,</span> <span class="s2">&quot;CDF_ENUM&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+    <span class="n">ID</span>  <span class="n">CDF_ENUM</span>      <span class="n">CDF</span>        <span class="n">LOSS</span>
+<span class="mo">000001</span>         <span class="mi">1</span> <span class="mf">0.006667</span> <span class="mf">69077.55279</span>
+<span class="mo">000001</span>         <span class="mi">2</span> <span class="mf">0.013333</span> <span class="mf">76009.02460</span>
+<span class="mo">000001</span>         <span class="mi">3</span>     <span class="mf">0.02</span> <span class="mf">80063.67568</span>
+<span class="mo">000001</span>         <span class="mi">4</span> <span class="mf">0.026667</span> <span class="mf">82940.49640</span>
+<span class="mo">000001</span>         <span class="mi">5</span> <span class="mf">0.033333</span> <span class="mf">85171.93191</span>
+</pre></div>
+
+
+<p>Two other approaches can be used to retrieve the first 5 records of&nbsp;cdfs.     </p>
+<h4>Subsetting&nbsp;DataFrames</h4>
+<p>This section contains a few examples of subsetting DataFrames by&nbsp;index.         </p>
+<p><em>Indexing on the DataFrame directly</em>:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span>
+    <span class="n">ID</span>  <span class="n">CDF_ENUM</span>      <span class="n">CDF</span>        <span class="n">LOSS</span>
+<span class="mo">000001</span>         <span class="mi">1</span> <span class="mf">0.006667</span> <span class="mf">69077.55279</span>
+<span class="mo">000001</span>         <span class="mi">2</span> <span class="mf">0.013333</span> <span class="mf">76009.02460</span>
+<span class="mo">000001</span>         <span class="mi">3</span>     <span class="mf">0.02</span> <span class="mf">80063.67568</span>
+<span class="mo">000001</span>         <span class="mi">4</span> <span class="mf">0.026667</span> <span class="mf">82940.49640</span>
+<span class="mo">000001</span>         <span class="mi">5</span> <span class="mf">0.033333</span> <span class="mf">85171.93191</span>
+</pre></div>
+
+
+<p><em>Using integer-location indexer <code>.iloc</code></em> Pandas DataFrames can be indexed 
+using <code>.iloc</code>, which facilitates purely integer-location based indexing for 
+selection by position. Keep in mind that Python uses 0-based indexing. 
+Passing <code>:</code> to <code>.iloc</code> serves as a stand-in for &#8220;return all&#8221;. If passed as 
+the first argument, returns all rows independent of any column-level (axis 1) 
+subsetting; If passed as the second argument, returns all columns independent 
+of any row-level (axis 0)&nbsp;subsetting:         </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">5</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">ID</span>  <span class="n">CDF_ENUM</span>      <span class="n">CDF</span>        <span class="n">LOSS</span>
+<span class="mo">000001</span>         <span class="mi">1</span> <span class="mf">0.006667</span> <span class="mf">69077.55279</span>
+<span class="mo">000001</span>         <span class="mi">2</span> <span class="mf">0.013333</span> <span class="mf">76009.02460</span>
+<span class="mo">000001</span>         <span class="mi">3</span>     <span class="mf">0.02</span> <span class="mf">80063.67568</span>
+<span class="mo">000001</span>         <span class="mi">4</span> <span class="mf">0.026667</span> <span class="mf">82940.49640</span>
+<span class="mo">000001</span>         <span class="mi">5</span> <span class="mf">0.033333</span> <span class="mf">85171.93191</span>
+</pre></div>
+
+
+<h4>Subsetting&nbsp;Columns</h4>
+<p>A subset of DataFrame columns can be obtained by specifying the desired column 
+names as comma-delimited strings surrounded by double brackets. A subset of 
+cdfs consisting of &#8220;<span class="caps">ID</span>&#8221;, &#8220;CDF_ENUM&#8221; and &#8220;<span class="caps">CDF</span>&#8221; which we refer to as <code>df</code> is 
+obtained as&nbsp;follows:          </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">df</span> <span class="o">=</span> <span class="n">cdfs</span><span class="p">[[</span><span class="s2">&quot;ID&quot;</span><span class="p">,</span> <span class="s2">&quot;CDF_ENUM&quot;</span><span class="p">,</span> <span class="s2">&quot;CDF&quot;</span><span class="p">]]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">ID</span>  <span class="n">CDF_ENUM</span>      <span class="n">CDF</span>
+<span class="mo">000001</span>         <span class="mi">1</span> <span class="mf">0.006667</span>
+<span class="mo">000001</span>         <span class="mi">2</span> <span class="mf">0.013333</span>
+<span class="mo">000001</span>         <span class="mi">3</span>     <span class="mf">0.02</span>
+<span class="mo">000001</span>         <span class="mi">4</span> <span class="mf">0.026667</span>
+<span class="mo">000001</span>         <span class="mi">5</span> <span class="mf">0.033333</span>
+</pre></div>
+
+
+<p>Individual fields can be retrieved using two approaches. Keep in mind that 
+Pandas DataFrames are comprised of one or more homogeneously typed Series 
+objects, which is similar to a named vector in R. We can use bracket notation, 
+specifying the field of interest as a string, or dot notation, where the field 
+is treated as an attribute of the parent&nbsp;DataFrame:            </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">id1</span> <span class="o">=</span> <span class="n">cdfs</span><span class="p">[</span><span class="s2">&quot;ID&quot;</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">id2</span> <span class="o">=</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">ID</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">type</span><span class="p">(</span><span class="n">id1</span><span class="p">)</span>
+<span class="n">pandas</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">series</span><span class="o">.</span><span class="n">Series</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">id1</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">id2</span><span class="p">)</span>
+<span class="bp">True</span>
+</pre></div>
+
+
+<p>To determine the unique elements comprising <code>id1</code> (or <code>id2</code>), call the 
+<code>unique</code> method:             </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">id1</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+<span class="n">array</span><span class="p">([</span><span class="s1">&#39;000001&#39;</span><span class="p">,</span> <span class="s1">&#39;000002&#39;</span><span class="p">,</span> <span class="s1">&#39;000003&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+</pre></div>
+
+
+<p>If a count of the number of unique elements is needed, call <code>nunique</code>:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">id1</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+<span class="mi">3</span>
+</pre></div>
+
+
+<p>Note that if desired, &#8220;<span class="caps">ID</span>&#8221; can be transformed into a single-column DataFrame 
+by specifying double instead of single&nbsp;brackets:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">df</span> <span class="o">=</span> <span class="n">cdfs</span><span class="p">[[</span><span class="s2">&quot;ID&quot;</span><span class="p">]]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">type</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+<span class="n">pandas</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">DataFrame</span>
+</pre></div>
+
+
+<p>At any time, a pandas DataFrame or Series object can be converted into a 
+numpy ndarray by calling the object&#8217;s <code>values</code> attribute:            </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">mgarr</span> <span class="o">=</span> <span class="n">id1</span><span class="o">.</span><span class="n">values</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">type</span><span class="p">(</span><span class="n">mgarr</span><span class="p">)</span>
+<span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">mgarr</span><span class="o">.</span><span class="n">ndim</span>
+<span class="mi">1</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">mgarr</span> <span class="o">=</span> <span class="n">cdfs</span><span class="p">[[</span><span class="s2">&quot;CDF_ENUM&quot;</span><span class="p">,</span> <span class="s2">&quot;CDF&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">values</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="nb">type</span><span class="p">(</span><span class="n">mgarr</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">mgarr</span><span class="o">.</span><span class="n">ndim</span>
+<span class="mi">2</span>
+</pre></div>
+
+
+<h4>Leveraging the <code>query</code> Method</h4>
+<p>Pandas DataFrames expose a <em>query</em> method, which takes a <span class="caps">SQL</span>-like expression 
+which is then used for subsetting the target DataFrame. To demonstrate, we 
+retrieve records from cdfs where &#8220;<span class="caps">ID</span>&#8221;==&#8216;000001&#8217; and <span class="caps">CDF</span>&lt;0.1:        </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;ID==&#39;000001&#39; and CDF&lt;.1&quot;</span><span class="p">)</span>
+    <span class="n">ID</span>  <span class="n">CDF_ENUM</span>       <span class="n">CDF</span>         <span class="n">LOSS</span>
+<span class="mo">000001</span>  <span class="mi">1</span>        <span class="mf">0.006667</span>   <span class="mf">69077.55279</span>
+<span class="mo">000001</span>  <span class="mi">2</span>        <span class="mf">0.013333</span>   <span class="mf">76009.0246</span>
+<span class="mo">000001</span>  <span class="mi">3</span>        <span class="mf">0.02</span>       <span class="mf">80063.67568</span>
+<span class="mo">000001</span>  <span class="mi">4</span>        <span class="mf">0.026667</span>   <span class="mf">82940.4964</span>
+<span class="mo">000001</span>  <span class="mi">5</span>        <span class="mf">0.033333</span>   <span class="mf">85171.93191</span>
+<span class="mo">000001</span>  <span class="mi">6</span>        <span class="mf">0.04</span>       <span class="mf">86995.14748</span>
+<span class="mo">000001</span>  <span class="mi">7</span>        <span class="mf">0.046667</span>   <span class="mf">88536.65428</span>
+<span class="mo">000001</span>  <span class="mi">8</span>        <span class="mf">0.053333</span>   <span class="mf">89871.96821</span>
+<span class="mo">000001</span>  <span class="mi">9</span>        <span class="mf">0.06</span>       <span class="mf">91049.79856</span>
+<span class="mo">000001</span>  <span class="mi">10</span>       <span class="mf">0.066667</span>   <span class="mf">92103.40372</span>
+<span class="mo">000001</span>  <span class="mi">11</span>       <span class="mf">0.073333</span>   <span class="mf">93056.50552</span>
+<span class="mo">000001</span>  <span class="mi">12</span>       <span class="mf">0.08</span>       <span class="mf">93926.61929</span>
+<span class="mo">000001</span>  <span class="mi">13</span>       <span class="mf">0.086667</span>   <span class="mf">94727.04636</span>
+<span class="mo">000001</span>  <span class="mi">14</span>       <span class="mf">0.093333</span>   <span class="mf">95468.12609</span>
+</pre></div>
+
+
+<p>For expressions parsed by <em>query</em>, <code>==</code> is used to obtain records equal to the 
+<span class="caps">RHS</span> of the expression, whereas <span class="caps">SQL</span> variants use a single <code>=</code> to represent the 
+same&nbsp;idea.    </p>
+<p>You may not always know the values with which to subset in advance. It may be 
+that the subset of interest isn&#8217;t known until runtime. In those instances, we 
+can specify a variable name within <em>query</em> by prefixing it with <code>@</code>: This
+prevents the specifier from being interpreted as a string literal. Here&#8217;s how 
+to return the same subset as above, but using variables as opposed to 
+hard-coded string&nbsp;literals:      </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">GROUP</span> <span class="o">=</span> <span class="s2">&quot;000001&quot;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">CDF_THRESH</span>  <span class="o">=</span> <span class="mf">0.1</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;ID==@GROUP and CDF&lt;@CDF_THRESH&quot;</span><span class="p">)</span>
+<span class="n">ID</span>      <span class="n">CDF_ENUM</span>       <span class="n">CDF</span>         <span class="n">LOSS</span>
+<span class="mo">000001</span>  <span class="mi">1</span>        <span class="mf">0.006667</span>   <span class="mf">69077.55279</span>
+<span class="mo">000001</span>  <span class="mi">2</span>        <span class="mf">0.013333</span>   <span class="mf">76009.0246</span>
+<span class="mo">000001</span>  <span class="mi">3</span>        <span class="mf">0.02</span>       <span class="mf">80063.67568</span>
+<span class="mo">000001</span>  <span class="mi">4</span>        <span class="mf">0.026667</span>   <span class="mf">82940.4964</span>
+<span class="mo">000001</span>  <span class="mi">5</span>        <span class="mf">0.033333</span>   <span class="mf">85171.93191</span>
+<span class="mo">000001</span>  <span class="mi">6</span>        <span class="mf">0.04</span>       <span class="mf">86995.14748</span>
+<span class="mo">000001</span>  <span class="mi">7</span>        <span class="mf">0.046667</span>   <span class="mf">88536.65428</span>
+<span class="mo">000001</span>  <span class="mi">8</span>        <span class="mf">0.053333</span>   <span class="mf">89871.96821</span>
+<span class="mo">000001</span>  <span class="mi">9</span>        <span class="mf">0.06</span>       <span class="mf">91049.79856</span>
+<span class="mo">000001</span>  <span class="mi">10</span>       <span class="mf">0.066667</span>   <span class="mf">92103.40372</span>
+<span class="mo">000001</span>  <span class="mi">11</span>       <span class="mf">0.073333</span>   <span class="mf">93056.50552</span>
+<span class="mo">000001</span>  <span class="mi">12</span>       <span class="mf">0.08</span>       <span class="mf">93926.61929</span>
+<span class="mo">000001</span>  <span class="mi">13</span>       <span class="mf">0.086667</span>   <span class="mf">94727.04636</span>
+<span class="mo">000001</span>  <span class="mi">14</span>       <span class="mf">0.093333</span>   <span class="mf">95468.12609</span>
+</pre></div>
+
+
+<h4>Appending a Timestamp to a&nbsp;DataFrame</h4>
+<p>We can use the standard library&#8217;s datetime module to append a timestamp to&nbsp;cdfs:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">datetime</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">tstmp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%c</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="p">[</span><span class="s2">&quot;TIMESTAMP&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tstmp</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+    <span class="n">ID</span>  <span class="n">CDF_ENUM</span>      <span class="n">CDF</span>        <span class="n">LOSS</span>                <span class="n">TIMESTAMP</span>
+<span class="mo">000001</span>         <span class="mi">1</span> <span class="mf">0.006667</span> <span class="mf">69077.55279</span> <span class="n">Fri</span> <span class="n">Dec</span> <span class="mi">21</span> <span class="mi">09</span><span class="p">:</span><span class="mi">52</span><span class="p">:</span><span class="mi">11</span> <span class="mi">2018</span>
+<span class="mo">000001</span>         <span class="mi">2</span> <span class="mf">0.013333</span> <span class="mf">76009.02460</span> <span class="n">Fri</span> <span class="n">Dec</span> <span class="mi">21</span> <span class="mi">09</span><span class="p">:</span><span class="mi">52</span><span class="p">:</span><span class="mi">11</span> <span class="mi">2018</span>
+<span class="mo">000001</span>         <span class="mi">3</span>     <span class="mf">0.02</span> <span class="mf">80063.67568</span> <span class="n">Fri</span> <span class="n">Dec</span> <span class="mi">21</span> <span class="mi">09</span><span class="p">:</span><span class="mi">52</span><span class="p">:</span><span class="mi">11</span> <span class="mi">2018</span>
+<span class="mo">000001</span>         <span class="mi">4</span> <span class="mf">0.026667</span> <span class="mf">82940.49640</span> <span class="n">Fri</span> <span class="n">Dec</span> <span class="mi">21</span> <span class="mi">09</span><span class="p">:</span><span class="mi">52</span><span class="p">:</span><span class="mi">11</span> <span class="mi">2018</span>
+<span class="mo">000001</span>         <span class="mi">5</span> <span class="mf">0.033333</span> <span class="mf">85171.93191</span> <span class="n">Fri</span> <span class="n">Dec</span> <span class="mi">21</span> <span class="mi">09</span><span class="p">:</span><span class="mi">52</span><span class="p">:</span><span class="mi">11</span> <span class="mi">2018</span>
+</pre></div>
+
+
+<h4>Exporting DataFrames to&nbsp;Oracle</h4>
+<p>Finally, we demonstrate how to export the updated cdfs table back to Oracle. 
+To accomplish this, we use the DataFrame&#8217;s <code>to_sql</code> method. It takes a table 
+name as a string, a connection object and a parameter (<code>if_exists</code>) that 
+specifies how to proceed if the given tablename exists in the target schema. 
+Options are &#8220;fail&#8221;, &#8220;replace&#8221; or &#8220;append&#8221; (set to &#8220;fail&#8221; by&nbsp;default).      </p>
+<p>To replace the existing &#8220;SEVERITY_CDFS&#8221; table with our updated version with 
+&#8220;<span class="caps">TIMESTAMP</span>&#8221; added, we&#8217;d call <code>to_sql</code> as follows (assume out connection, 
+<code>conn</code>, still exists and references the same database and&nbsp;schema):    </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">cdfs</span><span class="o">.</span><span class="n">to_sql</span><span class="p">(</span><span class="s2">&quot;SEVERITY_CDFS&quot;</span><span class="p">,</span> <span class="n">con</span><span class="o">=</span><span class="n">conn</span><span class="p">,</span> <span class="n">if_exists</span><span class="o">=</span><span class="s2">&quot;replace&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<h3>Conclusion</h3>
+<p>In this post, we demonstrated a simplified approach to interacting with Oracle 
+database data using standard Pandas DataFrame methods. By leveraging Pandas, 
+there&#8217;s no need to worry about iterating over cursor objects, but not at the 
+expense of lazily loading large datasets (as deomstrated by using the 
+<code>chunksize</code> parameter in one of the first examples). Pandas DataFrames expose 
+a ton of functionality, so there&#8217;s always new things to discover, so start
+exploring. Until next time, happy&nbsp;coding!</p>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

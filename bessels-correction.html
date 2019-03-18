@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Bessel’s Correction - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/bessels-correction.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python" />
+        <meta name="description" content="Correcting the bias in estimators for the population variance." />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Bessel’s Correction"/>
+        <meta property="og:url" content="https://jtrive84.github.io/bessels-correction.html"/>
+        <meta property="og:description" content="Correcting the bias in estimators for the population variance."/>
+        <meta property="article:published_time" content="2017-06-06" />
+            <meta property="article:section" content="Statistical Modeling" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/statistical-modeling.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Statistical Modeling ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/bessels-correction.html"
+                       rel="bookmark"
+                       title="Permalink to Bessel’s Correction">
+                        Bessel&#8217;s&nbsp;Correction
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-06-06T00:00:00-05:00"> 2017-06-06</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical Modeling</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>Bessel&#8217;s correction is the use of <span class="math">\(n − 1\)</span> instead of <span class="math">\(n\)</span> in the formula for the sample variance, where n is the number of observations in a sample. This method corrects the bias in the estimation of the population variance.   <br>
+<br>
+Recall that <em>bias</em> is defined as:
+<br>
+</p>
+<div class="math">$$
+bias(\theta) = E[\hat{\theta}] - \theta,
+$$</div>
+<p>
+<br>
+where <span class="math">\(\theta\)</span> represents the actual parameter value, and <span class="math">\(E[\hat{\theta}]\)</span> is an estimator of the parameter <span class="math">\(\theta\)</span>.
+A desirable property of an estimator is that its expected value equals the parameter we&#8217;re estimating, or <span class="math">\(E[\hat{\theta}] = \theta\)</span>. When this occurs, the estimator is said to be <em>unbiased</em>. 
+<br>
+Let <span class="math">\(\hat{\sigma}^{2}\)</span> represent the population variance, given by
+<br>
+</p>
+<div class="math">$$
+\hat{\sigma}^{2} = \frac{1}{n}\sum_{i=1}^{n}(Y_{i} - \bar{Y})^{2}.
+$$</div>
+<p>
+<br>
+To show that <span class="math">\(\hat{\sigma}^{2}\)</span> is a biased estimator for <span class="math">\(\sigma^{2}\)</span>, let <span class="math">\(Y_{1}, Y_{2}, \cdots, Y_{n} $ be a random sample with $E[Y_{i}] = \mu\)</span> and <span class="math">\(Var[Y_{i}] = \sigma^{2}\)</span>. First, note that   <br>
+<br>
+</p>
+<div class="math">$$
+\sum_{i=1}^{n}(Y_{i} - \bar{Y})^{2} = \sum_{i=1}^{n}Y_{i}^{2} - n\bar{Y}^{2},
+$$</div>
+<p>
+<br>
+and as a result, <br>
+<br>
+</p>
+<div class="math">$$
+E\Big[\sum_{i=1}^{n}(Y_{i} - \bar{Y})^{2}\Big] = E\Big(\sum_{i=1}^{n}Y_{i}^{2}\Big) - nE(\bar{Y}^{2}) = \sum_{i=1}^{n}E(Y_{i}^{2}) - nE(\bar{Y}^{2}).
+$$</div>
+<p>
+<br>
+Rearranging the familiar expression for variance yields
+<br>
+</p>
+<div class="math">$$
+E[Y^{2}] = Var[Y] + E[Y]^{2} = \sigma^{2} + \mu^{2},
+$$</div>
+<p>
+<br>
+and similiarly, <br>
+<br>
+</p>
+<div class="math">$$
+Var[\bar{Y}] + E[\bar{Y}]^{2} = \sigma^{2}/n + \mu^{2}.
+$$</div>
+<p>
+<br>
+Therefore
+<br>
+</p>
+<div class="math">$$
+\begin{align*}
+E\Big[\sum_{i=1}^{n}(Y_{i}-\bar{Y})^{2}\Big] &amp;= \sum_{i=1}^{n}\sigma^{2}+\mu^{2}-n\Big(\frac{\sigma^{2}}{n} + \mu^{2}\Big) \\
+&amp;=n(\sigma^{2} + \mu^{2}) - n\Big(\frac{\sigma^{2}}{n} + \mu^{2}\Big) \\
+&amp;=n\sigma^{2} - \sigma^{2} = (n-1)\sigma^{2}.
+\end{align*}
+$$</div>
+<p>
+<br>
+Thus,
+<br>
+</p>
+<div class="math">$$
+E[\hat{\sigma}^{2}] = \frac{1}{n}E\Big[\sum_{i=1}^{n}(Y_{i} - \bar{Y})^{2}\Big] = \frac{1}{n}(n-1)\sigma^{2} = \Big(\frac{n-1}{n}\Big)\sigma^{2},
+$$</div>
+<p>
+<br>
+and we conclude that <span class="math">\(\hat{\sigma}^{2}\)</span> is biased since <span class="math">\(E[\hat{\sigma}^{2}] \ne \sigma^{2}\)</span>. We now consider the sample variance <span class="math">\(S^{2}\)</span>:  <br>
+<br>
+</p>
+<div class="math">$$
+E[S^{2}] = \frac{1}{n-1}E\Big[\sum_{i=1}^{n}(Y_{i} - \bar{Y})^{2}\Big] = \frac{1}{n-1}(n-1)\sigma^{2} = \sigma^{2},
+$$</div>
+<p>
+<br>
+and since <span class="math">\(E[S^{2}] = \sigma^{2}\)</span>, we conclude that <span class="math">\(S^{2}\)</span> is an unbiased estimator for <span class="math">\(\sigma^{2}\)</span>.
+<br></p>
+<h2>Demonstration</h2>
+<p>An important property of an unbiased estimator of a population parameter is that if the sample statistic is evaluated for every possible sample and the average computed, the mean over all samples will exactly equal the population parameter. So for a given dataset with mean <span class="math">\(\mu\)</span> and variance <span class="math">\(\sigma^{2}\)</span>, if the sample variance (division by <span class="math">\((n-1)\)</span>) is determined for all possible permutations of the dataset, the average of the sample variances will exactly equal <span class="math">\(\sigma^{2}\)</span>. This also demonstrates (indirectly) that division by <span class="math">\(n\)</span> would consistently underestimate the population variance.   <br>
+<br>
+We now attempt to verify this property on the following dataset: <br>
+<br>
+</p>
+<div class="math">$$
+7, 9, 10, 12, 15
+$$</div>
+<p>
+<br>
+The Python <code>itertools</code> module exposes a collection of extremely efficient iterators that stream values on-demand based on various starting and/or stopping conditions. For example, the <code>permutations</code> function takes as arguments an iterable and a length <code>r</code>. The function returns all <code>r</code>-length permutations of elements from the iterable (there is also a <code>combinations</code> function that does the same for all <code>r</code>-length combinations). The <code>product</code> function generates the cartesian product of the provided iterables, and takes an optional <code>repeat</code> argument. According to the <a href="https://docs.python.org/3/library/itertools.html#itertools.product">docs</a>:  <br>
+<br>
+<em>To compute the product of an iterable with itself, specify the number of repetitions with the optional repeat keyword argument. For example, product(A, repeat=4) means the same as product(A, A, A, A).</em> <br>
+<br>
+We will leverage <code>product</code> to compute the average sample variance for all 2, 3 and 4-element permutations from [7, 9, 10, 12, 15], and compare the result to the population variance. Before we begin, lets calculate the population mean and variance:  <br>
+<br>
+</p>
+<div class="math">$$
+\begin{align*}
+\bar{Y} &amp;= 10.6 \\
+\sigma^{2} &amp;= \sum_{i=1}^{5}\frac{Y_{i}^{2}}{n} - \bar{Y}^{2} \\
+&amp;= 119.8 - 10.6^{2} \\
+&amp;= 7.44
+\end{align*}
+$$</div>
+<p>
+<br>
+We now compute the average of the sample variance for all k-element permutations from [7, 9, 10, 12, 15]
+for <span class="math">\(2 \le k \le 5\)</span>:  <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Demonstrating that the sample variance is an unbiased estimator </span>
+<span class="sd">of the population variance. </span>
+
+<span class="sd">Generate all possible 2, 3, 4 and 5-element permutations from </span>
+<span class="sd">[7, 9, 10, 12, 15], and determine the sample variance of each </span>
+<span class="sd">sample. The average of the sample variances will exactly equate </span>
+<span class="sd">to the population variance if the sample variance is an unbiased </span>
+<span class="sd">estimator of the population variance.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">15</span><span class="p">]</span>
+
+<span class="k">def</span> <span class="nf">sample_var</span><span class="p">(</span><span class="n">vals</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute sample variance of elements in vals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+    <span class="n">ybar</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="k">return</span><span class="p">((</span><span class="n">n</span><span class="o">/</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">arr</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">/</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">-</span><span class="n">ybar</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+
+<span class="c1"># Verify that the average of the sample variance</span>
+<span class="c1"># for all 2-element samples equates to 7.44 =&gt;</span>
+<span class="n">s2</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
+<span class="n">result2</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sample_var</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s2</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">s2</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">result2</span><span class="p">)</span> <span class="c1"># returns 7.44</span>
+
+
+<span class="c1"># Verify that the average of the sample variance</span>
+<span class="c1"># for all 3-element samples equates to 7.44 =&gt;</span>
+<span class="n">s3</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">3</span><span class="p">))</span>
+<span class="n">result3</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sample_var</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s3</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">s3</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">result3</span><span class="p">)</span> <span class="c1"># returns 7.44</span>
+
+
+<span class="c1"># Verify that the average of the sample variance</span>
+<span class="c1"># for all 4-element samples equates to 7.44 =&gt;</span>
+<span class="n">s4</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+<span class="n">result4</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sample_var</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s4</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">s4</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">result4</span><span class="p">)</span> <span class="c1"># returns 7.44</span>
+
+
+<span class="c1"># Verify that the average of the sample variance</span>
+<span class="c1"># for all 5-element samples equates to 7.44 =&gt;</span>
+<span class="n">s5</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">5</span><span class="p">))</span>
+<span class="n">result5</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">sample_var</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">s5</span><span class="p">)</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">s5</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">result5</span><span class="p">)</span> <span class="c1"># returns 7.44</span>
+</pre></div>
+
+
+<p><br>
+Since the sample variance is an unbiased estimator of the population variance, these results should come as no suprise, but it is an interesting demonstration&nbsp;nonetheless. </p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

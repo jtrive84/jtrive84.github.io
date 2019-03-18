@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Connecting to Remote Kernels with Jupyter Qt Console - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/connecting-to-remote-kernels-with-jupyter-qt-console.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python,Linux" />
+        <meta name="description" content="Connect to a remote Python session from a local client via IPython Qt Console" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Connecting to Remote Kernels with Jupyter Qt Console"/>
+        <meta property="og:url" content="https://jtrive84.github.io/connecting-to-remote-kernels-with-jupyter-qt-console.html"/>
+        <meta property="og:description" content="Connect to a remote Python session from a local client via IPython Qt Console"/>
+        <meta property="article:published_time" content="2017-07-29" />
+            <meta property="article:section" content="Python" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:tag" content="Linux" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Python ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/connecting-to-remote-kernels-with-jupyter-qt-console.html"
+                       rel="bookmark"
+                       title="Permalink to Connecting to Remote Kernels with Jupyter Qt Console">
+                        Connecting to Remote Kernels with Jupyter Qt&nbsp;Console
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-07-29T00:00:00-05:00"> 2017-07-29</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/python.html">Python</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+        /
+	<a href="https://jtrive84.github.io/tag/linux.html">Linux</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>It is possible to connect to a running Python session via IPython by setting 
+up ssh tunnels and initializing connections between local and remote clients. 
+This post&nbsp;assumes:</p>
+<ol>
+<li>The &#8216;local&#8217; client is a Windows host with the Anaconda platform installed. 
+The local client will be referred to as <em>localhost</em> for the remainder of the 
+post.        <br>
+<br> </li>
+<li>The &#8216;remote&#8217; host is a Linux server, also with the Anaconda platform 
+installed and is accessed via ssh. The remote server will be referred to as 
+<em>remotehost</em> for the remainder of the post.     <br>
+<br></li>
+</ol>
+<h3>Locate Runtime&nbsp;Directories</h3>
+<p>We need to obtain the location of the Jupyter runtime directory for both 
+localhost and remotehost. This is the location to which the IPython session 
+kernels are saved. We can locate the runtime directory using the following&nbsp;command:          </p>
+<div class="highlight"><pre><span></span>localhost&gt; jupyter --runtime-dir
+C:<span class="se">\U</span>sers<span class="se">\u</span>sername<span class="se">\A</span>ppData<span class="se">\R</span>oaming<span class="se">\j</span>upyter<span class="se">\r</span>untime
+</pre></div>
+
+
+<p>Similarily, for the remote&nbsp;host:</p>
+<div class="highlight"><pre><span></span>remotehost&gt; jupyter --runtime-dir
+/home/username/.local/share/jupyter/runtime
+</pre></div>
+
+
+<p>So on localhost, our IPython runtime directory is 
+<code>C:\Users\username\AppData\Roaming\jupyter\runtime</code> and for remotehost is 
+<code>/home/username/.local/share/jupyter/runtime</code>.               </p>
+<h3>Initializing IPython&nbsp;Kernel</h3>
+<p><br></p>
+<p>Now that we&#8217;ve obtained the locations of localhost and remotehost&#8217;s runtime 
+directories, we can initialize the IPython kernel on remotehost. Once 
+initialized, the command will return the name of the kernel file specific to 
+this latest session, and we will copy this .json file from remotehost&#8217;s 
+runtime directory to localhost&#8217;s runtime&nbsp;directory:         </p>
+<div class="highlight"><pre><span></span>remotehost&gt; ipython kernel
+To connect another client to this kernel, use:
+    --existing kernel-32627.json
+</pre></div>
+
+
+<p>Since Windows doesn&#8217;t include an ssh server by default, we need to manual copy 
+the kernel file from from remotehost to localhost. 
+<a href="https://winscp.net/eng/index.php">WinSCP</a> makes it easy to view local and 
+remote file systems side-by-side, and facilitates the transfer of file system 
+objects across hosts. With winSCP, we can navigate to each host&#8217;s respective 
+runtime directory, and copy the <code>kernel-32627.json</code> file from 
+<code>/home/username/.local/share/jupyter/runtime</code> to 
+<code>C:\Users\username\AppData\Roaming\jupyter\runtime</code>.       </p>
+<h3>Tunneling</h3>
+<p>After copy the file from remotehost to localhost, we need to open it and 
+execute ssh command that reference the ports specified in the json. The file 
+used for this example, <code>kernel-32627.json</code>, contains the&nbsp;following:        </p>
+<div class="highlight"><pre><span></span>{
+  &quot;iopub_port&quot;: 39736,
+  &quot;control_port&quot;: 59725,
+  &quot;transport&quot;: &quot;tcp&quot;,
+  &quot;shell_port&quot;: 51963,
+  &quot;key&quot;: &quot;1fcd997c-ef64-4322-8762-c034af6095e1&quot;,
+  &quot;stdin_port&quot;: 59714,
+  &quot;signature_scheme&quot;: &quot;hmac-sha256&quot;,
+  &quot;hb_port&quot;: 41128,
+  &quot;ip&quot;: &quot;127.0.0.1&quot;
+}
+</pre></div>
+
+
+<p><br>   <br>
+The ssh commands, which will be executed on localhost, will be of the&nbsp;form:        </p>
+<div class="highlight"><pre><span></span>localhost&gt; ssh -p &lt;port_nbr&gt; username@remotehost.com -f -N -L &lt;port&gt;:127.0.0.1:&lt;port&gt;
+</pre></div>
+
+
+<p><br></p>
+<p>The <code>-p</code> flag is optional, and is used for instances in which the remote sever 
+runs ssh from a non-standard port. If ssh on your remote server is bound to 
+the standard port 22, you may ignore the -p option. Then the command would 
+reduce&nbsp;to:            </p>
+<div class="highlight"><pre><span></span>localhost&gt; ssh username@remotehost.com -f -N -L &lt;port&gt;:127.0.0.1:&lt;port&gt;
+</pre></div>
+
+
+<p><br>   </p>
+<p>We need to execute this command for each port specified in 
+<code>kernel-32627.json</code>: <code>iopub_port</code>, <code>control_port</code>, <code>shell_port</code>, <code>stdin_port</code> 
+and <code>hb_port</code>.
+<br>    </p>
+<p>A brief description of the <code>-f</code>, <code>-N</code> and <code>-L</code> flags:</p>
+<ul>
+<li><strong><code>-f</code></strong> - Requests ssh to go to background just before command execution.  <br>
+<br>    </li>
+<li><strong><code>-N</code></strong> - Do not execute a remote command (useful for only forwarding ports).   <br>
+<br>     </li>
+<li><strong><code>-L</code></strong> - Forward the given port on localhost to the given port on remotehost.    <br>
+<br></li>
+</ul>
+<p>We execute the command five times, with only the port number changing between 
+calls. Using <code>kernel-32627.json</code> as our reference, we enter and&nbsp;execute:          </p>
+<div class="highlight"><pre><span></span>localhost&gt; ssh -p <span class="m">2245</span> username@remotehost.com -f -N -L <span class="m">39736</span>:127.0.0.1:39736
+
+localhost&gt; ssh -p <span class="m">2245</span> username@remotehost.com -f -N -L <span class="m">59725</span>:127.0.0.1:59725
+
+localhost&gt; ssh -p <span class="m">2245</span> username@remotehost.com -f -N -L <span class="m">51963</span>:127.0.0.1:51963
+
+localhost&gt; ssh -p <span class="m">2245</span> username@remotehost.com -f -N -L <span class="m">59714</span>:127.0.0.1:59714
+
+localhost&gt; ssh -p <span class="m">2245</span> username@remotehost.com -f -N -L <span class="m">41128</span>:127.0.0.1:41128
+</pre></div>
+
+
+<p><br> <br>
+In this case, no news is good news. If, after typing each command and hitting 
+enter nothing is returned except the prompt, the command was executed 
+successfully.       <br>
+<br>      </p>
+<p>As above, if ssh is bound to the standard port 22, the commands reduce&nbsp;to:</p>
+<div class="highlight"><pre><span></span>localhost&gt; ssh username@remotehost.com -f -N -L <span class="m">39736</span>:127.0.0.1:39736
+
+localhost&gt; ssh username@remotehost.com -f -N -L <span class="m">59725</span>:127.0.0.1:59725
+
+localhost&gt; ssh username@remotehost.com -f -N -L <span class="m">51963</span>:127.0.0.1:51963
+
+localhost&gt; ssh username@remotehost.com -f -N -L <span class="m">59714</span>:127.0.0.1:59714
+
+localhost&gt; ssh username@remotehost.com -f -N -L <span class="m">41128</span>:127.0.0.1:41128
+</pre></div>
+
+
+<p><br>    <br>
+All that remains is to open Qt Console, but with an extra argument that 
+references <code>kernel-32627.json</code>. This way, IPython will connect to the 
+already-running session on remotehost instead of creating a new session on 
+localhost.   <br>
+<br>   <br>
+From localhost, open a new command prompt (Windows key + R, type &#8216;cmd&#8217; 
+(no quotes)), then&nbsp;enter:             </p>
+<div class="highlight"><pre><span></span>localhost&gt; jupyter qtconsole --existing C:/Users/username/AppData/Roaming/jupyter/runtime/kernel-32627.json
+</pre></div>
+
+
+<p>Be sure to use the forward slash as your path delimiter. The Qt Console that 
+renders will look like your Qt Console from localhost, but you can easily 
+verify that it&#8217;s running the remote kernel as&nbsp;follows:           </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span> <span class="nn">sys</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">sys</span><span class="o">.</span><span class="n">executable</span>
+<span class="n">remotehost</span><span class="o">.</span><span class="n">com</span>
+</pre></div>
+
+
+<p><br>  </p>
+<p>If connecting to remote kernels through Qt Console is something you&#8217;ll be 
+doing with regular frequency, it makes sense to encapsulate the above commands 
+in a script that parses the kernel file and automatically binds the necessary 
+ports via ssh. This is a fairly straightforward task, and example of which
+is available in this GitHub <a href="https://gist.github.com/jtrive84/cd43eda7e3399fb1642c29b0b76f7bd9">gist</a>.
+Until next time, happy&nbsp;coding!</p>
+<h3>References:</h3>
+<ul>
+<li>https://github.com/ipython/ipython/wiki/Cookbook:-Connecting-to-a-remote-kernel-via-ssh</li>
+</ul>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Clustering in Python with k-means - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/clustering-in-python-with-k-means.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Machine Learning,Statistical Modeling,Python" />
+        <meta name="description" content="A walkthrough of the k-means clustering algorithm" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Clustering in Python with k-means"/>
+        <meta property="og:url" content="https://jtrive84.github.io/clustering-in-python-with-k-means.html"/>
+        <meta property="og:description" content="A walkthrough of the k-means clustering algorithm"/>
+        <meta property="article:published_time" content="2018-02-01" />
+            <meta property="article:section" content="Machine Learning" />
+            <meta property="article:tag" content="Machine Learning" />
+            <meta property="article:tag" content="Statistical Modeling" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/machine-learning.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Machine Learning ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/clustering-in-python-with-k-means.html"
+                       rel="bookmark"
+                       title="Permalink to Clustering in Python with k-means">
+                        Clustering in Python with&nbsp;k-means
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-02-01T00:00:00-06:00"> 2018-02-01</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/machine-learning.html">Machine Learning</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/machine-learning.html">Machine Learning</a>
+        /
+	<a href="https://jtrive84.github.io/tag/statistical-modeling.html">Statistical Modeling</a>
+        /
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>k-means clustering is a simple iterative clustering algorithm that partitions a dataset into a pre-determined number of clusters, <code>k</code>, based on a pre-determined distance metric. Unlike supervised classification algorithms that have some notion of a target class, the objects comprising the input to k-means do not come with an associated target. For this reason, k-means clustering and its variations are considered instances of unsupervised learning techniques<a href="#Footnotes:">1</a>.          </p>
+<p>In this post, details of the k-means algorithm are covered in detail. After laying the theoretical foundation, we walk through a Python implementation of k-means, and explore how to determine an optimal value for <span class="math">\(k\)</span>. We&#8217;ll also highlight a variant of k-means with an improved initialization scheme known as <em>kmeans++</em>. Finally, we examine how to leverage the clustering routines available in scikit-learn. 
+<br></p>
+<h2>Background</h2>
+<p>Given a set of observations <span class="math">\((x_{1}, x_{2}, \cdots, x_{n})\)</span>, where each observation is a p-dimensional vector, k-means attempts to partition the <span class="math">\(n\)</span> observations into <span class="math">\(k\)</span> clusters <span class="math">\(C = {C_{1}, C_{2}, \cdots, C_{k}}\)</span> such that the intra-cluster sum of squares is minimized. Adopting Bishop&#8217;s notational convention, we define the k-means objective (&#8216;cost&#8217;) function as<br>
+<br>
+</p>
+<div class="math">$$
+J = \sum_{n=1}^{N} \sum_{k=1}^{K} r_{nk}||x_{n} - \mu_{k}||^{2},
+$$</div>
+<p>
+<br>
+which represents the sum of the squares of the distances of each data point to its assigned vector <span class="math">\(\mu_{k}\)</span><a href="#Footnotes:">2</a>.
+Here, <span class="math">\(r_{nk}\)</span> is given by     <br>
+<br>
+</p>
+<div class="math">$$
+\DeclareMathOperator*{\argmin}{arg\,min_{j}}    
+r_{nk} =
+\begin{cases} 
+1 &amp; \mbox{if}  \argmin ||x_{n}-\mu_{j}||^{2} \\
+0 &amp; \mbox{otherwise}
+\end{cases} 
+$$</div>
+<p>
+<br></p>
+<p>which states that the <span class="math">\(n^{th}\)</span> observation gets assigned to the cluster whose centroid is nearest. <br>
+Conventional k-means usually begins with random selection of <span class="math">\(k\)</span> observations for the initial centroids. The algorithm proceeds
+by assigning each observation to it&#8217;s nearest centroid. Upon completion, 
+the <span class="math">\(k\)</span> centroids are updated using the latest cluster assignments. This is an example of an iterative refinement technique, 
+which ceases only after the change in distance between consecutive iterations for all observations 
+is less than some pre-determined threshold. In <em>Pattern Recognition and Machine Learning</em>, Bishop describes 
+these steps as &#8220;minimizing <span class="math">\(J\)</span> with respect to the <span class="math">\(r_{nk}\)</span> , keeping the <span class="math">\(\mu_{k}\)</span> fixed, then minimizing <span class="math">\(J\)</span> with respect to 
+the <span class="math">\(\mu_{k}\)</span>, keeping <span class="math">\(r_{nk}\)</span> fixed&#8221;<a href="#Footnotes:">2</a>. He also points out that the two stages correspond to the E (expectation) and M (maximization) steps of the <span class="caps">EM</span> (Expectation Maximization) algorithm.  <br>
+The value of <span class="math">\(J\)</span> is reduced after each <span class="caps">EM</span> cycle, so convergence is guaranteed, but not necessarily to the global minimum.<br>
+Since k-means can be run quickly, various combinations of starting points and number of clusters <span class="math">\(k\)</span> are run in turn to see how changing the observations selected for the initial means varies the ultimate formation of the <span class="math">\(k\)</span> clusters.
+<br></p>
+<h2>Implementation</h2>
+<p>In what follows, we present an implementation of the k-means algorithm that uses the conventional method of centroid intialization. This is also commonly referred to as Lloyd&#8217;s algorithm. In this version, the <code>kmeans</code> function takes as input 
+<code>data</code> representing the observations of interest, <code>k</code> for the number of clusters and <code>max_cycles</code>, which limits the number of allowable <span class="caps">EM</span> cycles before iteration ceases. <code>kmeans</code> returns a dict of values containing:  <br>
+<br>
+<em> <code>cycles</code> - Number of cycles required <br>
+</em> <code>all_means</code> - Progression of centroids for all cycles <br>
+<em> <code>all_assign</code> - Cluster assignments for each observation at each iteration  <br>
+</em> <code>all_dists</code> - Distances from observations to each of the <span class="math">\(k\)</span> centroids  <br>
+<em> <code>final_means</code> - Centroids at the final iteration  <br>
+</em> <code>final_assign</code> - Final cluster assignments for each observation as 1-D array    <br>
+<em> <code>final_dists</code> - Final distances from observations to each of the <span class="math">\(k\)</span> centroids <br>
+</em> <code>total_cost</code> - The total variance over all observations   <br>
+<br>
+We define the <code>kmeans</code> function as follows:  <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">from</span> <span class="nn">scipy.spatial</span> <span class="kn">import</span> <span class="n">distance</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+
+
+
+<span class="k">def</span> <span class="nf">kmeans</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_cycles</span><span class="o">=</span><span class="mi">25</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return means and cluster assignments for a given</span>
+<span class="sd">    dataset `data`.</span>
+
+<span class="sd">    STEP I  =&gt; Assignment step: Assign each observation to the</span>
+<span class="sd">               cluster whose mean has the least squared Euclidean</span>
+<span class="sd">               distance, this is intuitively the &quot;nearest&quot; mean.</span>
+<span class="sd">    STEP II =&gt; Update step; Calculate New Cluster Centroids for</span>
+<span class="sd">               each observation.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span> <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="c1"># Add index column to data.</span>
+    <span class="n">_tmpid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">_tmpid</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">data</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+
+    <span class="c1"># Conventional initialization: Select k random means from  X.</span>
+    <span class="n">init_indx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span><span class="n">k</span><span class="p">,</span><span class="n">replace</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">init_means</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">init_indx</span><span class="p">][:,</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">centroids</span> <span class="o">=</span> <span class="n">init_means</span>
+    <span class="n">all_means</span><span class="p">,</span> <span class="n">all_assign</span><span class="p">,</span> <span class="n">all_dists</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+
+    <span class="c1"># Initialize indicator and distance matricies which indicate cluster</span>
+    <span class="c1"># membership for each observation.</span>
+    <span class="n">init_clust_assign</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k</span><span class="p">))</span>
+    <span class="n">init_clust_dists</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">init_clust_assign</span><span class="p">)</span>
+
+    <span class="n">all_means</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">init_means</span><span class="p">)</span>
+    <span class="n">all_assign</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">init_clust_assign</span><span class="p">)</span>
+    <span class="n">all_dists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">init_clust_dists</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+
+        <span class="n">clust_assign</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k</span><span class="p">))</span>
+        <span class="n">clust_dists</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">clust_assign</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span> <span class="c1"># Step I (Assignment Step)</span>
+
+            <span class="n">iterobs</span>   <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span>
+            <span class="n">iterdists</span> <span class="o">=</span> <span class="p">[</span><span class="n">distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">iterobs</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">centroids</span><span class="p">]</span>
+            <span class="n">min_dist</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">iterdists</span><span class="p">)</span>
+            <span class="n">min_indx</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">iterdists</span><span class="p">)</span>
+
+            <span class="n">clust_assign</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">min_indx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">clust_dists</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">min_indx</span><span class="p">]</span>  <span class="o">=</span> <span class="n">min_dist</span>
+
+        <span class="c1"># Test for convergence.</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">clust_dists</span><span class="p">,</span><span class="n">all_dists</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">atol</span><span class="o">=</span><span class="mf">1e-09</span><span class="p">)</span> <span class="ow">or</span> <span class="n">c</span><span class="o">&gt;=</span><span class="n">max_cycles</span><span class="p">:</span>
+            <span class="k">break</span>
+
+        <span class="n">all_assign</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">clust_assign</span><span class="p">)</span>
+        <span class="n">all_dists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">clust_dists</span><span class="p">)</span>
+
+        <span class="n">centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">init_means</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">centroids</span><span class="p">):</span> <span class="c1"># Step II (Update Step)</span>
+
+            <span class="n">iter_k</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">iter_v</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># Use indicies from clust_assign to retrieve elements from X</span>
+            <span class="c1"># in order to calculate centroid updates.</span>
+            <span class="n">iter_mean</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">clust_assign</span><span class="p">[:,</span><span class="n">iter_k</span><span class="p">])][:,</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">centroids</span><span class="p">[</span><span class="n">iter_k</span><span class="p">]</span> <span class="o">=</span> <span class="n">iter_mean</span>
+
+        <span class="n">all_means</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">centroids</span><span class="p">)</span>
+
+
+    <span class="c1"># Calculate cost function (variance) over all centroids.</span>
+    <span class="n">total_cost</span> <span class="o">=</span> <span class="p">(</span><span class="n">all_dists</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="c1"># Return final_assign as a 1-D array representing final</span>
+    <span class="c1"># cluster assignment.</span>
+    <span class="n">final_assign</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">apply_along_axis</span><span class="p">(</span>
+                        <span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">a</span><span class="o">==</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                            <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">arr</span><span class="o">=</span><span class="n">all_assign</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;k&#39;</span>           <span class="p">:</span><span class="n">k</span><span class="p">,</span>
+        <span class="s1">&#39;cycles&#39;</span>      <span class="p">:</span><span class="n">c</span><span class="p">,</span>
+        <span class="s1">&#39;all_means&#39;</span>   <span class="p">:</span><span class="n">all_means</span><span class="p">,</span>
+        <span class="s1">&#39;all_assign&#39;</span>  <span class="p">:</span><span class="n">all_assign</span><span class="p">,</span>
+        <span class="s1">&#39;all_dists&#39;</span>   <span class="p">:</span><span class="n">all_dists</span><span class="p">,</span>
+        <span class="s1">&#39;final_means&#39;</span> <span class="p">:</span><span class="n">all_means</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="s1">&#39;final_assign&#39;</span><span class="p">:</span><span class="n">final_assign</span><span class="p">,</span>
+        <span class="s1">&#39;final_dists&#39;</span> <span class="p">:</span><span class="n">all_dists</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="s1">&#39;total_cost&#39;</span>  <span class="p">:</span><span class="n">total_cost</span>
+        <span class="p">}</span>
+
+    <span class="k">return</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+At the very start of the function definition we append an identifer column 
+which allows us to pair observations to their instance identifiers.
+<br>
+To demonstrate, we&#8217;ll use the dataset found <a href="https://gist.github.com/jtrive84/ea0f275a9ef010415392189e64c71fc3">here</a>, 
+which contains the mean and standard deviation of unemployment data for each of the 50 states:
+<br></p>
+<div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;unemp.csv&quot;</span><span class="p">)</span>
+
+<span class="c1"># For visualizations.</span>
+<span class="n">x1</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">x2</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;stddev&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="c1"># Pass as input to kmeans function.</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span><span class="s1">&#39;stddev&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="n">results</span> <span class="o">=</span> <span class="n">kmeans</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+Because <code>kmeans</code> returns the progression of centroid values and cluster 
+assignments after each E-M step, we can create a visualization that shows how 
+assignments and centroids change with each iteration. We next plot cluster 
+assignments at four iterations:
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Plotting various iterations of k-means cluster assignments.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="kn">as</span> <span class="nn">sns</span>
+
+
+<span class="c1"># Call kmeans with k=3.</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">kmeans</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_cycles</span><span class="o">=</span><span class="mi">25</span><span class="p">)</span>
+<span class="n">am</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;all_means&#39;</span><span class="p">]</span>
+<span class="n">ad</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;all_dists&#39;</span><span class="p">]</span>
+<span class="n">aa</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;all_assign&#39;</span><span class="p">]</span>
+
+
+<span class="c1"># Plot cluster assignments on 2x2 lattice plot =&gt;</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+
+<span class="c1"># Plot initial means =&gt;</span>
+<span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">221</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=.</span><span class="mi">90</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;k-means: Random Initialization &quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+
+<span class="n">m1a</span><span class="p">,</span> <span class="n">m2a</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">,:]</span>
+<span class="n">m1b</span><span class="p">,</span> <span class="n">m2b</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">,:]</span>
+<span class="n">m1c</span><span class="p">,</span> <span class="n">m2c</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">,:]</span>
+
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1a</span><span class="p">,</span><span class="n">m2a</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1b</span><span class="p">,</span><span class="n">m2b</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1c</span><span class="p">,</span><span class="n">m2c</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1a</span><span class="p">,</span><span class="n">m2a</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1b</span><span class="p">,</span><span class="n">m2b</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1c</span><span class="p">,</span><span class="n">m2c</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1a</span><span class="p">,</span><span class="n">m2a</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1b</span><span class="p">,</span><span class="n">m2b</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1c</span><span class="p">,</span><span class="n">m2c</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([])</span>
+
+
+
+<span class="c1"># 1st Assignment Step =&gt;</span>
+<span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">222</span><span class="p">)</span>
+
+<span class="n">m1a</span><span class="p">,</span> <span class="n">m2a</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">,:]</span>
+<span class="n">m1b</span><span class="p">,</span> <span class="n">m2b</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">,:]</span>
+<span class="n">m1c</span><span class="p">,</span> <span class="n">m2c</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">,:]</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1a</span><span class="p">,</span><span class="n">m2a</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1b</span><span class="p">,</span><span class="n">m2b</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1c</span><span class="p">,</span><span class="n">m2c</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1a</span><span class="p">,</span><span class="n">m2a</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1b</span><span class="p">,</span><span class="n">m2b</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1c</span><span class="p">,</span><span class="n">m2c</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+
+<span class="c1"># Retrieve points assigned to clusters.</span>
+<span class="n">aa1</span> <span class="o">=</span> <span class="n">aa</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">X0</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">aa1</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])][:,</span><span class="mi">0</span><span class="p">:]</span>
+<span class="n">x01</span><span class="p">,</span> <span class="n">x02</span> <span class="o">=</span> <span class="n">X0</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X0</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">X1</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">aa1</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])][:,</span><span class="mi">0</span><span class="p">:]</span>
+<span class="n">x11</span><span class="p">,</span> <span class="n">x12</span> <span class="o">=</span> <span class="n">X1</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X1</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">X2</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">aa1</span><span class="p">[:,</span><span class="mi">2</span><span class="p">])][:,</span><span class="mi">0</span><span class="p">:]</span>
+<span class="n">x21</span><span class="p">,</span> <span class="n">x22</span> <span class="o">=</span> <span class="n">X2</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X2</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x01</span><span class="p">,</span><span class="n">x02</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x11</span><span class="p">,</span><span class="n">x12</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x21</span><span class="p">,</span><span class="n">x22</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;k-means: First Assignment Step&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([])</span>
+
+
+<span class="c1"># 5th assignment step =&gt;</span>
+<span class="n">ax3</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">223</span><span class="p">)</span>
+<span class="n">m1a</span><span class="p">,</span> <span class="n">m2a</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="mi">4</span><span class="p">][</span><span class="mi">0</span><span class="p">,:];</span> <span class="n">m1b</span><span class="p">,</span> <span class="n">m2b</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="mi">4</span><span class="p">][</span><span class="mi">1</span><span class="p">,:];</span> <span class="n">m1c</span><span class="p">,</span> <span class="n">m2c</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="mi">4</span><span class="p">][</span><span class="mi">2</span><span class="p">,:]</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1a</span><span class="p">,</span><span class="n">m2a</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1b</span><span class="p">,</span><span class="n">m2b</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1c</span><span class="p">,</span><span class="n">m2c</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1a</span><span class="p">,</span><span class="n">m2a</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1b</span><span class="p">,</span><span class="n">m2b</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1c</span><span class="p">,</span><span class="n">m2c</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+
+<span class="c1"># Retrieve points assigned to clusters.</span>
+<span class="n">aa1</span> <span class="o">=</span> <span class="n">aa</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+<span class="n">X0</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">aa1</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])][:,</span><span class="mi">0</span><span class="p">:]</span>
+<span class="n">x01</span><span class="p">,</span> <span class="n">x02</span> <span class="o">=</span> <span class="n">X0</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X0</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">X1</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">aa1</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])][:,</span><span class="mi">0</span><span class="p">:]</span>
+<span class="n">x11</span><span class="p">,</span> <span class="n">x12</span> <span class="o">=</span> <span class="n">X1</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X1</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">X2</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">aa1</span><span class="p">[:,</span><span class="mi">2</span><span class="p">])][:,</span><span class="mi">0</span><span class="p">:]</span>
+<span class="n">x21</span><span class="p">,</span> <span class="n">x22</span> <span class="o">=</span> <span class="n">X2</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X2</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x01</span><span class="p">,</span><span class="n">x02</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x11</span><span class="p">,</span><span class="n">x12</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x21</span><span class="p">,</span><span class="n">x22</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;k-means: Fourth Assignment Step&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([])</span>
+
+
+<span class="c1"># Final assignment step =&gt;</span>
+<span class="n">ax4</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">224</span><span class="p">)</span>
+<span class="n">m1a</span><span class="p">,</span> <span class="n">m2a</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">,:];</span> <span class="n">m1b</span><span class="p">,</span> <span class="n">m2b</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">,:];</span> <span class="n">m1c</span><span class="p">,</span> <span class="n">m2c</span> <span class="o">=</span> <span class="n">am</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">2</span><span class="p">,:]</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1a</span><span class="p">,</span><span class="n">m2a</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1b</span><span class="p">,</span><span class="n">m2b</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1c</span><span class="p">,</span><span class="n">m2c</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;D&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.30</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1a</span><span class="p">,</span><span class="n">m2a</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1b</span><span class="p">,</span><span class="n">m2b</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">m1c</span><span class="p">,</span><span class="n">m2c</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span><span class="n">markersize</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span><span class="n">fillstyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span><span class="n">markeredgewidth</span><span class="o">=</span><span class="mf">1.50</span><span class="p">)</span>
+
+<span class="c1"># Retrieve points assigned to clusters.</span>
+<span class="n">aa1</span> <span class="o">=</span> <span class="n">aa</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">X0</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">aa1</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])][:,</span><span class="mi">0</span><span class="p">:]</span>
+<span class="n">x01</span><span class="p">,</span> <span class="n">x02</span> <span class="o">=</span> <span class="n">X0</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X0</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">X1</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">aa1</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])][:,</span><span class="mi">0</span><span class="p">:]</span>
+<span class="n">x11</span><span class="p">,</span> <span class="n">x12</span> <span class="o">=</span> <span class="n">X1</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X1</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">X2</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">aa1</span><span class="p">[:,</span><span class="mi">2</span><span class="p">])][:,</span><span class="mi">0</span><span class="p">:]</span>
+<span class="n">x21</span><span class="p">,</span> <span class="n">x22</span> <span class="o">=</span> <span class="n">X2</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">X2</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+
+<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x01</span><span class="p">,</span><span class="n">x02</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF0080&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x11</span><span class="p">,</span><span class="n">x12</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#1A8B55&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x21</span><span class="p">,</span><span class="n">x22</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;#0080FF&quot;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">)</span>
+<span class="n">ax4</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;k-means: Final Assignment Step&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([])</span>
+
+
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">wspace</span><span class="o">=.</span><span class="mo">05</span><span class="p">,</span><span class="n">hspace</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span><span class="n">left</span><span class="o">=.</span><span class="mo">05</span><span class="p">,</span> <span class="n">right</span><span class="o">=.</span><span class="mi">95</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>
+Running the code above generates the following:
+<br>
+<br>
+<p align="center"> 
+<img alt="kmeansquad" src="/images/kmeans4.png">
+</p> <br>
+<br>
+It&#8217;s clear that the centroids have changed noticably when comparing the 
+upper-left and the bottom-right subplots. However, we arbitrarily chose 3 as 
+the number of cluster centroids. We next discuss how to determine k, which 
+corresponds to the number of centroids that minimizes the cost function <span class="math">\(J\)</span> 
+across all observations.
+<br></p>
+<h2>Determining the Optimal <span class="math">\(k\)</span></h2>
+<p>A common method used in assessing the optimal number of centroids <span class="math">\(k\)</span> to use 
+for clustering is the <em>elbow method</em>, which plots the sum of squared residuals 
+as a function of the number of clusters across all observations. If we caculate 
+the sum of squared residuals from a single centroid model as compared with the 
+same measure from the two-centroid model, it&#8217;s clear that the two-centroid 
+model will have a lower total variance, since the larger residuals in the 
+<span class="math">\(k=1\)</span> model will almost certainly be reduced when <span class="math">\(k=2\)</span>. However, at a certain 
+point increasing <span class="math">\(k\)</span> will have little impact on the intra-cluster variance, 
+and the elbow method can be used to help identify this point.    <br>
+In the code that follows, we leverage our <code>kmeans</code> function and the sample 
+dataset introduced earlier to plot total variance as a function of <span class="math">\(k\)</span>, the 
+number of centroids, with <span class="math">\(1 \leq k \leq 10\)</span>:     <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Demonstrating the relationship between total variance </span>
+<span class="sd">as a function of the number of clusters to determine the </span>
+<span class="sd">optimal number of centroids.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="s1">&#39;notebook&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;darkgrid&#39;</span><span class="p">,</span> <span class="n">font_scale</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span>
+        <span class="s2">&quot;Total Variance as a Function of Cluster Count&quot;</span><span class="p">,</span> 
+        <span class="n">fontsize</span><span class="o">=</span><span class="mi">18</span><span class="p">,</span>
+        <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF6666&quot;</span><span class="p">,</span> 
+        <span class="n">weight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Number of Clusters&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">labelpad</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Total Variance&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">labelpad</span><span class="o">=</span><span class="mf">12.5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">3.</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.25</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#FF6666&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=.</span><span class="mi">90</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;major&#39;</span><span class="p">,</span> <span class="n">labelsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1"># Add arrow highlighting k=3.</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+       <span class="s2">&quot;optimal k=3&quot;</span><span class="p">,</span>
+        <span class="n">fontsize</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+       <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mf">18.85</span><span class="p">),</span>
+       <span class="n">xytext</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">30</span><span class="p">),</span>
+       <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span><span class="n">width</span><span class="o">=.</span><span class="mi">6</span><span class="p">,</span><span class="n">headwidth</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span><span class="n">shrink</span><span class="o">=.</span><span class="mo">05</span><span class="p">),</span>
+       <span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>
+This code produces the following (note the characteristic &#8216;elbow&#8217; shape, after 
+which the total variance changes very little with the inclusion of additional 
+centroids):
+<br>
+<p align="center"> 
+<img alt="kmeans_elbow" src="/images/kmeans_elbow.png">
+</p> <br>
+<br>
+Notice that the reduction in variance going from <span class="math">\(k=3\)</span> to <span class="math">\(k=4\)</span> isn&#8217;t as 
+significant as the reduction going from <span class="math">\(k=1\)</span> to <span class="math">\(k=2\)</span>, or even <span class="math">\(k=2\)</span> to <span class="math">\(k=3\)</span>. 
+So even though selecting the &#8216;best&#8217; <span class="math">\(k\)</span> can be open to subjectivity, in this 
+case it&#8217;s pretty clear that there would be little benefit is setting <span class="math">\(k \geq 4\)</span>. 
+Thus, for this dataset, we conclude that the optimal number of centroids is 
+<span class="math">\(k=3\)</span>. 
+<br></p>
+<h2>Alternative Initialization&nbsp;Methods</h2>
+<p>One of the shortcomings of conventional k-means is that ocassionally the 
+approximation found can be arbitrarily bad with respect to the objective 
+function compared to the optimal clustering<a href="#Footnotes:">4</a>. The <em>k-means++</em> 
+algorithm attempts to address this issue by providing an alternative initialization 
+scheme. In a 2007 paper that introduces k-means++, Arthur and Vassilvitskii 
+propose a specific way of choosing k-means cluster centers. Note that in what 
+follows, <span class="math">\(D(x)\)</span> denotes the shortest distance from a data point <span class="math">\(x\)</span> to the 
+closest center <span class="math">\(C_{i}\)</span> already&nbsp;selected:</p>
+<p><br>
+1. Take one center <code>C_{1}</code>, chosen uniformly at random from the initial dataset <code>X</code>.         <br>
+<br>
+2. Take a new center <span class="math">\(C_{i}\)</span>, choosing <span class="math">\(x \in X\)</span> with probability <span class="math">\(\frac {D(x)^{2}}{\sum_{x \in X} D(x)^{2}}\)</span>.    <br>
+<br>
+3. Repeat Step 2 until we have taken <span class="math">\(k\)</span> centroids in total.   <br>
+<br>
+4. Proceed as with the standard k-means algorithm. <br>
+<br>
+From step 2, the expression <span class="math">\(\frac {D(x)^{2}}{\sum_{x \in X} D(x)^{2}}\)</span> can be 
+interpreted as meaning observations having a greater distance from existing 
+centroids will be given a higher probability of being selected when the next 
+centroid is determined. In essence, this is an attempt to spread the initial 
+centroids as far as possible from one another prior to commencing the k-means 
+expectation and maximization steps.         <br>
+We can encapsulate the logic corresponding to the k-means++ initialization 
+method within a function that takes the dataset and number of clusters <code>k</code> as 
+input. A sample implementation is given by <code>kmeanspp</code>:</p>
+<p><br></p>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">kmeanspp</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return cluster centroids using k-means++ initialization.</span>
+<span class="sd">    data =&gt; The input dataset</span>
+<span class="sd">    k    =&gt; THe number of centroids to return</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># First centroid selected uniformly at random.</span>
+    <span class="n">centroids</span> <span class="o">=</span> <span class="p">[</span><span class="n">X</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">],:]]</span>
+
+    <span class="c1"># Determine distance of each observation from chosen centroids.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">dsq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="nb">max</span><span class="p">(</span><span class="n">distance</span><span class="o">.</span><span class="n">euclidean</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">i</span><span class="p">,:],</span><span class="n">j</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+                   <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">centroids</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])])</span>
+
+        <span class="n">r_indx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                    <span class="nb">range</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="mi">1</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="n">dsq</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dsq</span><span class="p">)</span>
+                    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Ensure same index not selected multiple times.</span>
+        <span class="k">if</span> <span class="n">dsq</span><span class="p">[</span><span class="n">r_indx</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+                <span class="n">r_indx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                            <span class="nb">range</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span><span class="mi">1</span><span class="p">,</span><span class="n">p</span><span class="o">=</span><span class="n">dsq</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dsq</span><span class="p">)</span>
+                            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">dsq</span><span class="p">[</span><span class="n">r_indx</span><span class="p">]</span><span class="o">!=</span><span class="mi">0</span><span class="p">:</span> <span class="k">break</span>
+
+        <span class="n">centroids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">X</span><span class="p">[</span><span class="n">r_indx</span><span class="p">,:])</span>
+
+    <span class="k">return</span><span class="p">(</span><span class="n">centroids</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+If we call <code>kmeanspp</code> with our original dataset and <code>k=3</code>, the initial centroids 
+have much better spread than when using conventional initialization:
+<br>
+<p align="center"> 
+<img alt="kmeanspp_comp" src="/images/kmeanspp_comp.png">
+</p> <br>
+<br>
+It would be straightforward to replace the original centroid initialization logic in <code>kmeans</code> with <code>kmeanspp</code>. </p>
+<p><br></p>
+<h2>Clustering in&nbsp;scikit-learn</h2>
+<p>The k-means clustering algorithm can be found in scikit-learn within the 
+<code>sklearn.cluster</code> module, where <code>KMeans</code> is just one of the many available 
+clustering algorithms. 
+More information on these algorithms can be found <a href="http://scikit-learn.org/stable/modules/clustering.html#clustering">here</a>.<br>
+In this section, discussion will be limited to the <code>KMeans</code> class and how it 
+can be used to generate cluster assignments.    <br>
+One of the greate advantages of scikit-learn is that it exposes a uniform 
+interface to a large number of algorithms. The steps taken to setup and run 
+scikit-learn&#8217;s implementation of <code>KMeans</code> can be repeated essentially without 
+variation when leveraging any of the various supervised learning&nbsp;algorithms.     </p>
+<p>We start by scaling our variables so that no single explanatory variable 
+contributes disproportionately to the overall variation in the dataset. This is 
+accomplished quite easily using the <code>StandardScaler</code> class from the 
+<code>sklearn.preprocessing</code> module:  <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">StandardScaler</span>
+
+<span class="c1"># Read in data as before.</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;unemp.csv&quot;</span><span class="p">)</span>
+<span class="n">X</span>  <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span><span class="s1">&#39;stddev&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="n">sclr</span> <span class="o">=</span> <span class="n">StandardScaler</span><span class="p">()</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">sclr</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+This transforms the data that comprises each explanatory variable into a 
+standard normal distribution having 0 mean and unit variance.
+<br>
+Although not strictly required in this case since our dataset is complete, the 
+next pre-processing step would typically consist of imputing missing values. 
+Missing data elements are bound to one of <code>'mean'</code>, <code>'median'</code> or <code>'most_frequent'</code>. 
+Since the definition will vary across datasets, the user specifies what constitutes a 
+missing value. For the purposes of demonstration, we next apply scikit-learn&#8217;s 
+<code>Imputer</code> class to the unemployment dataset, with <code>np.nan</code> specified as the 
+missing value and <code>'mean'</code> as the imputation strategy:     <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">Imputer</span>
+
+<span class="n">imp</span> <span class="o">=</span> <span class="n">Imputer</span><span class="p">(</span><span class="n">missing_values</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">imp</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+Finally, we pass <code>X</code> to the <code>fit</code> method of <code>KMeans</code>:
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="kn">import</span> <span class="n">KMeans</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="n">kmeans</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+<span class="c1"># Get final cluster assignments.</span>
+<span class="n">kmeans</span><span class="o">.</span><span class="n">labels_</span>
+
+<span class="c1"># Get final cluster centroids.</span>
+<span class="n">kmeans</span><span class="o">.</span><span class="n">cluster_centers_</span>
+
+<span class="c1"># Predict cluster assignment for new observations.</span>
+<span class="n">kmeans</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">atleast_2d</span><span class="p">([</span><span class="o">.</span><span class="mi">515</span><span class="p">,</span> <span class="o">.</span><span class="mi">73337</span><span class="p">]))</span>
+</pre></div>
+
+
+<p><br></p>
+<h2>Conclusion</h2>
+<p>This post serves only as the briefest introduction to k-means and demonstrated 
+only the simplest use cases. In higher dimensions, cluster assignments become 
+difficult to interpret. However, for performing exploratory data analysis with 
+reasonably sized datasets, k-means can prove to be very useful for gleaning 
+insights. Until next time, happy coding!
+<br></p>
+<h3>Footnotes:</h3>
+<ol>
+<li>Xindong and Vipin, <em>The Top Ten Algorithms in Data Mining</em> (Taylor <span class="amp">&amp;</span> Francis Group 2009), pg. 21.  <br>
+<br>    </li>
+<li>Bishop, Christopher M, <em>Pattern Recognition and Machine Learning</em> (Springer 2007), pg. 424.    <br>
+<br></li>
+<li><a href="https://en.wikipedia.org/wiki/K-means%2B%2B">https://en.wikipedia.org/wiki/K-means%2B%2B</a>     <br>
+<br></li>
+</ol>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

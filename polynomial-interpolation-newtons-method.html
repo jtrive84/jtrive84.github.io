@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Polynomial Interpolation: Newton’s Method - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/polynomial-interpolation-newtons-method.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python,Statistical Modeling" />
+        <meta name="description" content="Python implementation of Newton’s method of polynomial interpolation" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Polynomial Interpolation: Newton’s Method"/>
+        <meta property="og:url" content="https://jtrive84.github.io/polynomial-interpolation-newtons-method.html"/>
+        <meta property="og:description" content="Python implementation of Newton’s method of polynomial interpolation"/>
+        <meta property="article:published_time" content="2017-08-13" />
+            <meta property="article:section" content="Statistical Modeling" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:tag" content="Statistical Modeling" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/statistical-modeling.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Statistical Modeling ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/polynomial-interpolation-newtons-method.html"
+                       rel="bookmark"
+                       title="Permalink to Polynomial Interpolation: Newton’s Method">
+                        Polynomial Interpolation: Newton&#8217;s&nbsp;Method
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-08-13T00:00:00-05:00"> 2017-08-13</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical Modeling</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+        /
+	<a href="https://jtrive84.github.io/tag/statistical-modeling.html">Statistical Modeling</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>Interpolation is the process of fitting a continuous function to a set of discrete data points for 
+the purpose of estimating intermediate values. Polynomial interpolation involves fitting an 
+<span class="math">\(n^{th}\)</span>-order polynomial that passes through <span class="math">\(n+1\)</span> data points (in order to use an <span class="math">\(n^{th}\)</span>-order 
+interpolating polynomial, <span class="math">\(n+1\)</span> data points are required), and using <span class="math">\(b_{i}\)</span> as a stand-in for the 
+polynomial coefficients, <span class="math">\(b_{1}, b_{2}, \cdots ,b_{k}\)</span> will be uniquely&nbsp;determined.         </p>
+<p>There are several methods that can be used to determine the form of the unique interpolating polynomial 
+fit to a collection of discrete data points, but we&#8217;re only going to discuss Newton&#8217;s Divided Difference method. 
+With this approach, each new polynomial in the algorithm is obtained from its predecessor by adding a new 
+term. Thus, in its final state, the polynomial exhibits all the previous polynomials as&nbsp;constituents.         </p>
+<p>Before we begin, some clarification on the terminology used throughout the post: 
+<span class="math">\(f_{n}(x)\)</span> represents an <span class="math">\(n^{th}\)</span>-order interpolating polynomial. For example, <span class="math">\(f_{1}(x)\)</span> represents a first-order 
+interpolating polynomial, <span class="math">\(f_{2}(x)\)</span> a second-order interpolating polynomial, etc&#8230; Also, <span class="math">\(b_{k} = f[x_{0}, x_{1}, \cdots, x_{k}]\)</span> 
+represents the finite divided difference of order k. Divided differences obey the formula: <br>
+<br>  <br>
+</p>
+<div class="math">$$
+f[x_{0}, x_{1}, \cdots, x_{k}] = \frac{f[x_{1},x_{2},\cdots,x_{k}]-f[x_{0},x_{1},\cdots,x_{k-1}]}{x_{k}-x_{0}}
+$$</div>
+<p><br> <br>
+Therefore, we can say <span class="math">\(f[x_{0}, x_{1}, \cdots, x_{k}]\)</span> is the coefficient of <span class="math">\(x^{k}\)</span> in the polynomial <span class="math">\(f_{k}(x)\)</span>.       </p>
+<p>For a given set of data points <span class="math">\((x_{0}, f(x_{0})), (x_{1}, f(x_{1})), (x_{2}, f(x_{2}))\)</span>, the first three interpolating 
+polynomial coefficients are given by: <br>
+<br>    </p>
+<div class="math">$$
+\begin{align}
+b_{0} = f(x_{0}) &amp;&amp;
+b_{1} = \frac{f(x_{1})-f(x_{0})}{x_{1}-x_{0}} &amp;&amp; 
+b_{2} = \frac{\frac{f(x_{2})-f(x_{1})}{x_{2}-x_{1}}-\frac{f(x_{1})-f(x_{0})}{x_{1}-x_{0}}}{x_{2}-x_{0}}
+\end{align}
+$$</div>
+<p>
+<br>    </p>
+<p>We&#8217;ll walkthrough the linear and quadratic cases prior to exploring the general case.                 <br>
+<br>   </p>
+<h2>Calculating Interpolation Coefficients Using Divided&nbsp;Differences</h2>
+<h3>Linear&nbsp;Approximation</h3>
+<p>The linear form of Newton&#8217;s Interpolating polynomial is given&nbsp;by:</p>
+<div class="math">$$
+f_{1}(x)= f_{0}(x) + \frac{f(x_{1})-f(x_{0})}{x_{1}-x_{0}}(x-x_{0})
+$$</div>
+<p>Note that the term <span class="math">\(\frac{f(x_{1})-f(x_{0})}{x_{1}-x_{0}}\)</span> is a finite divided-difference approximation of the 
+first derivative, which also represents the slope of the line of the first-degree polynomial&nbsp;approximation. </p>
+<p>Let&#8217;s approximate the <span class="math">\(\sqrt{x}\)</span> between the points <span class="math">\(x=0\)</span> and <span class="math">\(x=3\)</span> using the points <span class="math">\((0, 0), (3, 1.732050808)\)</span>.</p>
+<p>The intercept is <span class="math">\(b_{0}=f(x_{0})=0\)</span>, and the corresponding slope is <span class="math">\(b_{1}=\frac{1.732050808 - 0}{3-0} \approx.57735027.\)</span>
+<br> </p>
+<p>The linear interpolant is therefore:
+<br>
+</p>
+<div class="math">$$
+f_{1}(x) = b_{0}+b_{1}x = .57735027x
+$$</div>
+<p>
+<br>   </p>
+<p>Estimating <span class="math">\(\sqrt{2.25}\)</span> with our linear approximation yields <span class="math">\(.57735027*2.25=1.2990381\)</span>, vrs. 
+the actual value <span class="math">\(\sqrt{2.25}=1.5\)</span>, which results in an error of <span class="math">\(\epsilon_{1} = .134\)</span>.</p>
+<p>Note that reducing the interval between data points (estimating the linear interpolant between <span class="math">\(x=2.00\)</span> and <span class="math">\(x=2.50\)</span> for example) 
+will yield a better approximation with less&nbsp;error. </p>
+<p>Next we&#8217;ll estimate the quadratic interpolant starting with same two data points taken from <span class="math">\(\sqrt{x}\)</span>.    <br>
+<br>   </p>
+<h3>Quadratic&nbsp;Approximation</h3>
+<p>The second-order polynomial interpolant can be represented&nbsp;as:</p>
+<div class="math">$$
+f_{2}(x) = b_{0}+b_{1}(x - x_{0}) + b_{2}(x-x_{0})(x-x_{1}),
+$$</div>
+<p>where, as above, <span class="math">\(b_{0}\)</span>, <span class="math">\(b_{1}\)</span> and <span class="math">\(b_{2}\)</span> are given&nbsp;by:</p>
+<div class="math">$$
+\begin{align}
+b_{0} = f(x_{0}) &amp;&amp;
+b_{1} = \frac{f(x_{1})-f(x_{0})}{x_{1}-x_{0}} &amp;&amp; 
+b_{2} = \frac{\frac{f(x_{2})-f(x_{1})}{x_{2}-x_{1}}-\frac{f(x_{1})-f(x_{0})}{x_{1}-x_{0}}}{x_{2}-x_{0}}
+\end{align}
+$$</div>
+<p><span class="math">\(b_{1}\)</span> still represents the slope of the line connecting points <span class="math">\(x_{0}\)</span> and <span class="math">\(x_{1}\)</span>. 
+The new term, <span class="math">\(b_{2}(x-x_{0})(x-x_{1})\)</span> introduces second-order curvature, which should reduce the 
+magnitude of the error in the approximation. Using the points <span class="math">\((0, 0), (3, 1.732050808), (5, 2.236067978)\)</span> to fit our quadratic 
+interpolant results in coefficient estimates <span class="math">\(b_{0}=f(x_{0})=0\)</span>, <span class="math">\(b_{1} = .57735027\)</span> and <span class="math">\(b_{2} = -.065068337\)</span>, 
+yielding the second-order interpolating polynomial: <br>
+<br> <br>
+</p>
+<div class="math">$$
+f_{2}(x) = b_{0} + b_{1}(x - x_{0}) + b_{2}(x-x_{0})(x-x_{1}) = 0 +.57735027(x-0) -.065068337(x-0)(x-3),
+$$</div>
+<p>
+<br></p>
+<p>Evaluating <span class="math">\(f_{2}(2.25)=1.4088409\)</span> yields a better approximation of <span class="math">\(\sqrt{2.25}\)</span> than the linear 
+interpolant, and reduces the error to <span class="math">\(\approx .06077\)</span>.     <br>
+<br></p>
+<h2>Newton&#8217;s Interpolating Polynomial: General&nbsp;Form</h2>
+<p>The <span class="math">\(n^{th}\)</span>-order interpolating polynomial is given&nbsp;by:</p>
+<div class="math">$$
+f_{n}(x) = b_{0} + b_{1}(x-x_{0}) + b_{2}(x-x_{0})(x-x_{1}) \cdots + b_{n}(x-x_{0})(x-x_{1})\cdots(x-x_{n-1})
+$$</div>
+<p>One approach used to  determine coefficients for the <span class="math">\(n^{th}\)</span> degree interpolating polynomial is to construct a table 
+of finite differences, which, for an <span class="math">\(n^{th}\)</span> degree interpolating polynomial, will have <span class="math">\(n+1\)</span> distinct levels. 
+Once the table has been populated, the coefficients can be obtained from the top-most diagonal, starting with <span class="math">\(f[x_{0}]\)</span> for 
+<span class="math">\(b_{0}\)</span> and working toward the endpoint for higher indexed coefficients. Starting with the set of x <span class="amp">&amp;</span> y points intended for 
+interpolation, the table looks&nbsp;like:    </p>
+<p><br>
+<p align="center"> 
+<img alt="interp1" src="./images/interp1.PNG">
+</p> <br>
+<br>
+Each forward node is determined by calculating <span class="math">\(f[x_{i},x_{j}] = \frac {f(x_{i}) - f(x_{j})}{x_{i}-x_{j}}\)</span>.
+<br></p>
+<p>For example, here&#8217;s the grid that results from estimating coefficients for the quadratic interpolant:         <br>
+<br>
+<p align="center"> 
+<img alt="interp2" src="./images/interp2.PNG">
+</p> <br>
+<br></p>
+<p>Then, <span class="math">\(f[x_{0},x_{1}] = \frac {1.732050808 - 0}{3-0} = .5773502\)</span>, and  <span class="math">\(f[x_{1},x_{2}] = \frac {2.236067978-1.732050808}{5.0-3.0} = .2520086\)</span> and
+<span class="math">\(f[x_{0}, x_{1},x_{2}] = \frac {.2520086-.5773502}{5.0-0.0} = -.0650683\)</span>.</p>
+<p><br></p>
+<p>Extracting the top diagonal of coefficients from the tree above, we&nbsp;obtain   </p>
+<div class="math">$$f_{2}(x) = 0.0 + .5773502(x-0) -.0650683(x-0)(x-3) = \mathbf{.5773502x - .0650683x(x-3)},$$</div>
+<p>matching our estimate for the quadratic interpolant above.
+<br></p>
+<p>Here&#8217;s a plot of <span class="math">\(\sqrt{x}\)</span>, along with the linear and quadratic interpolating&nbsp;polynomials:</p>
+<p><br>
+<p align="center"> 
+<img alt="interpolants" src="/images/interpolator.png">
+</p> <br>
+<br></p>
+<h2>Implementation</h2>
+<p>We can create a Python function which replicates the algorithm described above for an interpolating polynomial 
+of arbitrary degree. In the following section, we present two such functions: The first, <code>interp_coeffs</code>, 
+returns a tuple of interpolating coefficients generated from separate arrays of x and y values. Note that for 
+<span class="math">\(n+1\)</span> data points, <code>interp_coeffs</code> will return the coefficient estimates of an <span class="math">\(n\)</span>-degree polynomial. The second, 
+<code>interp_val</code>, takes the same x and y arrays, but instead of outputting a tuple of coefficients, returns a function 
+which can then be passed any value within the range of the initial independent variable array, and returns the 
+interpolated estimate evaluated at that point. This is exactly how <code>scipy.interpolate.interp1d</code> is leveraged, to 
+which we&#8217;ll compare our estimate shortly:     <br>
+<br>   </p>
+<div class="highlight"><pre><span></span><span class="c1">#===========================================================</span>
+<span class="c1"># Netwon&#39;s Divided Difference Interpolation Implementation |</span>
+<span class="c1">#===========================================================</span>
+<span class="k">def</span> <span class="nf">interp_coeffs</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the divided-difference interpolating polynomial</span>
+<span class="sd">    coefficients based on xvals and yvals. The degree of</span>
+<span class="sd">    the interpolating polynomial will be inferred from data,</span>
+<span class="sd">    which will be 1 less than the number of data points.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">yvals</span><span class="p">)</span>
+    <span class="n">nbr_data_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span>
+
+    <span class="c1"># sort inputs by xvals =&gt;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="n">depth</span>      <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">coeffs</span>     <span class="o">=</span> <span class="p">[</span><span class="n">yvals</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="n">iter_yvals</span> <span class="o">=</span> <span class="n">yvals</span>
+
+    <span class="k">while</span> <span class="n">depth</span> <span class="o">&lt;</span> <span class="n">nbr_data_points</span><span class="p">:</span>
+
+        <span class="n">iterdata</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">iter_yvals</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+
+            <span class="n">delta_y</span> <span class="o">=</span> <span class="n">iter_yvals</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">iter_yvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">delta_x</span> <span class="o">=</span> <span class="n">xvals</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="n">depth</span><span class="p">]</span><span class="o">-</span><span class="n">xvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">iterval</span> <span class="o">=</span> <span class="p">(</span><span class="n">delta_y</span><span class="o">/</span><span class="n">delta_x</span><span class="p">)</span>
+            <span class="n">iterdata</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iterval</span><span class="p">)</span>
+
+            <span class="c1"># append top-most entries from table to coeffs =&gt;</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iterval</span><span class="p">)</span>
+
+        <span class="n">iter_yvals</span> <span class="o">=</span> <span class="n">iterdata</span>
+        <span class="n">depth</span><span class="o">+=</span><span class="mi">1</span>
+
+    <span class="k">return</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+
+
+
+
+<span class="k">def</span> <span class="nf">interp_val</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a function representing the interpolating</span>
+<span class="sd">    polynomial determined by xvals and yvals.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">yvals</span><span class="p">)</span>
+    <span class="n">nbr_data_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span>
+
+    <span class="c1"># sort inputs by xvals =&gt;</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="n">depth</span>      <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">coeffs</span>     <span class="o">=</span> <span class="p">[</span><span class="n">yvals</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="n">iter_yvals</span> <span class="o">=</span> <span class="n">yvals</span>
+
+    <span class="k">while</span> <span class="n">depth</span> <span class="o">&lt;</span> <span class="n">nbr_data_points</span><span class="p">:</span>
+
+        <span class="n">iterdata</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">iter_yvals</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+
+            <span class="n">delta_y</span> <span class="o">=</span> <span class="n">iter_yvals</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">iter_yvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">delta_x</span> <span class="o">=</span> <span class="n">xvals</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="n">depth</span><span class="p">]</span><span class="o">-</span><span class="n">xvals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">iterval</span> <span class="o">=</span> <span class="p">(</span><span class="n">delta_y</span><span class="o">/</span><span class="n">delta_x</span><span class="p">)</span>
+            <span class="n">iterdata</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iterval</span><span class="p">)</span>
+
+            <span class="c1"># append top-most entries in tree to coeffs =&gt;</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iterval</span><span class="p">)</span>
+
+        <span class="n">iter_yvals</span> <span class="o">=</span> <span class="n">iterdata</span>
+        <span class="n">depth</span><span class="o">+=</span><span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evaluate interpolated estimate at x.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">terms</span>  <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)):</span>
+
+            <span class="n">iterval</span>   <span class="o">=</span> <span class="n">coeffs</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">iterxvals</span> <span class="o">=</span> <span class="n">xvals</span><span class="p">[:</span><span class="n">j</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">iterxvals</span><span class="p">:</span> <span class="n">iterval</span><span class="o">*=</span><span class="p">(</span><span class="n">i</span><span class="o">-</span><span class="n">k</span><span class="p">)</span>
+            <span class="n">terms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iterval</span><span class="p">)</span>
+            <span class="n">retval</span><span class="o">+=</span><span class="n">iterval</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>    <br>
+This implementation is nothing more than a recreation of Neville&#8217;s Algorithm, which is described in greater 
+detail <a href="https://en.wikipedia.org/wiki/Neville%27s_algorithm#The_algorithm">here</a>.     <br>
+<br> <br>
+Returning to our attempt at approximating <span class="math">\(\sqrt{x}\)</span> with various polynomial interpolants, next we  demonstrate how to 
+obtain the interpolated estimates via <code>interp_coeffs</code> and <code>interp_val</code>:      <br>
+<br>     </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="c1"># 1st-degree approximation</span>
+<span class="n">x1</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="n">y1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<span class="c1"># 2nd-degree approximation</span>
+<span class="n">x2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">y2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<span class="c1"># 3rd-degree approximation</span>
+<span class="n">x3</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
+<span class="n">y3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x3</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">interp_coeffs</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+<span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5773502691896257</span><span class="p">]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">interp_coeffs</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+<span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5773502691896257</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.06506833684483389</span><span class="p">]</span>
+
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">interp_coeffs</span><span class="p">(</span><span class="n">x3</span><span class="p">,</span> <span class="n">y3</span><span class="p">)</span>
+<span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.5773502691896257</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.06506833684483389</span><span class="p">,</span> <span class="mf">0.007610943899867132</span><span class="p">]</span>
+</pre></div>
+
+
+<p><br>       <br>
+The results agree exactly with our earlier&nbsp;derivations.    </p>
+<p>Note that the output of <code>interp_coeffs</code> returns the intercept first, followed by higher-powered coefficients in order of increasing&nbsp;degree.    </p>
+<p>In order to obtain the interpolated estimate for some value within the valid range of x-values, 
+we first pass the x and y arrays as we did with <code>interp_coeffs</code>, but we then pass the value of interest to the result 
+of the first evaluation: <br>
+<br>     </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="c1"># 1st-degree approximation</span>
+<span class="n">x1</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="n">y1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+
+<span class="c1"># 2nd-degree approximation</span>
+<span class="n">x2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">y2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span>
+
+<span class="c1"># 3rd-degree approximation</span>
+<span class="n">x3</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
+<span class="n">y3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x3</span><span class="p">)</span>
+
+
+<span class="c1"># Assume we&#39;re interested in obtaining 1st, 2nd and 3rd-</span>
+<span class="c1"># degree interpolated estimates at  x=2.75. Using</span>
+<span class="c1"># `interp_val`, we&#39;d proceed as follows:</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est1</span> <span class="o">=</span> <span class="n">interp_val</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est1</span><span class="p">(</span><span class="mf">2.75</span><span class="p">)</span>
+<span class="mf">1.5877132402714706</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est2</span> <span class="o">=</span> <span class="n">interp_val</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est2</span><span class="p">(</span><span class="mf">2.75</span><span class="p">)</span>
+<span class="mf">1.632447721852294</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est3</span> <span class="o">=</span> <span class="n">interp_val</span><span class="p">(</span><span class="n">x3</span><span class="p">,</span> <span class="n">y3</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est3</span><span class="p">(</span><span class="mf">2.75</span><span class="p">)</span>
+<span class="mf">1.644220900697401</span>
+</pre></div>
+
+
+<p><br>
+We compare our results to <code>scipy.interpolate.interp1d</code>, the primary method used for 1-dimensional interpolation in 
+scipy. The <span class="caps">API</span> for <code>scipy.interpolate.interp1d</code> is identical to <code>interp_val</code>, but takes an additional argument to 
+specify what degree interpolant to estimate. We now verify that both functions return the same set of results:   <br>
+<br>   </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">interpolate</span>
+
+<span class="c1"># 1st-degree approximation</span>
+<span class="n">x1</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="n">y1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
+
+<span class="c1"># 2nd-degree approximation</span>
+<span class="n">x2</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">y2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x2</span><span class="p">)</span>
+
+<span class="c1"># 3rd-degree approximation</span>
+<span class="n">x3</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
+<span class="n">y3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x3</span><span class="p">)</span>
+
+
+<span class="c1"># Using scipy&#39;s interpolate.interp1d to obtain interpolated estimates:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est1</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est1</span><span class="p">(</span><span class="mf">2.75</span><span class="p">)</span>
+<span class="n">array</span><span class="p">(</span><span class="mf">1.5877132402714706</span><span class="p">)</span>
+
+
+<span class="n">est2</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;quadratic&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est2</span><span class="p">(</span><span class="mf">2.75</span><span class="p">)</span>
+<span class="n">array</span><span class="p">(</span><span class="mf">1.632447721852294</span><span class="p">)</span>
+
+
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est3</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span><span class="n">x3</span><span class="p">,</span> <span class="n">y3</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;cubic&#39;</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">est3</span><span class="p">(</span><span class="mf">2.75</span><span class="p">)</span>
+<span class="n">array</span><span class="p">(</span><span class="mf">1.6442209006974007</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+One difference between the two implementations is that <code>interpolate.interp1d</code> returns the estimate in the form of an array. 
+This is due to the fact that <code>interp1d</code> can take an array of inputs in addition to single-valued input, and so returns all 
+estimates in the form of an array. I/O differences aside, note that both functions return identical results for estimates 
+of all degrees tested.  <br>
+<br> </p>
+<p>A word of caution: <a href="https://en.wikipedia.org/wiki/Runge%27s_phenomenon">Runge&#8217;s phenomenon</a> is a problem of oscillation at the 
+edges of an interval that occurs when using polynomial interpolation with polynomials of high degree <a href="#Footnotes:">1</a>. If 3rd or 
+4th-degree interpolating polynomials do not provide a &#8216;natural&#8217; enough fit to the data, consider instead cubic spline interpolation, 
+which will be covered in a future post. Until then, happy&nbsp;coding!</p>
+<h3>Footnotes:</h3>
+<ol>
+<li><a href="https://en.wikipedia.org/wiki/Runge%27s_phenomenon"></a></li>
+</ol>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

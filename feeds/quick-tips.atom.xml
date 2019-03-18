@@ -1,0 +1,867 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>The Pleasure of Finding Things Out - Quick Tips</title><link href="https://jtrive84.github.io/" rel="alternate"></link><link href="https://jtrive84.github.io/feeds/quick-tips.atom.xml" rel="self"></link><id>https://jtrive84.github.io/</id><updated>2019-02-09T00:00:00-06:00</updated><entry><title>Modifying Cygwin’s Path Prefix</title><link href="https://jtrive84.github.io/modifying-cygwins-path-prefix.html" rel="alternate"></link><published>2019-02-09T00:00:00-06:00</published><updated>2019-02-09T00:00:00-06:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2019-02-09:/modifying-cygwins-path-prefix.html</id><summary type="html">&lt;p&gt;How to change Cygwin&amp;#8217;s default path prefix temporarily or&amp;nbsp;permanently&lt;/p&gt;</summary><content type="html">&lt;p&gt;Cygwin offers a collection of &lt;span class="caps"&gt;UNIX&lt;/span&gt;-compatible utilities that can be run on 
+Windows, and offers a convenient means of connecting to remote servers via 
+ssh. One of the differences between Cygwin and a comparable utility, PuTTY, is 
+that Cygwin can be used on both local and remote hosts, whereas PuTTY can only 
+be used to connect to and execute commands on the remote&amp;nbsp;machine.     &lt;/p&gt;
+&lt;p&gt;When running on Windows, Cygwin transforms Windows file paths, such as 
+&lt;code&gt;C:\Users\user123\Desktop&lt;/code&gt;, to the equivalent &lt;span class="caps"&gt;UNIX&lt;/span&gt;-like representation, 
+&lt;code&gt;/cygdrive/c/Users/user123/Desktop&lt;/code&gt;. By running the &lt;code&gt;mount&lt;/code&gt; command from 
+Cygwin (the actual terminal application is called MinTTY), you can see how 
+Cygwin represents all available drives. For example, on my computer has C &lt;span class="amp"&gt;&amp;amp;&lt;/span&gt; 
+E drives. Here&amp;#8217;s the result of running &lt;code&gt;mount&lt;/code&gt;:           &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ mount
+C: on /cygdrive/c &lt;span class="nb"&gt;type&lt;/span&gt; ntfs &lt;span class="o"&gt;(&lt;/span&gt;binary,posix&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="m"&gt;0&lt;/span&gt;,user,noumount,auto&lt;span class="o"&gt;)&lt;/span&gt;
+E: on /cygdrive/e &lt;span class="nb"&gt;type&lt;/span&gt; ntfs &lt;span class="o"&gt;(&lt;/span&gt;binary,posix&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="m"&gt;0&lt;/span&gt;,user,noumount,auto&lt;span class="o"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;As you can see, each drive is prefixed with &lt;code&gt;/cygdrive&lt;/code&gt;, and having to type 
+this every time when switch directories gets to be a pain. Fortunately, it&amp;#8217;s 
+possible to change this temporarily and permanently. We&amp;#8217;ll demonstrate how to 
+replace &lt;code&gt;/cygdrive&lt;/code&gt; with &lt;code&gt;/&lt;/code&gt; using both&amp;nbsp;approaches.       &lt;/p&gt;
+&lt;h3&gt;First Approach: Temporary Path Prefix&amp;nbsp;Modification&lt;/h3&gt;
+&lt;p&gt;Referring to the &lt;code&gt;mount&lt;/code&gt; command&amp;#8217;s help menu, notice the 
+&lt;code&gt;--change-cygdrive-prefix&lt;/code&gt; option and&amp;nbsp;description:              &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ mount --help
+Usage: mount &lt;span class="o"&gt;[&lt;/span&gt;OPTION&lt;span class="o"&gt;]&lt;/span&gt; &lt;span class="o"&gt;[&lt;/span&gt;&amp;lt;win32path&amp;gt; &amp;lt;posixpath&amp;gt;&lt;span class="o"&gt;]&lt;/span&gt;
+       mount -a
+       mount &amp;lt;posixpath&amp;gt;
+
+Display information about mounted filesystems, or mount a filesystem
+
+  -a, --all                     mount all filesystems mentioned in fstab
+  -c, --change-cygdrive-prefix  change the cygdrive path prefix to &amp;lt;posixpath&amp;gt;
+  -f, --force                   force mount, don&lt;span class="err"&gt;&amp;#39;&lt;/span&gt;t warn about missing mount
+                                point directories
+  -h, --help                    output usage information and &lt;span class="nb"&gt;exit&lt;/span&gt;
+  -m, --mount-entries           write fstab entries to replicate mount points
+                                and cygdrive prefixes
+  -o, --options X&lt;span class="o"&gt;[&lt;/span&gt;,X...&lt;span class="o"&gt;]&lt;/span&gt;        specify mount options
+  -p, --show-cygdrive-prefix    show user and/or system cygdrive path prefix
+  -V, --version                 output version information and &lt;span class="nb"&gt;exit&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;    &lt;/p&gt;
+&lt;p&gt;We can use &lt;code&gt;--change-cygdrive-prefix&lt;/code&gt; from an active Cygwin session to replace 
+&lt;code&gt;/cygdrive&lt;/code&gt; with &lt;code&gt;/&lt;/code&gt;. Once it has been changed, we can switch to our C: drive 
+by running &lt;code&gt;cd /c&lt;/code&gt; instead of &lt;code&gt;cd /cygdrive/c&lt;/code&gt;. Note that after executing the 
+command, running &lt;code&gt;mount&lt;/code&gt; with no arguments will list of drives with the new&amp;nbsp;prefix:               &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;$ mount --change-cygdrive-prefix /
+$ mount
+C: on /c &lt;span class="nb"&gt;type&lt;/span&gt; ntfs &lt;span class="o"&gt;(&lt;/span&gt;binary,user,noumount,auto&lt;span class="o"&gt;)&lt;/span&gt;
+E: on /e &lt;span class="nb"&gt;type&lt;/span&gt; ntfs &lt;span class="o"&gt;(&lt;/span&gt;binary,user,noumount,auto&lt;span class="o"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;&lt;/p&gt;
+&lt;p&gt;Note that modifying path prefix in this manner will only last the duration of 
+the session in which it was explicitly altered. Any new sessions will revert 
+back to the original path prefix of &lt;code&gt;/cygdrive&lt;/code&gt;. Fortunately, it&amp;#8217;s possible to 
+make the change so that it persists across&amp;nbsp;sessions.            &lt;/p&gt;
+&lt;h3&gt;Second Approach: Permanent Path Prefix&amp;nbsp;Modification&lt;/h3&gt;
+&lt;p&gt;If you navigate to the top-level of your Cygwin installation, there exists a 
+folder named &lt;code&gt;etc&lt;/code&gt;. Within that folder is a file named &lt;code&gt;fstab&lt;/code&gt;, which stands 
+for &lt;strong&gt;F&lt;/strong&gt;ile &lt;strong&gt;S&lt;/strong&gt;ystem &lt;strong&gt;Tab&lt;/strong&gt;le, which, on Linux machines is a configuration 
+file that tells the host which devices (or virtual devices) to use on boot. 
+For Cygwin versions  &amp;lt;1.7, changing the prefix with the mount command 
+automatically became permanent by updating the relevant registry entry. In 
+Cygwin &amp;gt;=1.7, mount points are no longer stored in the registry but are 
+instead read from &lt;code&gt;/etc/fstab&lt;/code&gt;.            &lt;/p&gt;
+&lt;p&gt;If you open the file into a text editor, you&amp;#8217;ll see something similar to the 
+following (lines beginning with &lt;code&gt;#&lt;/code&gt; are comments and do not represent file 
+system table configuration&amp;nbsp;commands:     &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;# /etc/fstab
+#
+#    This file is read once by the first process in a Cygwin process tree.
+#    To pick up changes, restart all Cygwin processes.  For a description
+#    see https://cygwin.com/cygwin-ug-net/using.html#mount-table
+
+# This is default anyway:
+none /cygdrive cygdrive binary,posix=0,user 0 0
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt;
+We need to replace the &lt;code&gt;/cygdrive&lt;/code&gt; component in the line starting with &lt;code&gt;none&lt;/code&gt; 
+above with the new path prefix. The best approach is to copy the line starting 
+with &lt;code&gt;none&lt;/code&gt;, paste it below, then comment out the original. Then on the copied 
+line, update &lt;code&gt;/cygdrive&lt;/code&gt; with the desired path prefix. Here&amp;#8217;s my updated 
+&lt;code&gt;/etc/fstab&lt;/code&gt; after setting the prefix to &lt;code&gt;/&lt;/code&gt;:           &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;# /etc/fstab
+#
+#    This file is read once by the first process in a Cygwin process tree.
+#    To pick up changes, restart all Cygwin processes.  For a description
+#    see https://cygwin.com/cygwin-ug-net/using.html#mount-table
+
+# This is default anyway:
+# none /cygdrive cygdrive binary,posix=0,user 0 0
+none / cygdrive binary,posix=0,user 0 0
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Be sure to update the cygdrive starting with &lt;code&gt;/&lt;/code&gt;, not the standalone&amp;nbsp;cygdrive. &lt;/p&gt;
+&lt;p&gt;After a restart, all subsequent Cygwin sessions will use the newly specified 
+path prefix. If you need to revert back to the &lt;code&gt;/cygdrive&lt;/code&gt; prefix for any 
+reason, delete the new line and uncomment the&amp;nbsp;original.     &lt;/p&gt;
+&lt;p&gt;Note that if you have references to the original &lt;code&gt;/cygdrive&lt;/code&gt; path prefix in 
+your .bashrc, .bash_login or .bash_profile, they will not be updated when you 
+make this change, so it is important to go through and update any references 
+that have become&amp;nbsp;invalid.       &lt;/p&gt;
+&lt;p&gt;One final word of caution: If you make the change to &lt;code&gt;/etc/fstab&lt;/code&gt; in a text 
+editor that doesn&amp;#8217;t allow explicitly setting the newline character, after 
+making the change, you might get an error indicating that &lt;code&gt;\r&lt;/code&gt; is an invalid 
+character, and as a result, the changes you made the &lt;code&gt;/etc/fstab&lt;/code&gt; will not be 
+recognized. This is because Cygwin expects files with &lt;span class="caps"&gt;UNIX&lt;/span&gt;/Linux-style line 
+endings, &lt;code&gt;\n&lt;/code&gt; (line feed), as opposed to the Windows native carriage return 
+and line feed (&lt;code&gt;\r\n&lt;/code&gt;). Many text editors allow you to set the end of line 
+mode directly, so be sure to set it to &amp;#8220;line feed&amp;#8221; or &lt;code&gt;\n&lt;/code&gt; or &lt;code&gt;LF&lt;/code&gt;. &lt;/p&gt;
+&lt;p&gt;As a quick summary, here are the end of line characters and various&amp;nbsp;aliases:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;\r&lt;/code&gt;, &lt;code&gt;Carriage Return&lt;/code&gt;, &lt;code&gt;CR&lt;/code&gt;, &lt;code&gt;0x0D&lt;/code&gt;: Moves cursor to the beginning of the 
+line without advancing to the next line. &lt;br&gt;
+&lt;br&gt;   &lt;/li&gt;
+&lt;li&gt;&lt;code&gt;\n&lt;/code&gt;, &lt;code&gt;Line Feed&lt;/code&gt;, &lt;code&gt;LF&lt;/code&gt;, &lt;code&gt;0x0A&lt;/code&gt;: Moves cursor down to the next line without 
+returning to the beginning of the line. Line Feed is used as a newline 
+character in &lt;span class="caps"&gt;UNIX&lt;/span&gt; based systems.  &lt;br&gt;
+&lt;br&gt;   &lt;/li&gt;
+&lt;li&gt;&lt;code&gt;\r\n&lt;/code&gt;, &lt;code&gt;Cariage Return Line Feed&lt;/code&gt;, &lt;code&gt;CRLF&lt;/code&gt;, &lt;code&gt;EOL&lt;/code&gt;, &lt;code&gt;0x0D0A&lt;/code&gt;: Moves cursor 
+down to the beginning of the next line. This character is used as a new line 
+character in Windows operating systems. 
+&lt;br&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;I&amp;#8217;ve found that making this change has really improved my overall Cygwin 
+experience, which important given that it is one of the few applications I use 
+each and&amp;nbsp;everyday.&lt;/p&gt;</content><category term="Quick Tips"></category></entry><entry><title>Converting Excel Worksheets to PDF with VBA</title><link href="https://jtrive84.github.io/converting-excel-worksheets-to-pdf-with-vba.html" rel="alternate"></link><published>2017-03-31T00:00:00-05:00</published><updated>2017-03-31T00:00:00-05:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-03-31:/converting-excel-worksheets-to-pdf-with-vba.html</id><summary type="html">&lt;p&gt;Exporting one or more Excel worksheets to &lt;span class="caps"&gt;PDF&lt;/span&gt; using &lt;span class="caps"&gt;VBA&lt;/span&gt;&lt;/p&gt;</summary><content type="html">&lt;p&gt;In this post, we&amp;#8217;ll walk through the process of saving one or more Excel 
+worksheets as a single &lt;span class="caps"&gt;PDF&lt;/span&gt; document using &lt;span class="caps"&gt;VBA&lt;/span&gt;. This is a common task carried 
+out by analysts of all types, and the code that follows will demonstrate how 
+to go about 
+accomplishing&amp;nbsp;it.&lt;/p&gt;
+&lt;p&gt;In addition, we&amp;#8217;ll cover some of the many formatting and configuration options 
+exposed by the
+&lt;a href="https://msdn.microsoft.com/en-us/library/office/ff196103.aspx"&gt;PageSetup&lt;/a&gt; 
+property of an Excel&amp;nbsp;worksheet.&lt;/p&gt;
+&lt;p&gt;The logic for saving to &lt;span class="caps"&gt;PDF&lt;/span&gt; the worksheets contained within an Excel workbook 
+is straightforward: To collate and export &lt;strong&gt;all&lt;/strong&gt; worksheets in a workbook to 
+&lt;span class="caps"&gt;PDF&lt;/span&gt;, pass a filepath to 
+&lt;a href="https://msdn.microsoft.com/en-us/library/office/ff198122.aspx"&gt;ExportAsFixedFormat&lt;/a&gt;&amp;#8216;s 
+&lt;em&gt;Filename&lt;/em&gt; parameter (for this example, we&amp;#8217;ll use &lt;em&gt;C:\Documents\pdf_from_xlsx.pdf&lt;/em&gt;), 
+and set the &lt;em&gt;Type&lt;/em&gt; and &lt;em&gt;Quality&lt;/em&gt; parameters as&amp;nbsp;follows:           &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Select&lt;/span&gt;
+&lt;span class="n"&gt;ActiveSheet&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ExportAsFixedFormat&lt;/span&gt; &lt;span class="n"&gt;_&lt;/span&gt; 
+              &lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;xlTypePDF&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+              &lt;span class="n"&gt;Filename&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;C:\Documents\pdf_from_xlsx.pdf&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+              &lt;span class="n"&gt;Quality&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;xlQualityStandard&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;If the task at hand necessitates exporting a subset of worksheets within a 
+workbook, pass the worksheet names to the &lt;code&gt;Array&lt;/code&gt; function (be sure to 
+surround the sheet names with quotes), then call the Select method of &lt;code&gt;Array&lt;/code&gt; 
+in place of &lt;em&gt;Worksheets&lt;/em&gt; in the code above. For example, to save only &lt;em&gt;Sheet1&lt;/em&gt;, 
+&lt;em&gt;Sheet2&lt;/em&gt; and &lt;em&gt;Sheet3&lt;/em&gt; from a workbook, execute the&amp;nbsp;following:      &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;WorkSheets&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Array&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Sheet1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;Sheet2&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;Sheet3&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)).&lt;/span&gt;&lt;span class="n"&gt;Select&lt;/span&gt;
+&lt;span class="n"&gt;ActiveSheet&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ExportAsFixedFormat&lt;/span&gt; &lt;span class="n"&gt;_&lt;/span&gt; 
+              &lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;xlTypePDF&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+              &lt;span class="n"&gt;Filename&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;C:\Documents\pdf_from_xlsx.pdf&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+              &lt;span class="n"&gt;Quality&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;xlQualityStandard&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;After running, a &lt;span class="caps"&gt;PDF&lt;/span&gt; document &lt;em&gt;pdf_from_xlsx.pdf&lt;/em&gt; will be output to the 
+&lt;code&gt;C:\Documents&lt;/code&gt; directory.         &lt;/p&gt;
+&lt;h3&gt;Page Setup&amp;nbsp;Options&lt;/h3&gt;
+&lt;p&gt;The full list of properties associated with &lt;em&gt;PageSetup&lt;/em&gt; can be found 
+&lt;a href="https://msdn.microsoft.com/en-us/library/office/ff198122.aspx"&gt;here&lt;/a&gt;. 
+Most are self-explanatory, but a few take non-obvious arguments, or the 
+arguments need to be passed in a non-standard way. We&amp;#8217;ll start with the more 
+typical options, while working some of the non-standard properties in along 
+the&amp;nbsp;way.       &lt;/p&gt;
+&lt;p&gt;We can apply our &lt;em&gt;PageSetup&lt;/em&gt; options to each worksheet in turn iteratively. 
+Naturally, it&amp;#8217;s important to carry out any &lt;em&gt;PageSetup&lt;/em&gt; specifications prior to 
+calling &lt;em&gt;ExportAsFixedFormat&lt;/em&gt;. The following example iterates over each 
+worksheet in the current workbook, applying the same formatting to&amp;nbsp;each:        &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="n"&gt;Worksheet&lt;/span&gt;
+
+&lt;span class="k"&gt;For&lt;/span&gt; &lt;span class="k"&gt;Each&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;In&lt;/span&gt; &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;
+
+    &lt;span class="k"&gt;With&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PageSetup&lt;/span&gt;
+
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintArea&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;A1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="n"&gt;CurrentRegion&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Address&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterHorizontally&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;True&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterVertically&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintGridlines&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Orientation&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;xlPortrait&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Zoom&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesWide&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesTall&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;HeaderMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FooterMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.6&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;BottomMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TopMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;With&lt;/span&gt;
+
+&lt;span class="k"&gt;Next&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;em&gt;PrintArea&lt;/em&gt; specifies the range to export from each worksheet. In this example, 
+the continuous range starting in Cell &lt;code&gt;A1&lt;/code&gt; for each worksheet is&amp;nbsp;highlighted.   &lt;/p&gt;
+&lt;p&gt;&lt;em&gt;PrintGridlines&lt;/em&gt;, &lt;em&gt;CenterHorizontally&lt;/em&gt; and &lt;em&gt;CenterVertically&lt;/em&gt; each take a 
+Boolean value which controls the &lt;em&gt;PageSetup&lt;/em&gt; property corresponding to its&amp;nbsp;name.         &lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Orientation&lt;/em&gt; can be set to one of &lt;code&gt;xlPortrait&lt;/code&gt; or &lt;code&gt;xlLandscape&lt;/code&gt;.   &lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Zoom&lt;/em&gt; can be bound to any number greater than 0 or &lt;code&gt;False&lt;/code&gt;. If set to 
+&lt;code&gt;False&lt;/code&gt;, the &lt;code&gt;FitToPagesWide&lt;/code&gt; and &lt;code&gt;FitToPagesTall&lt;/code&gt; properties control 
+worksheet scaling. If &lt;em&gt;Zoom&lt;/em&gt; is not &lt;code&gt;False&lt;/code&gt;, &lt;code&gt;FitToPagesWide&lt;/code&gt; and 
+&lt;code&gt;FitToPagesTall&lt;/code&gt; are ignored. Unless custom scaling is necessary, setting 
+&lt;em&gt;Zoom&lt;/em&gt; to &lt;code&gt;False&lt;/code&gt;, &lt;code&gt;FitToPagesTall&lt;/code&gt; to &lt;code&gt;False&lt;/code&gt; and &lt;code&gt;FitToPagesWide&lt;/code&gt; to &lt;code&gt;1&lt;/code&gt; 
+are satisfactory defaults for many&amp;nbsp;cases.            &lt;/p&gt;
+&lt;p&gt;&lt;em&gt;HeaderMargin&lt;/em&gt; and &lt;em&gt;FooterMargin&lt;/em&gt; specify the width of the header and footer 
+margins, respectively, in points (1 inch = 72 points). Use the 
+&lt;code&gt;InchesToPoints&lt;/code&gt; method to convert the desired padding in inches to&amp;nbsp;points.              &lt;/p&gt;
+&lt;p&gt;&lt;em&gt;TopMargin&lt;/em&gt; and &lt;em&gt;BottomMargin&lt;/em&gt; specify the padding for data exported to &lt;span class="caps"&gt;PDF&lt;/span&gt;. 
+If &lt;em&gt;TopMargin&lt;/em&gt;, &lt;em&gt;BottomMargin&lt;/em&gt;, &lt;em&gt;HeaderMargin&lt;/em&gt; or &lt;em&gt;FooterMargin&lt;/em&gt; are bound to 
+anything other than default values, ensure &lt;em&gt;BottomMargin&lt;/em&gt; is greater than 
+&lt;em&gt;FooterMargin&lt;/em&gt;, and &lt;em&gt;HeaderMargin&lt;/em&gt; is less than &lt;em&gt;TopMargin&lt;/em&gt;, otherwise the 
+potential exists for the data to overwrite header/footer&amp;nbsp;annotations.     &lt;/p&gt;
+&lt;p&gt;Building on the &lt;em&gt;PageSetup&lt;/em&gt; construct above, the next block writes page number 
+to the center footer, places the current date in the left footer and the 
+current time in the right header. In addition, for worksheets containing many 
+rows, it&amp;#8217;s helpful to include the header row for each page written to &lt;span class="caps"&gt;PDF&lt;/span&gt;. 
+This is accomplished with &lt;em&gt;PrintTitleRows&lt;/em&gt;:      &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="n"&gt;Worksheet&lt;/span&gt;
+
+&lt;span class="k"&gt;For&lt;/span&gt; &lt;span class="k"&gt;Each&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;In&lt;/span&gt; &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;
+
+    &lt;span class="k"&gt;With&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PageSetup&lt;/span&gt;
+
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintArea&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;A1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="n"&gt;CurrentRegion&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Address&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterHorizontally&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;True&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterVertically&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintGridlines&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Orientation&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;xlPortrait&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Zoom&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesWide&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesTall&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;HeaderMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FooterMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.6&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;BottomMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TopMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;amp;P&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kt"&gt;Date&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintTitleRows&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;$1:$1&amp;quot;&lt;/span&gt;
+
+
+    &lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;With&lt;/span&gt;
+
+&lt;span class="k"&gt;Next&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;By setting &lt;em&gt;CenterFooter&lt;/em&gt; to &lt;code&gt;"&amp;amp;P"&lt;/code&gt;, the page numbers will be tracked, 
+adjusted for multi-page worksheets and properly incremented. Also, it&amp;#8217;s 
+possible to pass an offset to start page numbering on something other than 
+&lt;code&gt;1&lt;/code&gt;. For example, if page numbers should start with &lt;code&gt;7&lt;/code&gt; as opposed to &lt;code&gt;1&lt;/code&gt;, set 
+&lt;em&gt;CenterFooter&lt;/em&gt; as&amp;nbsp;follows:         &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="n"&gt;Worksheet&lt;/span&gt;
+
+&lt;span class="k"&gt;For&lt;/span&gt; &lt;span class="k"&gt;Each&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;In&lt;/span&gt; &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;
+
+    &lt;span class="k"&gt;With&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PageSetup&lt;/span&gt;
+
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintArea&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;A1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="n"&gt;CurrentRegion&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Address&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterHorizontally&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;True&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterVertically&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintGridlines&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Orientation&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;xlPortrait&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Zoom&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesWide&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesTall&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;HeaderMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FooterMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.6&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;BottomMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TopMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;amp;P+&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="mi"&gt;6&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kt"&gt;Date&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintTitleRows&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;$1:$1&amp;quot;&lt;/span&gt;
+
+
+    &lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;With&lt;/span&gt;
+
+&lt;span class="k"&gt;Next&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Note that any of the header/footer locations can contain page number. 
+&lt;em&gt;CenterFooter&lt;/em&gt; was arbitrarily chosen for demonstration purposes. 
+Header/footer properties not used in the examples are set to &lt;code&gt;""&lt;/code&gt;, but they 
+can contain any desired&amp;nbsp;annotations.    &lt;/p&gt;
+&lt;p&gt;With respect to &lt;em&gt;PrintTitleRows&lt;/em&gt;, if a header spans multiple rows, pass the 
+row range. To identify the first 3 rows as title rows, specify 
+&lt;em&gt;PrintTitleRows&lt;/em&gt; = &lt;code&gt;"$1:$3"&lt;/code&gt;.      &lt;/p&gt;
+&lt;h3&gt;Including Images in&amp;nbsp;Headers&lt;/h3&gt;
+&lt;p&gt;&lt;em&gt;PageSetup&lt;/em&gt; exposes properties facilitating the inclusion of images in a 
+document&amp;#8217;s header and/or footer. For the next step in our progression, 
+we&amp;#8217;ll demonstrate how to use the &lt;em&gt;LeftHeaderPicture&lt;/em&gt; property, but keep in 
+mind &lt;em&gt;RightHeaderPicture&lt;/em&gt;, &lt;em&gt;LeftFooterPicture&lt;/em&gt; and &lt;em&gt;RightFooterPicture&lt;/em&gt; 
+are also available and can be utilized in an identical&amp;nbsp;fashion.             &lt;/p&gt;
+&lt;p&gt;To include &lt;a href="images/babysloth.png"&gt;this&lt;/a&gt;&amp;nbsp;image:   &lt;/p&gt;
+&lt;p&gt;&lt;img alt="baby_sloth" src="images/babysloth.png"&gt;   &lt;/p&gt;
+&lt;p&gt;in the left header of each page in the &lt;span class="caps"&gt;PDF&lt;/span&gt;, add the following to the 
+&lt;code&gt;PageSetup&lt;/code&gt; clause:         &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="n"&gt;Worksheet&lt;/span&gt;
+
+&lt;span class="k"&gt;For&lt;/span&gt; &lt;span class="k"&gt;Each&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;In&lt;/span&gt; &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;
+
+    &lt;span class="k"&gt;With&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PageSetup&lt;/span&gt;
+
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintArea&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;A1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="n"&gt;CurrentRegion&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Address&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterHorizontally&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;True&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterVertically&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintGridlines&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Orientation&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;xlPortrait&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Zoom&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesWide&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesTall&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;HeaderMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FooterMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.6&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;BottomMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TopMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;amp;P+&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kt"&gt;Date&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;amp;G&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintTitleRows&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;$1:$1&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeaderPicture&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Filename&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;C:\Documents\babysloth.png&amp;quot;&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeaderPicture&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Width&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;62&lt;/span&gt;
+        &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeaderPicture&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LockAspectRatio&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;msoTrue&lt;/span&gt;
+
+
+    &lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;With&lt;/span&gt;
+
+&lt;span class="k"&gt;Next&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;There are several additional image formatting properties exposed by 
+&lt;em&gt;LeftHeaderPicture&lt;/em&gt;, many of which can be found 
+&lt;a href="https://msdn.microsoft.com/en-us/library/office/ff194861.aspx"&gt;here&lt;/a&gt;. In our 
+configuration, we&amp;#8217;ve passed the image filepath to 
+&lt;em&gt;LeftHeaderPicture.Filename&lt;/em&gt;, specified the output image width to 
+&lt;em&gt;LeftHeaderPicture.Width&lt;/em&gt;, and indicated that the aspect ratio should be 
+maintained by setting &lt;em&gt;LeftHeaderPicture.LockAspectRatio&lt;/em&gt; to &lt;code&gt;msoTrue&lt;/code&gt;. The 
+most important property to set when including images in headers or footers is 
+passing &lt;code&gt;"&amp;amp;G"&lt;/code&gt; to the header/footer in question. Notice in our page setup, 
+because the image is in the left header, we set &lt;em&gt;LeftHeader&lt;/em&gt; to &lt;code&gt;"&amp;amp;G"&lt;/code&gt;. This 
+enables the image to show up in the &lt;span class="caps"&gt;PDF&lt;/span&gt;. Without setting &lt;em&gt;LeftHeader&lt;/em&gt; to 
+&lt;code&gt;"&amp;amp;G"&lt;/code&gt;, the image will fail to&amp;nbsp;render.      &lt;/p&gt;
+&lt;p&gt;Here is the entire subprocedure, including both page setup and export&amp;nbsp;components:      &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c"&gt;&amp;#39;=============================================&amp;gt;&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39; Export worksheets in current workbook to PDF&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39;=============================================&amp;gt;&lt;/span&gt;
+&lt;span class="k"&gt;Sub&lt;/span&gt; &lt;span class="nf"&gt;xlsx2pdf&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+  &lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="n"&gt;Worksheet&lt;/span&gt;
+  &lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;pdfPath&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;
+  &lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;imagePath&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;
+
+  &lt;span class="c"&gt;&amp;#39; specify path for generated PDF =&amp;gt;&lt;/span&gt;
+  &lt;span class="n"&gt;pdfPath&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;C:\Documents\xlsx2pdf.pdf&amp;quot;&lt;/span&gt;
+
+  &lt;span class="c"&gt;&amp;#39; specify path for image to include in header (if applicable) =&amp;gt;&lt;/span&gt;
+  &lt;span class="n"&gt;imagePath&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+
+  &lt;span class="c"&gt;&amp;#39; clear existing PageSetup Options =&amp;gt;&lt;/span&gt;
+  &lt;span class="k"&gt;For&lt;/span&gt; &lt;span class="k"&gt;Each&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;In&lt;/span&gt; &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;
+    &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PageSetup&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintArea&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+    &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PageSetup&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeaderPicture&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Filename&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+  &lt;span class="k"&gt;Next&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;
+
+  &lt;span class="k"&gt;For&lt;/span&gt; &lt;span class="k"&gt;Each&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt; &lt;span class="ow"&gt;In&lt;/span&gt; &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;
+
+      &lt;span class="k"&gt;With&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PageSetup&lt;/span&gt;
+
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintArea&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;A1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="n"&gt;CurrentRegion&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Address&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterHorizontally&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;True&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterVertically&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintGridlines&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Orientation&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;xlPortrait&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Zoom&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesWide&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FitToPagesTall&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;HeaderMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.5&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FooterMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.6&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;0.4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;BottomMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;1.2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;TopMargin&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;InchesToPoints&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;#)&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;amp;P+&amp;quot;&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftFooter&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kt"&gt;Date&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;CenterHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;RightHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Time&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+          &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;PrintTitleRows&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;$1:$1&amp;quot;&lt;/span&gt;
+
+          &lt;span class="k"&gt;If&lt;/span&gt; &lt;span class="n"&gt;Len&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;imagePath&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="k"&gt;Then&lt;/span&gt;
+
+              &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeader&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;&amp;amp;G&amp;quot;&lt;/span&gt;
+              &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeaderPicture&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Filename&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;imagePath&lt;/span&gt;
+              &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeaderPicture&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LockAspectRatio&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;msoTrue&lt;/span&gt;
+              &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;LeftHeaderPicture&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Width&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;62&lt;/span&gt;
+
+          &lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;If&lt;/span&gt;
+
+      &lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;With&lt;/span&gt;
+
+  &lt;span class="k"&gt;Next&lt;/span&gt; &lt;span class="n"&gt;ws&lt;/span&gt;
+
+
+  &lt;span class="c"&gt;&amp;#39; save worksheets as PDF =&amp;gt;&lt;/span&gt;
+  &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Select&lt;/span&gt;
+  &lt;span class="n"&gt;ActiveSheet&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ExportAsFixedFormat&lt;/span&gt; _
+                &lt;span class="n"&gt;Type&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;xlTypePDF&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+                &lt;span class="n"&gt;Filename&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;pdfPath&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+                &lt;span class="n"&gt;Quality&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;xlQualityStandard&lt;/span&gt;
+
+
+&lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;Sub&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;We&amp;#8217;ve included logic to clear existing &lt;code&gt;PageSetup&lt;/code&gt; rules, and also wrapped the 
+&lt;em&gt;LeftHeaderPicture&lt;/em&gt; properties in an &lt;code&gt;If&lt;/code&gt; statement in order to bypass the 
+header image insertion logic if no image path is&amp;nbsp;provided.              &lt;/p&gt;</content><category term="Quick Tips"></category></entry><entry><title>Determining the Product of all Values in an Database Column</title><link href="https://jtrive84.github.io/determining-the-product-of-all-values-in-an-database-column.html" rel="alternate"></link><published>2017-02-01T00:00:00-06:00</published><updated>2017-02-01T00:00:00-06:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-02-01:/determining-the-product-of-all-values-in-an-database-column.html</id><summary type="html">&lt;p&gt;Determine the product of all entries  in a database&amp;nbsp;column&lt;/p&gt;</summary><content type="html">&lt;p&gt;In Oracle, there exists no analog of &lt;code&gt;SUM&lt;/code&gt; for multiplication, i.e., there 
+isn&amp;#8217;t a function that takes a fieldname as an argument and returns the product 
+of all values in that column. However, obtaining the product of all items in a 
+column can be obtained by&amp;nbsp;calling:            &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;EXP&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;SUM&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;LN&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;COLUMN_1&lt;/span&gt;&lt;span class="p"&gt;)))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt; 
+For example, if you have a table &lt;em&gt;TABLE_1&lt;/em&gt;, and need to obtain the product of 
+all items in &lt;em&gt;COLUMN_1&lt;/em&gt;, the query would&amp;nbsp;be:         &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="k"&gt;SELECT&lt;/span&gt; &lt;span class="n"&gt;EXP&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;SUM&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;LN&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;COLUMN_1&lt;/span&gt;&lt;span class="p"&gt;)))&lt;/span&gt; &lt;span class="k"&gt;FROM&lt;/span&gt; &lt;span class="n"&gt;TABLE_1&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;&lt;br&gt; &lt;br&gt;
+The result is obtained by leveraging the properties of exponentials and 
+logarithms and the inverse relationship they have to one another. Recall&amp;nbsp;that:       &lt;/p&gt;
+&lt;div class="math"&gt;$$
+e^{Ln(x)} = Ln(e^{x}) = x
+$$&lt;/div&gt;
+&lt;p&gt;There are two properties we&amp;#8217;ll utilize for our&amp;nbsp;demonstration:&lt;/p&gt;
+&lt;p&gt;The natural logarithm maps multiplication into&amp;nbsp;addition:     &lt;/p&gt;
+&lt;div class="math"&gt;$$
+Ln\big(\prod_{i=1}^{n} x_{i}\big) = \sum_{i=1}^{n} Ln(x_{i})
+$$&lt;/div&gt;
+&lt;p&gt;For the exponential function we exploit the algebraic&amp;nbsp;property:&lt;/p&gt;
+&lt;div class="math"&gt;$$
+\prod_{i=1}^{n} e^{x_{i}} = e^{\sum_{i=1}^{n} x_{i}}
+$$&lt;/div&gt;
+&lt;p&gt;Focusing on the &lt;code&gt;EXP(SUM(LN(COLUMN_1)))&lt;/code&gt; expression in our query, we&amp;#8217;ll work 
+from the inside&amp;nbsp;out. &lt;/p&gt;
+&lt;p&gt;Our query calculates &lt;code&gt;LN(COLUMN_1)&lt;/code&gt; for all values in &lt;code&gt;COLUMN_1&lt;/code&gt;, then sums 
+over all of the natural-logged values. Then we exponentiate the sum of natural&amp;nbsp;logs:&lt;/p&gt;
+&lt;div class="math"&gt;$$
+e^{\sum Ln(x_{i})}.
+$$&lt;/div&gt;
+&lt;p&gt;Because of the algebraic property of the exponential, 
+&lt;span class="math"&gt;\(\prod_{i=1}^{n} e^{x_{i}} = e^{\sum_{i=1}^{n} x_{i}}\)&lt;/span&gt;, the exponentiated sum 
+of natural logs&amp;nbsp;becomes:&lt;/p&gt;
+&lt;div class="math"&gt;$$
+e^{\sum Ln(x_{i})} = e^{Ln(x_{1})}e^{Ln(x_{2})} \cdots e^{Ln(x_{n})},
+$$&lt;/div&gt;
+&lt;p&gt;and since &lt;span class="math"&gt;\(e^{Ln(x)} = x\)&lt;/span&gt;, the expression simplifies&amp;nbsp;to:&lt;/p&gt;
+&lt;div class="math"&gt;$$
+e^{Ln(x_{1})}e^{Ln(x_{2})} \cdots e^{Ln(x_{n})} = x_{1}x_{2} \cdots x_{n}
+$$&lt;/div&gt;
+&lt;p&gt;for all &lt;span class="math"&gt;\(n\)&lt;/span&gt; rows in &lt;code&gt;COLUMN_1&lt;/code&gt;, which is the product of all values in 
+&lt;code&gt;COLUMN_1&lt;/code&gt;.&lt;/p&gt;
+&lt;script type="text/javascript"&gt;if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width &lt; 768) ? "left" : align;
+        indent = (screen.width &lt; 768) ? "0em" : indent;
+        linebreak = (screen.width &lt; 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+&lt;/script&gt;</content><category term="Quick Tips"></category><category term="Oracle"></category></entry><entry><title>Prompt Caller to Select a Directory from VBA</title><link href="https://jtrive84.github.io/prompt-caller-to-select-a-directory-from-vba.html" rel="alternate"></link><published>2017-01-08T00:00:00-06:00</published><updated>2017-01-08T00:00:00-06:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-01-08:/prompt-caller-to-select-a-directory-from-vba.html</id><summary type="html">&lt;p&gt;How to prompt user to select a directory&amp;nbsp;location&lt;/p&gt;</summary><content type="html">&lt;p&gt;It&amp;#8217;s a common occurrence to need to prompt the caller of a &lt;span class="caps"&gt;VBA&lt;/span&gt; subprocedure at 
+runtime for a directory location for any number of reasons. It is far more 
+efficent to present the caller of the subprocedure with a graphical interface 
+as opposed to a text entry dialouge, since entering absolute file paths 
+directly is clumsy and error&amp;nbsp;prone. &lt;/p&gt;
+&lt;p&gt;The following example opens a Windows Explorer window, and the caller will 
+then select a directory location. Once selected, the subprocedure will write 
+the selected directory path to cell &lt;code&gt;A1&lt;/code&gt; of the &lt;code&gt;Input&lt;/code&gt; worksheet:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c"&gt;&amp;#39;===================================================&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39; Present caller with directory selection dialouge |&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39;===================================================&lt;/span&gt;
+&lt;span class="k"&gt;Sub&lt;/span&gt; &lt;span class="nf"&gt;SelectDirectory&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;sht&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="n"&gt;Worksheet&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="k"&gt;Set&lt;/span&gt; &lt;span class="n"&gt;sht&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Input&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;selectedLocation&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="n"&gt;Range&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="k"&gt;Set&lt;/span&gt; &lt;span class="n"&gt;selectedLocation&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;sht&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;A1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Clear cell `A1` =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;selectedLocation&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;ClearContents&lt;/span&gt;
+
+&lt;span class="k"&gt;With&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;FileDialog&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;msoFileDialogFolderPicker&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;AllowMultiSelect&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;False&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Show&lt;/span&gt;
+    &lt;span class="k"&gt;If&lt;/span&gt; &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;SelectedItems&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Count&lt;/span&gt; &lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt; &lt;span class="k"&gt;Then&lt;/span&gt;
+        &lt;span class="n"&gt;selectedLocation&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Value&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;CStr&lt;/span&gt;&lt;span class="p"&gt;(.&lt;/span&gt;&lt;span class="n"&gt;SelectedItems&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+    &lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;If&lt;/span&gt; 
+&lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;With&lt;/span&gt;
+&lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;Sub&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;</content><category term="Quick Tips"></category></entry><entry><title>Querying Oracle Table Data from VBA</title><link href="https://jtrive84.github.io/querying-oracle-table-data-from-vba.html" rel="alternate"></link><published>2017-01-08T00:00:00-06:00</published><updated>2017-01-08T00:00:00-06:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-01-08:/querying-oracle-table-data-from-vba.html</id><summary type="html">&lt;p&gt;Examples of querying Oracle table data from &lt;span class="caps"&gt;VBA&lt;/span&gt;&lt;/p&gt;</summary><content type="html">&lt;p&gt;It is possible to query Oracle table data from &lt;span class="caps"&gt;VBA&lt;/span&gt; using 
+&lt;a href="https://msdn.microsoft.com/en-us/library/office/ff836161.aspx"&gt;QueryTables&lt;/a&gt;. 
+The specification for the connection string may vary from &lt;span class="caps"&gt;RDBMS&lt;/span&gt; to &lt;span class="caps"&gt;RDBMS&lt;/span&gt;, but 
+otherwise, The implementation is straightforward. For example, assume we&amp;#8217;re 
+interested in querying and Oracle table &lt;code&gt;SAMPLE_TABLE&lt;/code&gt; present in 
+&lt;code&gt;SAMPLE_SCHEMA&lt;/code&gt; in &lt;code&gt;SAMPLE_DB&lt;/code&gt; and authenticated by &lt;code&gt;password1&lt;/code&gt; using &lt;span class="caps"&gt;DSN&lt;/span&gt; 
+&lt;code&gt;SAMPLE_SCHEMA&lt;/code&gt;, and that we need to return all records from &lt;code&gt;SAMPLE_TABLE&lt;/code&gt; 
+to worksheet &lt;code&gt;From_DB&lt;/code&gt; starting in cell &lt;code&gt;A1&lt;/code&gt;:           &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c"&gt;&amp;#39;================================================&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39; Query and retrieve Oracle table data via ODBC |&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39;================================================&lt;/span&gt;
+&lt;span class="k"&gt;Public&lt;/span&gt; &lt;span class="k"&gt;Sub&lt;/span&gt; &lt;span class="nf"&gt;CaptureTableODBC&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt; _
+                        &lt;span class="k"&gt;ByVal&lt;/span&gt; &lt;span class="n"&gt;Tablename&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+                        &lt;span class="k"&gt;ByVal&lt;/span&gt; &lt;span class="n"&gt;Schema&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+                        &lt;span class="k"&gt;ByVal&lt;/span&gt; &lt;span class="n"&gt;Database&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+                        &lt;span class="k"&gt;ByVal&lt;/span&gt; &lt;span class="n"&gt;Password&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+
+&lt;span class="c"&gt;&amp;#39; Variable declarations =&amp;gt;&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;SQLstr&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;connStr&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;sht&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="n"&gt;Worksheet&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="k"&gt;Set&lt;/span&gt; &lt;span class="n"&gt;sht&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;From_DB&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Clear all content in `From_DB` =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;sht&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;UsedRange&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Clear&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Create query string =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;Tablename&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;WorksheetFunction&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Trim&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Tablename&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;SQLstr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;SELECT * FROM &amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="k"&gt;CStr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Tablename&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Compile connection string =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;connStr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; _
+    &lt;span class="s"&gt;&amp;quot;ODBC;DSN=&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;Schema&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;;UID=&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;Schema&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;;PWD=&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;Password&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;;Database=&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;Database&lt;/span&gt;
+
+&lt;span class="k"&gt;With&lt;/span&gt; &lt;span class="n"&gt;sht&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;QueryTables&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Add&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt; _
+                &lt;span class="n"&gt;Connection&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;connStr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+                &lt;span class="n"&gt;Destination&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;sht&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;A1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt; _
+                &lt;span class="n"&gt;SQL&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;SQLstr&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Refresh&lt;/span&gt;
+&lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;With&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Terminate connection =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;connStr&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Close&lt;/span&gt;
+
+&lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;Sub&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;The &lt;code&gt;QueryTables&lt;/code&gt; method is straightforward, and works well if the macro will 
+not be utilized by anyone other than the creator. But if the intention is to 
+distribute the subprocedure for use by other analysts, this approach is less 
+than&amp;nbsp;optimal.       &lt;/p&gt;
+&lt;p&gt;When querying databases from Excel via &lt;code&gt;ODBC&lt;/code&gt;, it is necessary to have a 
+&lt;a href="https://msdn.microsoft.com/en-us/library/2x0tte0f.aspx"&gt;&lt;span class="caps"&gt;DSN&lt;/span&gt;&lt;/a&gt; with which to 
+associate a given Data Source. In the example above, the &lt;code&gt;DSN&lt;/code&gt; was identical 
+to the name of the Schema of interest, but there is no way to ensure all 
+potential future users will follow the same &lt;code&gt;DSN&lt;/code&gt; naming convention. This is 
+the source of many of the compatibility issues facing developers wishing to 
+distribute &lt;span class="caps"&gt;VBA&lt;/span&gt; applications that interact with an external data source using 
+&lt;code&gt;ODBC&lt;/code&gt;. Fortunately, there&amp;#8217;s an alternative, more flexible &lt;span class="caps"&gt;API&lt;/span&gt; that can be&amp;nbsp;utilized.&lt;/p&gt;
+&lt;h2&gt;Querying External Data Sources with ActiveX Data Objects (&lt;span class="caps"&gt;ADO&lt;/span&gt;)&lt;/h2&gt;
+&lt;p&gt;Microsoft&amp;#8217;s &lt;a href="https://msdn.microsoft.com/EN-US/library/office/dn161134.aspx"&gt;ActiveX Data Objects&lt;/a&gt; 
+(&lt;span class="caps"&gt;ADO&lt;/span&gt;) comprises a set of Component Object Model (&lt;span class="caps"&gt;COM&lt;/span&gt;) objects for accessing 
+data sources. In terms of portability, querying external data sources with &lt;span class="caps"&gt;ADO&lt;/span&gt; 
+is superior to &lt;span class="caps"&gt;ODBC&lt;/span&gt; since &lt;span class="caps"&gt;ADO&lt;/span&gt; permits &lt;span class="caps"&gt;DSN&lt;/span&gt;-less data source connections, 
+meaning as long as you can successfully authenticate to a given external data 
+source, it&amp;#8217;s possible to retrieve datasets from Excel/&lt;span class="caps"&gt;VBA&lt;/span&gt; without requiring a 
+&lt;code&gt;DSN&lt;/code&gt;. &lt;/p&gt;
+&lt;p&gt;The following query accesses the same sample table as above, but using &lt;span class="caps"&gt;ADO&lt;/span&gt; 
+instead of &lt;span class="caps"&gt;ODBC&lt;/span&gt;. The first function, &lt;code&gt;CreateConnectionStr&lt;/code&gt;, generates the 
+connection string required to connect to an Oracle database (check out 
+&lt;a href="https://www.connectionstrings.com/as-400/"&gt;this site&lt;/a&gt; for other &lt;span class="caps"&gt;RDBMS&lt;/span&gt; 
+connection&amp;nbsp;strings):          &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c"&gt;&amp;#39;================================================&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39; Compile connection string for ADO usage       |&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39;================================================&lt;/span&gt;
+&lt;span class="k"&gt;Public&lt;/span&gt; &lt;span class="k"&gt;Function&lt;/span&gt; &lt;span class="nf"&gt;CreateConnectionStr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt; _
+                            &lt;span class="k"&gt;ByVal&lt;/span&gt; &lt;span class="n"&gt;Database&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+                            &lt;span class="k"&gt;ByVal&lt;/span&gt; &lt;span class="n"&gt;Schema&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; _
+                            &lt;span class="k"&gt;ByVal&lt;/span&gt; &lt;span class="n"&gt;Password&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;Const&lt;/span&gt; &lt;span class="n"&gt;Provider&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;OraOLEDB.Oracle&amp;quot;&lt;/span&gt;
+&lt;span class="n"&gt;CreateConnectionStr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;Provider=&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="k"&gt;CStr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Provider&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;;&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; _
+                      &lt;span class="s"&gt;&amp;quot;Data Source=&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="k"&gt;CStr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Database&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;;&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; _
+                      &lt;span class="s"&gt;&amp;quot;User Id=&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="k"&gt;CStr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Schema&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;;&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; _
+                      &lt;span class="s"&gt;&amp;quot;Password=&amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="k"&gt;CStr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Password&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;;&amp;quot;&lt;/span&gt;
+
+&lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;Function&lt;/span&gt;
+
+
+&lt;span class="c"&gt;&amp;#39;================================================&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39; Query and retrieve Oracle table data via ADO  |&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39;================================================&lt;/span&gt;
+&lt;span class="k"&gt;Public&lt;/span&gt; &lt;span class="k"&gt;Sub&lt;/span&gt; &lt;span class="nf"&gt;CaptureTableADO&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;ByVal&lt;/span&gt; &lt;span class="n"&gt;Tablename&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Variable declarations =&amp;gt;&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;SQLstr&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;connStr&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;Long&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;sht&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="n"&gt;Worksheet&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="k"&gt;Set&lt;/span&gt; &lt;span class="n"&gt;outsht&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;ThisWorkbook&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Worksheets&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;From_DB&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;conn&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;Object&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="k"&gt;Set&lt;/span&gt; &lt;span class="n"&gt;conn&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CreateObject&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;ADODB.Connection&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;recordSet&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;Object&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="k"&gt;Set&lt;/span&gt; &lt;span class="n"&gt;recordSet&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CreateObject&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;ADODB.Recordset&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;Const&lt;/span&gt; &lt;span class="n"&gt;Provider&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;OraOLEDB.Oracle&amp;quot;&lt;/span&gt;
+
+
+&lt;span class="c"&gt;&amp;#39; Clear all content in `From_DB` =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;sht&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;UsedRange&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Clear&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Create query string =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;Tablename&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;Application&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;WorksheetFunction&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Trim&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Tablename&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;SQLstr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;SELECT * FROM &amp;quot;&lt;/span&gt; &lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="k"&gt;CStr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Tablename&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Call CreateConnectionStr =&amp;gt;&lt;/span&gt;
+&lt;span class="k"&gt;Set&lt;/span&gt; &lt;span class="n"&gt;connStr&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;CreateConnectionStr&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;SAMPLE_DB&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;SAMPLE_SCHEMA&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;password1&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Open connection =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;conn&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Open&lt;/span&gt; &lt;span class="n"&gt;connStr&lt;/span&gt;
+&lt;span class="n"&gt;recordSet&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Open&lt;/span&gt; &lt;span class="n"&gt;SQLstr&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;conn&lt;/span&gt;
+
+
+&lt;span class="c"&gt;&amp;#39; Put headers in First Row =&amp;gt;&lt;/span&gt;
+&lt;span class="k"&gt;For&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt; &lt;span class="k"&gt;To&lt;/span&gt; &lt;span class="n"&gt;recordSet&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Fields&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Count&lt;/span&gt;
+    &lt;span class="n"&gt;sht&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Cells&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="n"&gt;Value&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;recordSet&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Fields&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="n"&gt;Name&lt;/span&gt;
+&lt;span class="k"&gt;Next&lt;/span&gt;
+
+&lt;span class="c"&gt;&amp;#39; Write dataset to `From_DB` =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;sht&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Range&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;A2&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;).&lt;/span&gt;&lt;span class="n"&gt;CopyFromRecordset&lt;/span&gt; &lt;span class="n"&gt;recordSet&lt;/span&gt;
+
+
+&lt;span class="c"&gt;&amp;#39; Terminate connections =&amp;gt;&lt;/span&gt;
+&lt;span class="n"&gt;conn&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;Close&lt;/span&gt;
+&lt;span class="k"&gt;Set&lt;/span&gt; &lt;span class="n"&gt;conn&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;Nothing&lt;/span&gt;
+&lt;span class="k"&gt;Set&lt;/span&gt; &lt;span class="n"&gt;recordSet&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="k"&gt;Nothing&lt;/span&gt;
+
+&lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;Sub&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Notice that it&amp;#8217;s necessary to manually write the dataset&amp;#8217;s headers to the 
+first row of &lt;code&gt;From_DB&lt;/code&gt;. This is a small price to pay for the kind of 
+flexibility a &lt;span class="caps"&gt;DSN&lt;/span&gt;-less connection&amp;nbsp;offers.   &lt;/p&gt;
+&lt;p&gt;Since &lt;code&gt;CaptureTableODBC&lt;/code&gt; and &lt;code&gt;CaptureTableADO&lt;/code&gt; are subprocedures requiring 
+arguments to be passed in, it is not possible to call either of these 
+subprocedures directly. An argument-less subprocedure needs to call 
+&lt;code&gt;CaptureTableODBC&lt;/code&gt; or &lt;code&gt;CaptureTableADO&lt;/code&gt;, passing the necessary arguments to 
+the subprocedures. For&amp;nbsp;example:      &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="c"&gt;&amp;#39;=========================&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39;Calling CaptureTableADO |&lt;/span&gt;
+&lt;span class="c"&gt;&amp;#39;=========================&lt;/span&gt;
+
+&lt;span class="k"&gt;Public&lt;/span&gt; &lt;span class="k"&gt;Sub&lt;/span&gt; &lt;span class="nf"&gt;Caller&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+&lt;span class="k"&gt;Dim&lt;/span&gt; &lt;span class="n"&gt;Tablename&lt;/span&gt; &lt;span class="ow"&gt;As&lt;/span&gt; &lt;span class="kt"&gt;String&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;Tablename&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;SAMPLE_TABLE&amp;quot;&lt;/span&gt;
+
+&lt;span class="k"&gt;Call&lt;/span&gt; &lt;span class="n"&gt;CaptureTableADO&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Tablename&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+&lt;span class="k"&gt;End&lt;/span&gt; &lt;span class="k"&gt;Sub&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Interacting with external datasets and sources is a common task among analysts 
+of all kinds. Creating portable, scalable and robust tools to interact with 
+those data sources can be greatly simplified by removing the &lt;span class="caps"&gt;DSN&lt;/span&gt; requirement&amp;nbsp;altogether.&lt;/p&gt;</content><category term="Quick Tips"></category></entry><entry><title>Setting Up Dynamic Named Ranges in Excel</title><link href="https://jtrive84.github.io/setting-up-dynamic-named-ranges-in-excel.html" rel="alternate"></link><published>2017-01-06T00:00:00-06:00</published><updated>2017-01-06T00:00:00-06:00</updated><author><name>James D. Triveri</name></author><id>tag:jtrive84.github.io,2017-01-06:/setting-up-dynamic-named-ranges-in-excel.html</id><summary type="html">&lt;p&gt;Defining dynamic named ranges in&amp;nbsp;Excel&lt;/p&gt;</summary><content type="html">&lt;p&gt;In Excel, 
+&lt;a href="https://support.office.com/en-us/article/Define-and-use-names-in-formulas-4d0f13ac-53b7-422e-afd2-abd7ff379c64"&gt;named ranges&lt;/a&gt; 
+are a convenient way to reference a continous range of cells using a 
+descriptive name instead of a complicated expression or formula. However, when 
+the referenced range is not static, and the number of rows and/or columns is 
+likely to change between updates of the dataset in question, a simple range 
+reference will only be useful for as long as the dataset fits the range&amp;#8217;s 
+dimensions at that time. As additional rows or columns are added, the named 
+range no longer sufficiently references the dimensional span of the&amp;nbsp;dataset. &lt;/p&gt;
+&lt;p&gt;However, dynamic datasets &lt;em&gt;can&lt;/em&gt; be referenced with a named range. The key is 
+to avoid explicit cell references in the&amp;nbsp;definition. &lt;/p&gt;
+&lt;p&gt;Suppose that our dynamic dataset will reside in &lt;code&gt;Sheet1&lt;/code&gt;, and the first cell, 
+regardless of the ultimate depth and breadth of a particular iteration of the 
+dataset , will be &lt;code&gt;A1&lt;/code&gt;. Also, at any given time, the number of columns and 
+rows in the dataset will be greater than or equal to&amp;nbsp;1. &lt;/p&gt;
+&lt;p&gt;To declare dynamic range reference, enter &lt;code&gt;Ctrl + F3&lt;/code&gt; to open the 
+&lt;em&gt;Name Manager&lt;/em&gt;, and select &lt;code&gt;New...&lt;/code&gt; in the upper left-hand side. Specify a 
+name for the range in question, and a description in the &lt;code&gt;Comment:&lt;/code&gt; section 
+(if desired). In the &lt;code&gt;Refers to:&lt;/code&gt; section, enter the&amp;nbsp;following:               &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;OFFSET&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;A$&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;COUNTA&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;A&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;A&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;&lt;span class="n"&gt;COUNTA&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;Note that &lt;a href="https://support.office.com/en-us/article/OFFSET-function-c8de19ae-dd79-4b9b-a14e-b4d906d11b66"&gt;&lt;span class="caps"&gt;OFFSET&lt;/span&gt;&lt;/a&gt; 
+has the following&amp;nbsp;declaration:          &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="n"&gt;OFFSET&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;reference&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;rows&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;cols&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="n"&gt;height&lt;/span&gt;&lt;span class="o"&gt;]&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="n"&gt;width&lt;/span&gt;&lt;span class="o"&gt;]&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;ul&gt;
+&lt;li&gt;&lt;em&gt;reference&lt;/em&gt; is the reference from which you want to base the offset. It must refer to a cell or range of adjacent cells; otherwise, &lt;span class="caps"&gt;OFFSET&lt;/span&gt; returns #&lt;span class="caps"&gt;VALUE&lt;/span&gt;!.   &lt;br&gt;
+&lt;br&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;rows&lt;/em&gt; is the number of rows, up or down, that you want the upper-left cell to refer to.   &lt;br&gt;
+&lt;br&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;cols&lt;/em&gt; is the number of columns, to the left or right, that you want the upper-left cell of the result to refer to.  &lt;br&gt;
+&lt;br&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;height&lt;/em&gt; is the height, in number of rows, that you want the returned reference to be. &lt;br&gt;
+&lt;br&gt;&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;width&lt;/em&gt; is the width, in number of columns, that you want the returned reference to be.   &lt;br&gt;
+&lt;br&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;We set &lt;em&gt;reference&lt;/em&gt; to &lt;code&gt;$A$1&lt;/code&gt;, and &lt;em&gt;rows&lt;/em&gt; and &lt;em&gt;cols&lt;/em&gt; to &lt;code&gt;0&lt;/code&gt;, since the named 
+range refers to &lt;code&gt;$A$1&lt;/code&gt; as the static point. &lt;code&gt;COUNTA($A:$A)&lt;/code&gt; returns the number 
+of consecutively populated cells in column &lt;code&gt;A&lt;/code&gt; starting from &lt;code&gt;$A$1&lt;/code&gt; and 
+working down; &lt;span class="caps"&gt;COUNTA&lt;/span&gt;(&lt;span class="math"&gt;\(1:\)&lt;/span&gt;1) returns the number of consecutively populated 
+cells in row &lt;code&gt;1&lt;/code&gt; starting from &lt;code&gt;$A$1&lt;/code&gt; and working right. Upon return, the call 
+to &lt;em&gt;&lt;span class="caps"&gt;OFFSET&lt;/span&gt;&lt;/em&gt; will yield the dimensions of the continuous range of cells 
+starting in cell &lt;code&gt;$A$1&lt;/code&gt;, whatever those dimensions may be. With this 
+formulation, you&amp;#8217;ll be certain that when you call a named range, what&amp;#8217;s 
+actually being referenced and what you&amp;#8217;re expecting to be referred will be one 
+in the&amp;nbsp;same. &lt;/p&gt;
+&lt;h3&gt;Alternate&amp;nbsp;References&lt;/h3&gt;
+&lt;p&gt;There may be times when only one dimension of a dataset will be expected to 
+vary between updates: Either the number of columns or the number of rows, but 
+not both. In that case, the named range definition is a simplified version of 
+the 2-varying dimensions named&amp;nbsp;range. &lt;/p&gt;
+&lt;p&gt;To facilitate a varying number of columns between updates, specify the named 
+range&amp;nbsp;as:      &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;OFFSET&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;A$&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;COUNTA&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;p&gt;To facilitate a varying number of rows between updates, specify the named range&amp;nbsp;as:       &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;OFFSET&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;A$&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="n"&gt;COUNTA&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;A&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="err"&gt;$&lt;/span&gt;&lt;span class="n"&gt;A&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;&lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/pre&gt;&lt;/div&gt;
+
+
+&lt;script type="text/javascript"&gt;if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width &lt; 768) ? "left" : align;
+        indent = (screen.width &lt; 768) ? "0em" : indent;
+        linebreak = (screen.width &lt; 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+&lt;/script&gt;</content><category term="Quick Tips"></category><category term="Excel"></category></entry></feed>

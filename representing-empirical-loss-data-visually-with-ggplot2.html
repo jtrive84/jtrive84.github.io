@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Representing Empirical Loss Data Visually with ggplot2 - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/representing-empirical-loss-data-visually-with-ggplot2.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="R,Statistical Modeling" />
+        <meta name="description" content="Visualizing the fit of parametric distributions to empirical loss data using ggplot2" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Representing Empirical Loss Data Visually with ggplot2"/>
+        <meta property="og:url" content="https://jtrive84.github.io/representing-empirical-loss-data-visually-with-ggplot2.html"/>
+        <meta property="og:description" content="Visualizing the fit of parametric distributions to empirical loss data using ggplot2"/>
+        <meta property="article:published_time" content="2018-09-23" />
+            <meta property="article:section" content="R" />
+            <meta property="article:tag" content="R" />
+            <meta property="article:tag" content="Statistical Modeling" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/r.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out R ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/representing-empirical-loss-data-visually-with-ggplot2.html"
+                       rel="bookmark"
+                       title="Permalink to Representing Empirical Loss Data Visually with ggplot2">
+                        Representing Empirical Loss Data Visually with&nbsp;ggplot2
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-09-23T00:00:00-05:00"> 2018-09-23</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/r.html">R</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/r.html">R</a>
+        /
+	<a href="https://jtrive84.github.io/tag/statistical-modeling.html">Statistical Modeling</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>This post demonstrates how to fit parametric loss distributions to empirical 
+loss data originally represented in a histogram. Before carrying out more 
+sophisticated quantitative analysis, it can be useful to get a feel for how 
+well the proposed distribution fits the data from a visual perspective. This 
+can be accomplished by representing the histogram of loss data in terms of 
+probabilities instead of frequencies, calculating the empirical mean and 
+variance from the target dataset and finally determining the proposed 
+distribution&#8217;s mean and variance using method of moments or maximum&nbsp;likelihood.        </p>
+<p>The dataset we&#8217;ll be using can be obtained <a href="https://gist.github.com/jtrive84/a765e9fa4f13c520fb89f0a65092fa51">here</a>. 
+It represents auto insurance claims for damage to the owner&#8217;s car for 
+privately owned and comprehensively insured vehicles in Britain in 1975. 
+The dataset in its original form is included within the <em>CASDatasets</em> R 
+package identified as <code>ukaggclaim</code>.         </p>
+<h2>Distributional&nbsp;Assumption</h2>
+<p>When deciding on a parametric form to use for modeling commercial insurance 
+losses, a good starting point is the gamma distribution. It has many appealing 
+characteristics w.r.t. modeling severity, including having lower bound at 0, 
+exhibiting positive skewness (higher frequency or small losses, lower 
+frequency of large losses) and is a member of the exponential family of 
+distributions, which forms the basis for the distribution function used in 
+generalized linear models. When dealing with complex initial modeling 
+constraints, or when truncation (deductibles) or censoring (limits/layers of 
+losses) need to be considered, the gamma becomes less appealing. But for 
+ground-up losses for a line of business with moderate-to-high frequency of 
+occurrence, the gamma is&nbsp;sufficient.          </p>
+<p>The gamma distribution can be parametrized is a number of ways, but we&#8217;ll 
+stick to the one specified in R&#8217;s manual page for <code>dgamma</code>, with density 
+given&nbsp;by:</p>
+<div class="math">$$
+f(x) = \frac{x^{a-1} e^{-x / {\theta}}} {\Gamma(a) \theta^{a}} \hspace{3mm} \text{for $x \gt $0,} \hspace{3mm} a, \theta \gt 0,
+$$</div>
+<p>where <span class="math">\(\Gamma(x)\)</span> is the gamma function. In this representation, 
+<span class="math">\(a\)</span> represents the <em>shape parameter</em>, <span class="math">\(\theta\)</span> the <em>scale parameter</em>. The mean 
+and variance&nbsp;are: </p>
+<div class="math">$$
+E[X] = a \theta, \hspace{3mm} Var[X] = a \theta^{2}
+$$</div>
+<p>A quantity commonly used in Actuarial analysis is the <em>coefficient or 
+variation</em>,  which is a measure of dispersion of a probability distribution. 
+The is quantified as the ratio of standard deviation to mean. The gamma 
+distribution is unique in that it exhibits constant coefficient of variation. 
+Starting with the definition of coefficient of variation and the mean and 
+variance for a gamma distribution, this assertion can be easily&nbsp;verified:</p>
+<div class="math">$$
+\frac{\sigma}{\mu} = \frac{\sqrt{Var[X]}}{E[X]} = \frac{\sqrt{a}\theta}{a\theta} = \frac{1}{\sqrt{a}}.
+$$</div>
+<h2>Loss&nbsp;Data</h2>
+<p>As mentioned in the introduction, our dataset represents auto insurance claims 
+for damage to the owner&#8217;s car for privately owned and comprehensively insured 
+vehicles in Britain in 1975. Fieldnames and descriptions are given&nbsp;below:    </p>
+<p><strong><code>AGE</code></strong>           <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Age range of damaged vehicle&nbsp;driver     </p>
+<p><strong><code>MODEL</code></strong>          <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Model of automobile (categorically&nbsp;encoded)              </p>
+<p><strong><code>AUTO_AGE</code></strong>              <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Age range of damaged&nbsp;vehicle      </p>
+<p><strong><code>LOSS</code></strong>              <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The loss amount (in&nbsp;pounds) </p>
+<p>Investigating the relationships between dataset features and <code>LOSS</code> is beyond 
+the scope of this article. For our purposes, we&#8217;re interested in modeling the 
+distributional form of <code>LOSS</code>. We can start by creating a histogram of our 
+losses using&nbsp;ggplot2:      </p>
+<div class="highlight"><pre><span></span><span class="c1"># ========================================================================== #</span>
+<span class="c1"># Plot histogram of UKClaims dataset using ggplot2.                          #</span>
+<span class="c1"># ========================================================================== #</span>
+<span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span><span class="s">&quot;ggplot2&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># Create single-column data.table for use with ggplot.</span>
+DFInit   <span class="o">=</span> fread<span class="p">(</span><span class="s">&quot;UKClaims.tsv&quot;</span><span class="p">,</span> sep<span class="o">=</span><span class="s">&quot;\t&quot;</span><span class="p">)</span>
+DF       <span class="o">=</span> DFInit<span class="p">[</span>LOSS<span class="o">&gt;</span><span class="m">0</span><span class="p">,</span> <span class="m">.</span><span class="p">(</span>LOSS<span class="p">)]</span>
+BINWIDTH <span class="o">=</span> <span class="m">30</span>
+
+
+<span class="c1"># Generate histogram of empirical losses. </span>
+gghist <span class="o">=</span> ggplot<span class="p">(</span>DF<span class="p">)</span> <span class="o">+</span> 
+    geom_histogram<span class="p">(</span>
+        aes<span class="p">(</span>x<span class="o">=</span>LOSS<span class="p">,</span> y<span class="o">=</span><span class="m">..</span>density..<span class="p">),</span> binwidth<span class="o">=</span>BINWIDTH<span class="p">,</span> 
+        fill<span class="o">=</span><span class="s">&quot;ghostwhite&quot;</span><span class="p">,</span> color<span class="o">=</span><span class="s">&quot;black&quot;</span>
+        <span class="p">)</span> <span class="o">+</span> xlab<span class="p">(</span><span class="s">&quot;Severity&quot;</span><span class="p">)</span> <span class="o">+</span> ylab<span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">)</span> <span class="o">+</span> 
+    ggtitle<span class="p">(</span><span class="s">&quot;Empirical Loss Distribution: UK Claims Dataset&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Notice that within <code>geom_histogram</code>, the <code>y</code> parameter within <code>aes</code> is set to
+<code>..density..</code>. This isn&#8217;t strictly necessary for visualizing the stand-alone 
+histogram, but is required when plotting a density along with a histogram as 
+we demonstrate&nbsp;next. </p>
+<p>Running the above code produces the&nbsp;following:     </p>
+<div style="text-align:center">
+<p><img alt="histogram" src="images/EmpiricalHist.png"></p>
+</div>
+<p>More information on ggplot2&#8217;s aesthetic options and available themes can be found <a href="https://ggplot2.tidyverse.org/reference/geom_histogram.html#aesthetics">here</a>.</p>
+<p>Next we&#8217;ll parameterize a gamma distribution based on the empirical loss data, 
+then plot the density over the top of the histogram to visually assess the 
+quality of&nbsp;fit.     </p>
+<p>We can back out the scale parameter by dividing the variance of the loss data<br>
+by the mean (since <span class="math">\(a \theta^{2}/a \theta = \theta\)</span>). Once the scale parameter 
+is known, the shape is calculated as <span class="math">\(E[X]/\theta\)</span>, the ratio of the loss data 
+mean to the scale&nbsp;parameter:    </p>
+<div class="highlight"><pre><span></span>scale <span class="o">=</span> var<span class="p">(</span>DF<span class="o">$</span>LOSS<span class="p">)</span><span class="o">/</span><span class="kp">mean</span><span class="p">(</span>DF<span class="o">$</span>LOSS<span class="p">)</span>
+shape <span class="o">=</span> <span class="kp">mean</span><span class="p">(</span>DF<span class="o">$</span>LOSS<span class="p">)</span><span class="o">/</span><span class="kp">scale</span>
+</pre></div>
+
+
+<p>Beginning with the same ggplot expression used to generate the histogram of 
+empirical losses, we include a call to <code>stat_function</code>, which facilitates the 
+visualization of parametric distributions (among other things). This allows
+for the histogram and gamma density to be overlaid on the same graph. The 
+gamma density is highlighted in&nbsp;red:</p>
+<div class="highlight"><pre><span></span><span class="c1"># ========================================================================== #</span>
+<span class="c1"># Histogram/gamma density overlay                                            #</span>
+<span class="c1"># ========================================================================== #</span>
+<span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+<span class="kn">library</span><span class="p">(</span><span class="s">&quot;ggplot2&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># Create single-column data.table for use in ggplot2.</span>
+DFInit   <span class="o">=</span> fread<span class="p">(</span><span class="s">&quot;UKClaims.tsv&quot;</span><span class="p">,</span> sep<span class="o">=</span><span class="s">&quot;\t&quot;</span><span class="p">)</span>
+DF       <span class="o">=</span> DFInit<span class="p">[</span>LOSS<span class="o">&gt;</span><span class="m">0</span><span class="p">,</span> <span class="m">.</span><span class="p">(</span>LOSS<span class="p">)]</span>
+BINWIDTH <span class="o">=</span> <span class="m">30</span>
+
+
+<span class="c1"># Compute shape and scale for gamma parameterization.</span>
+scale <span class="o">=</span> var<span class="p">(</span>DF<span class="o">$</span>LOSS<span class="p">)</span><span class="o">/</span><span class="kp">mean</span><span class="p">(</span>DF<span class="o">$</span>LOSS<span class="p">)</span>
+shape <span class="o">=</span> <span class="kp">mean</span><span class="p">(</span>DF<span class="o">$</span>LOSS<span class="p">)</span><span class="o">/</span><span class="kp">scale</span>
+
+
+<span class="c1"># Plot gamma density over the top of histogram of empirical losses</span>
+ggboth <span class="o">=</span> ggplot<span class="p">(</span>DF<span class="p">)</span> <span class="o">+</span>
+    geom_histogram<span class="p">(</span>
+        aes<span class="p">(</span>x<span class="o">=</span>LOSS<span class="p">,</span> y<span class="o">=</span><span class="m">..</span>density..<span class="p">),</span> binwidth<span class="o">=</span>BINWIDTH<span class="p">,</span> 
+        fill<span class="o">=</span><span class="s">&quot;ghostwhite&quot;</span><span class="p">,</span> color<span class="o">=</span><span class="s">&quot;black&quot;</span>
+        <span class="p">)</span> <span class="o">+</span>
+    stat_function<span class="p">(</span>
+        fun<span class="o">=</span>dgamma<span class="p">,</span> args<span class="o">=</span><span class="kt">list</span><span class="p">(</span>shape<span class="o">=</span>shape<span class="p">,</span> scale<span class="o">=</span><span class="kp">scale</span><span class="p">),</span> 
+        colour<span class="o">=</span><span class="s">&quot;red&quot;</span><span class="p">,</span> size<span class="o">=</span><span class="m">1.1</span>
+        <span class="p">)</span> <span class="o">+</span>
+    xlab<span class="p">(</span><span class="s">&quot;Severity&quot;</span><span class="p">)</span> <span class="o">+</span> ylab<span class="p">(</span><span class="s">&quot;Density&quot;</span><span class="p">)</span> <span class="o">+</span> ggtitle<span class="p">(</span><span class="s">&quot;Empirical Loss Data with Gamma Overlay&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Running this code results&nbsp;in:</p>
+<div style="text-align:center">
+<p><img alt="both" src="images/LossesBoth.png"></p>
+</div>
+<p>Qualitatively, the gamma distribution parameterized using the method of 
+moments fits reasonably well to the histogram of losses with <code>binwidth=30</code>. 
+Varying the binwidth away from 30 in either direction tended to make the fit 
+appear less adequate. Regardless, one would need to perform a battery of 
+goodness of fit tests before settling on a specific parametric form, but a 
+quick visual assessment like the one demonstrated in this post can at the 
+very least let you know if you&#8217;re on the right&nbsp;track.       </p>
+<p>Until next time, happy&nbsp;coding!</p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

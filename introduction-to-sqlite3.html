@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Introduction to sqlite3 - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/introduction-to-sqlite3.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python,sqlite3" />
+        <meta name="description" content="Introduction to Python’s sqlite3 library" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Introduction to sqlite3"/>
+        <meta property="og:url" content="https://jtrive84.github.io/introduction-to-sqlite3.html"/>
+        <meta property="og:description" content="Introduction to Python’s sqlite3 library"/>
+        <meta property="article:published_time" content="2016-12-11" />
+            <meta property="article:section" content="Python" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:tag" content="sqlite3" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Python ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/introduction-to-sqlite3.html"
+                       rel="bookmark"
+                       title="Permalink to Introduction to sqlite3">
+                        Introduction to&nbsp;sqlite3
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2016-12-11T00:00:00-06:00"> 2016-12-11</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/python.html">Python</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+        /
+	<a href="https://jtrive84.github.io/tag/sqlite3.html">sqlite3</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p><code>SQLite</code> is a C library that provides a lightweight disk-based database that 
+doesn&#8217;t require a separate server process. Applications can use SQLite for 
+internal data storage. It&#8217;s also possible to prototype an application using 
+SQLite and then later port the application to a production database system. <br>
+<code>SQLite</code> databases are stored in a file on disk (usually with a &#8220;.db&#8221; 
+extension). If you attempt to connect to a database file that doesn&#8217;t exist, 
+<code>SQLite</code> with create a new database, assign it the name you passed to the 
+connect function and save it to your current working&nbsp;directory. </p>
+<p>Typical sqlite setup and usage in Python is as&nbsp;follows:</p>
+<ul>
+<li>Create a connection&nbsp;object       </li>
+<li>Initialize a database&nbsp;cursor      </li>
+<li>Construct a query for the dataset of&nbsp;interest         </li>
+<li>Pass the query string to the cursor&#8217;s <code>execute</code> method      </li>
+<li>Iterate over the cursor&#8217;s result&nbsp;set               </li>
+</ul>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sqlite3</span>
+
+<span class="n">db</span>     <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="o">&lt;</span><span class="n">filename</span><span class="o">&gt;.</span><span class="n">db</span><span class="p">)</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+<span class="n">SQL</span>    <span class="o">=</span> <span class="s2">&quot;SELECT * FROM SAMPLE_TABLE&quot;</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">SQL</span><span class="p">)</span> 
+
+<span class="c1"># Iterate over cursor and print queried records.</span>
+<span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">cursor</span><span class="p">:</span> <span class="k">print</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>                 <br>
+The result will be a list of tuples, so data elements can be accessed by row 
+or selectively by referencing components by index&nbsp;offset.</p>
+<h3>Creating Datebases and Tables with <code>sqlite3</code></h3>
+<p>If the database file passed to the <code>sqlite3.connect</code> method doesn&#8217;t exist, a 
+new database with the name specified will be created. The following example 
+creates a database consisting of 2 tables: The first table holds closing 
+stock prices, the second contains a mapping between ticker symbols and 
+company names (for more information on <code>SQLite</code> datatypes and the resulting 
+affinity mappings of common datatypes for other <span class="caps">RDBMS</span>, 
+checkout <a href="https://www.sqlite.org/datatype3.html">this</a> page from the 
+<code>SQLite</code> official&nbsp;documentation):         </p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Creating a new database with two tables using sqlite3.</span>
+
+<span class="sd">=============================</span>
+<span class="sd">Table 1                     |</span>
+<span class="sd">=============================</span>
+<span class="sd">TABLENAME: `CLOSING_PRICES` |</span>
+<span class="sd">                            |</span>
+<span class="sd">FIELDS   : DATE   TEXT      |</span>
+<span class="sd">           TICKER TEXT      |</span>
+<span class="sd">           CLOSE  REAL      |</span>
+<span class="sd">=============================</span>
+
+<span class="sd">=============================</span>
+<span class="sd">Table 2                     |</span>
+<span class="sd">=============================</span>
+<span class="sd">TABLENAME: `TICKER_MAPPING` |</span>
+<span class="sd">                            |</span>
+<span class="sd">FIELDS   : TICKER       TEXT|</span>
+<span class="sd">           COMPANY NAME TEXT|     </span>
+<span class="sd">=============================</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span>
+
+<span class="c1"># Create new database `sample.db`. Notice `sample.db` is now </span>
+<span class="c1"># listed in your working directory.</span>
+<span class="n">db</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;sample.db&quot;</span><span class="p">)</span>
+
+<span class="c1"># Initiate cursor object.</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+<span class="c1"># Specify the DDL to create the two tables.</span>
+<span class="n">tbl1_ddl</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;CREATE TABLE CLOSING_PRICES (</span>
+<span class="s2">              DATE   TEXT,</span>
+<span class="s2">              TICKER TEXT,</span>
+<span class="s2">              CLOSE  REAL)&quot;&quot;&quot;</span>
+
+<span class="n">tbl2_ddl</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;CREATE TABLE TICKER_MAPPING (</span>
+<span class="s2">              TICKER       TEXT,</span>
+<span class="s2">              COMPANY_NAME TEXT)&quot;&quot;&quot;</span>
+
+<span class="c1"># Call the `cursor.execute` method, passing tbl1_ddl &amp; tbl2_ddl as arguments.</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">tbl1_ddl</span><span class="p">)</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">tbl2_ddl</span><span class="p">)</span>
+
+<span class="c1"># IMPORTANT! Be sure to commit changes you want persisted. Without</span>
+<span class="c1"># commiting, changes will not be saved.</span>
+<span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+<span class="c1"># Close connection to `sample.db`.</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br></p>
+<p>To verify that your tables have been created, run the&nbsp;following:        </p>
+<div class="highlight"><pre><span></span><span class="c1"># Restablish connection to `sample.db`.</span>
+<span class="n">db</span>     <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;sample.db&#39;</span><span class="p">)</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT name FROM sqlite_master WHERE type=&#39;table&#39;&quot;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">())</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<h3>Loading Data into SQLite Database&nbsp;Tables</h3>
+<p>The following example demonstrates two methods of loading data into SQLite 
+tables. The first method assumes the data is already available within the 
+current Python session. The second method assumes data is being loaded from a 
+delimited data file. For the second example, refer to <code>ticker_data.csv</code>, 
+which can be found <a href="https://gist.github.com/jtrive84/52fcbb7a8637d72dbc49b3fdeb1edbee">here</a>.               </p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">==========================================================</span>
+<span class="sd"> Method #1: Data already avialable in Python session     |</span>
+<span class="sd">==========================================================</span>
+<span class="sd">Insert four records into `CLOSING_PRICES` table based on the closing </span>
+<span class="sd">prices of AXP, GE, GS &amp; UTX on 7.22.2016.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># Reestablish connection to `sample.db` database.</span>
+<span class="n">db</span>     <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;sample.db&#39;</span><span class="p">)</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+
+<span class="c1"># Single records can be inserted using the `cursor.execute` method.</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;INSERT INTO TICKER_MAPPING VALUES (&#39;AXP&#39;,  &#39;American Express Company&#39;)&quot;</span><span class="p">)</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;INSERT INTO TICKER_MAPPING VALUES (&#39;GE&#39; ,  &#39;General Electric Company&#39;)&quot;</span><span class="p">)</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;INSERT INTO TICKER_MAPPING VALUES (&#39;GS&#39; ,  &#39;Goldman Sachs Group Inc&#39;)&quot;</span><span class="p">)</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;INSERT INTO TICKER_MAPPING VALUES (&#39;UTX&#39; , &#39;United Technologies Corporation&#39;)&quot;</span><span class="p">)</span>
+
+
+<span class="c1"># We can insert several records at once if we create a list of tuples of the </span>
+<span class="c1"># data to insert, then call `cursor.executemany`.</span>
+<span class="n">closing_prices</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s1">&#39;20160722&#39;</span><span class="p">,</span> <span class="s1">&#39;AXP&#39;</span><span class="p">,</span>  <span class="mf">64.28</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;20160722&#39;</span><span class="p">,</span> <span class="s1">&#39;GE&#39;</span> <span class="p">,</span>  <span class="mf">32.06</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;20160722&#39;</span><span class="p">,</span> <span class="s1">&#39;GS&#39;</span> <span class="p">,</span> <span class="mf">160.41</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;20160722&#39;</span><span class="p">,</span> <span class="s1">&#39;UTX&#39;</span><span class="p">,</span> <span class="mf">105.13</span><span class="p">)</span>
+    <span class="p">]</span>
+
+
+<span class="n">cursor</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span>
+    <span class="s2">&quot;INSERT INTO CLOSING_PRICES VALUES (?,?,?)&quot;</span><span class="p">,</span> <span class="n">closing_prices</span>
+    <span class="p">)</span>
+
+
+<span class="c1"># Not forgetting to commit changes and close connection.</span>
+<span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>       </p>
+<p>The <code>(?,?,?)</code> in <code>cursor.executemany</code> serve as placeholders for columns in the 
+target table. There should be one <code>?</code> for each column in the target table.<br>
+<br>        </p>
+<p>A more common scenario may be loading data from delimited data file into an 
+SQLite database table. The syntax is similiar, with added file handling&nbsp;constructs:          </p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">=====================================</span>
+<span class="sd"> Method #2: Data read in from .csv  |</span>
+<span class="sd">=====================================</span>
+<span class="sd">Requires `ticker_data.csv` file.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+
+
+<span class="c1"># Reestablish connection to `sample.db` database.</span>
+<span class="n">db</span>     <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;sample.db&#39;</span><span class="p">)</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+
+<span class="c1"># Open `ticker_data.csv`, and create a csv.reader instance. Then call </span>
+<span class="c1"># `executemany` on the records read from file to load into the database.</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;ticker_data.csv&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+
+    <span class="n">fcsv</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="c1"># Read records from file into list.</span>
+    <span class="n">recs_to_load</span> <span class="o">=</span> <span class="p">[</span><span class="n">record</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">fcsv</span><span class="p">]</span>
+
+    <span class="c1"># Load records into CLOSING_PROCES table.</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span><span class="s2">&quot;INSERT INTO CLOSING_PRICES VALUES (?,?,?)&quot;</span><span class="p">,</span> <span class="n">recs_to_load</span><span class="p">)</span>
+
+
+<span class="c1"># Not forgetting to commit changes and close connection.</span>
+<span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<h3>Retrieving Table Data from SQLite&nbsp;Databases</h3>
+<p>To retrieve SQLite database records, an iterator in the form of a database 
+cursor is returned, which is traversed to obtain to returned dataset&nbsp;elements:     </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sqlite3</span>
+
+<span class="c1"># Reestablish connection to `sample.db` database.</span>
+<span class="n">db</span>     <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;sample.db&#39;</span><span class="p">)</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+
+<span class="c1">#construct a query to retrieve data from `CLOSING_PRICES`.</span>
+<span class="n">SQL</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM CLOSING_PRICES&quot;</span>
+
+
+<span class="c1"># call `cursor.execute` on query string.</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">SQL</span><span class="p">)</span>
+
+
+<span class="c1"># `cursor` can now be iterated over.</span>
+<span class="k">for</span> <span class="n">rec</span> <span class="ow">in</span> <span class="n">cursor</span><span class="p">:</span> <span class="k">print</span><span class="p">(</span><span class="n">rec</span><span class="p">)</span>
+
+
+<span class="c1"># Not forgetting to commit changes and close connection.</span>
+<span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br></p>
+<p>Headers need to be extracted from the <code>cursor.description</code> attribute:           </p>
+<div class="highlight"><pre><span></span><span class="c1"># obtain reference to table headers.</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span>
+
+<span class="c1"># re-establish connection to `sample.db` database.</span>
+<span class="n">db</span>     <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;sample.db&#39;</span><span class="p">)</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+<span class="c1"># Construct query to retrieve data from CLOSING_PRICES table.</span>
+<span class="n">SQL</span> <span class="o">=</span> <span class="s2">&quot;SELECT * FROM CLOSING_PRICES&quot;</span>
+
+<span class="c1"># Call `cursor.execute` on SQL.</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">SQL</span><span class="p">)</span>
+
+<span class="c1"># Capture table headers into `headers` list.</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">description</span><span class="p">]</span>
+
+<span class="c1"># Not forgetting to commit changes and close connection. </span>
+<span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<h3>Using Bind Variables with&nbsp;SQLite</h3>
+<p>The following demonstrates the use of bind variables in SQLite for dynamic 
+data&nbsp;retrieval:            </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sqlite3</span>
+
+<span class="c1"># Reestablish connection to `sample.db` database.</span>
+<span class="n">db</span>     <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;sample.db&#39;</span><span class="p">)</span>
+<span class="n">cursor</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+
+<span class="c1"># Bind variable key-value pairs.</span>
+<span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;symbol&#39;</span><span class="p">:</span><span class="s1">&#39;GE&#39;</span><span class="p">,</span><span class="s1">&#39;date&#39;</span><span class="p">:</span><span class="s1">&#39;20161125&#39;</span><span class="p">}</span>
+<span class="n">SQL</span>    <span class="o">=</span> <span class="s2">&quot;SELECT * FROM CLOSING_PRICES WHERE TICKER=:symbol AND DATE!=:date&quot;</span>
+<span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">SQL</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+<span class="c1"># Get headers.</span>
+<span class="n">headers</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">description</span><span class="p">]</span>
+
+<span class="c1"># Read records into list iterating over cursor.</span>
+<span class="n">records</span> <span class="o">=</span> <span class="p">[</span><span class="n">record</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">cursor</span><span class="p">]</span>
+
+<span class="c1"># Not forgetting to commit changes and close connection. </span>
+<span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+<span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>     </p>
+<h4>Final&nbsp;Note</h4>
+<p>At times, it can be useful to interact with SQLite databases from a graphical 
+interface, especially as the number of database tables grows. One such tool is 
+<a href="http://sqlitestudio.pl/?act=download">SQLiteStudio</a>, a versatile SQLite <span class="caps">IDE</span> 
+that includes the tools necessary to manage databases, schemas, tables and 
+related objects. I encourage you to check it out. Until next time, happy&nbsp;coding!</p>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

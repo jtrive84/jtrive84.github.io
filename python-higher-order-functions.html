@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Python Higher-Order Functions - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/python-higher-order-functions.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python" />
+        <meta name="description" content="Introducing higher-order functions in Python" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Python Higher-Order Functions"/>
+        <meta property="og:url" content="https://jtrive84.github.io/python-higher-order-functions.html"/>
+        <meta property="og:description" content="Introducing higher-order functions in Python"/>
+        <meta property="article:published_time" content="2016-12-14" />
+            <meta property="article:section" content="Python" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Python ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/python-higher-order-functions.html"
+                       rel="bookmark"
+                       title="Permalink to Python Higher-Order Functions">
+                        Python Higher-Order&nbsp;Functions
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2016-12-14T00:00:00-06:00"> 2016-12-14</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/python.html">Python</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>From the <a href="https://docs.python.org/3/library/functions.html">builtin functions section</a> of the Python docs, the call signatures for a few of the higher-order functions we&#8217;ll be covering&nbsp;are:</p>
+<div class="highlight"><pre><span></span><span class="nb">max</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="p">[,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">])</span>
+<span class="nb">min</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="p">[,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="p">])</span>
+<span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>
+<span class="nb">sorted</span><span class="p">(</span><span class="n">iterable</span><span class="p">[,</span> <span class="n">key</span><span class="p">][,</span> <span class="n">reverse</span><span class="p">])</span>
+</pre></div>
+
+
+<h3>Anonymous Functions:&nbsp;lambda</h3>
+<p>Besides the <code>def</code> statement, Python provides an expression form that generates function objects. 
+Like <code>def</code>, the expression creates a function to be called later, but it returns the function instead of assigning it to a name. This is why <code>lambdas</code> are sometimes known as <em>anonymous functions</em>. In practice, they are often used as a way to inline a function definition, or to defer execution of a piece of&nbsp;code.</p>
+<p>The <code>lambda</code><span class="quo">&#8216;</span>s general form is the keyword <em><code>lambda</code></em>, followed by one or more arguments (exactly like with def), followed by an expression after a&nbsp;colon:</p>
+<div class="highlight"><pre><span></span><span class="k">lambda</span> <span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">,</span> <span class="o">...</span> <span class="n">argN</span><span class="p">:</span> <span class="n">expression</span> <span class="n">using</span> <span class="n">arg1</span><span class="p">,</span> <span class="n">arg2</span><span class="p">,</span> <span class="o">...</span> <span class="p">,</span> <span class="n">argN</span>
+</pre></div>
+
+
+<p>Function objects returned by running <code>lambda</code> work exactly the same as those created and assigned by <code>def</code><span class="quo">&#8216;</span>s, but there are a few differences that make<code>lambda</code>s useful in specialized&nbsp;roles:</p>
+<ul>
+<li>
+<p><strong><code>lambda</code> is an expression, not a statement.</strong> Because of this, a <code>lambda</code> can appear in places a <code>def</code> is not permitted by Python&#8217;s syntax. As an expression, lambda returns a value (a new function) that can optionally be assigned a name. In contrast, the <code>def</code> statement always assigns the new function to the name in the header, instead of returning it as a&nbsp;result.     </p>
+</li>
+<li>
+<p><strong>The body of a <code>lambda</code> is limited to a single expression.</strong> The <code>lambda</code><span class="quo">&#8216;</span>s body is similiar to what you&#8217;d put in a <code>def</code> body&#8217;s return statement: you type the result as an expression, instead of explicitly returning it. Because it is limited to an expression, a <code>lambda</code>  is less general than a <code>def</code>, since you can only squeeze only so much logic into a lambda. This is by design, to limit program nesting: <code>lambda</code> is designed for coding simple functions, and <code>def</code> handles larger&nbsp;tasks. </p>
+</li>
+</ul>
+<p>What follows are examples using the <code>lambda</code> expression:</p>
+<div class="highlight"><pre><span></span><span class="c1"># lambda function to add 2 numbers:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">adder</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">adder</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+<span class="mi">13</span>
+
+<span class="c1"># binding lambda to another variable:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">adder</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">f</span> <span class="o">=</span> <span class="n">adder</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">f</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+<span class="mi">13</span>
+
+<span class="c1"># using lambda to implement ternary operator:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">t</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">n</span><span class="p">:</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">n</span><span class="o">%</span><span class="mi">2</span><span class="o">==</span><span class="mi">0</span> <span class="k">else</span> <span class="bp">False</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">t</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+<span class="bp">False</span>
+
+<span class="c1"># using lambda to extract item at index 3 in seq:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">l</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">extract</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">seq</span><span class="p">:</span> <span class="n">seq</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">extract</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+<span class="mi">4</span>
+
+<span class="c1"># using lambda to extract a dict element:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">records</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;FIELD_1&#39;</span><span class="p">:</span> <span class="mi">300</span><span class="p">,</span><span class="s1">&#39;FIELD_2&#39;</span><span class="p">:</span> <span class="mi">600</span><span class="p">,</span><span class="s1">&#39;FIELD_3&#39;</span><span class="p">:</span> <span class="mi">900</span><span class="p">}</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">extract</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">d</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;FIELD_1&#39;</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">extract</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+<span class="mi">300</span>
+</pre></div>
+
+
+<p><code>lambda</code> can also be used along with Python&#8217;s Higher Order&nbsp;Functions.</p>
+<p>The call signatures for <code>min</code> and <code>max</code>:</p>
+<div class="highlight"><pre><span></span><span class="nb">max</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="p">[,</span> <span class="n">key</span><span class="p">])</span>
+<span class="nb">min</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="p">[,</span> <span class="n">key</span><span class="p">])</span>
+</pre></div>
+
+
+<p>The <code>key</code> argument specifies a one-argument ordering&nbsp;function.  </p>
+<p>For non-nested sequences, the behavior of <code>min</code> and <code>max</code> is predictible and returns values as&nbsp;expected:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">vals</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;max of `vals`: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+<span class="nb">max</span> <span class="n">of</span> <span class="sb">`vals`</span><span class="p">:</span> <span class="mi">14</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;min of `vals`: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+<span class="nb">min</span> <span class="n">of</span> <span class="sb">`vals`</span><span class="p">:</span> <span class="mi">4</span>
+</pre></div>
+
+
+<p>However, the behavior isn&#8217;t as clearly defined when dealing with nested&nbsp;iterables:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">vals</span> <span class="o">=</span> <span class="p">[(</span><span class="o">.</span><span class="mi">24</span><span class="p">,</span> <span class="mi">7</span><span class="p">),</span> <span class="p">(</span><span class="o">.</span><span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="p">(</span><span class="o">.</span><span class="mo">06</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span> <span class="p">(</span><span class="o">.</span><span class="mo">03</span><span class="p">,</span> <span class="mi">56</span><span class="p">)]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;max of `vals`: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+<span class="nb">max</span> <span class="n">of</span> <span class="sb">`vals`</span><span class="p">:</span> <span class="p">(</span><span class="o">.</span><span class="mi">24</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;min of `vals`: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+<span class="nb">min</span> <span class="n">of</span> <span class="sb">`vals`</span><span class="p">:</span> <span class="p">(</span><span class="o">.</span><span class="mo">03</span><span class="p">,</span> <span class="mi">56</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Or when dealing with nested iterables containing&nbsp;strings:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">vals</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;Monday&quot;</span>   <span class="p">,</span> <span class="o">.</span><span class="mi">24</span><span class="p">,</span>  <span class="mi">7</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Tuesday&quot;</span>  <span class="p">,</span> <span class="o">.</span><span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">,</span> <span class="o">.</span><span class="mo">06</span><span class="p">,</span> <span class="mi">28</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Thursday&quot;</span> <span class="p">,</span> <span class="o">.</span><span class="mo">03</span><span class="p">,</span> <span class="mi">56</span><span class="p">)]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;max of `vals`: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+<span class="nb">max</span> <span class="n">of</span> <span class="sb">`vals`</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Wednesday&#39;</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">,</span> <span class="mi">28</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;min of `vals`: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+<span class="nb">min</span> <span class="n">of</span> <span class="sb">`vals`</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Monday&#39;</span><span class="p">,</span> <span class="mf">0.24</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span>
+</pre></div>
+
+
+<p>The default behavior of <code>min</code> and <code>max</code> is to compare items at the lowest level of nesting&#8217;s 0th-index if no further instruction is&nbsp;given.   </p>
+<p><code>min</code> and <code>max</code> are Higher Order Functions, in that they both can take another function as an argument. Recall the <code>lambda</code> form that returned an element from a given&nbsp;sequence:  </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">l</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">extract</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">seq</span><span class="p">:</span> <span class="n">seq</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">extract</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+<span class="mi">4</span>
+</pre></div>
+
+
+<p><code>extract</code> returns the 4th element (index 3 with a 0-based index) of seq. We can use an anonymous lambda expression, instructing min and max to perform the test based on an element other than the 0th index of the nested iterable. In <code>vals</code> below, here&#8217;s an example of varying the index with which to&nbsp;test:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">vals</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;Monday&quot;</span>   <span class="p">,</span> <span class="o">.</span><span class="mi">24</span><span class="p">,</span>  <span class="mi">7</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Tuesday&quot;</span>  <span class="p">,</span> <span class="o">.</span><span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">,</span> <span class="o">.</span><span class="mo">06</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="s2">&quot;X&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Thursday&quot;</span> <span class="p">,</span> <span class="o">.</span><span class="mo">03</span><span class="p">,</span> <span class="mi">56</span><span class="p">,</span> <span class="s2">&quot;U&quot;</span><span class="p">)]</span>
+
+<span class="c1"># min and max of vals based on 0th index (default behavior):</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">min_vals</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">max_vals</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;min of `vals` based on index 0: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">min_vals</span><span class="p">))</span>
+<span class="nb">min</span> <span class="n">of</span> <span class="sb">`vals`</span> <span class="n">based</span> <span class="n">on</span> <span class="n">index</span> <span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Monday&#39;</span><span class="p">,</span> <span class="mf">0.24</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;max of `vals` based on index 0: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_vals</span><span class="p">))</span>
+<span class="nb">max</span> <span class="n">of</span> <span class="sb">`vals`</span> <span class="n">based</span> <span class="n">on</span> <span class="n">index</span> <span class="mi">0</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Wednesday&#39;</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="s1">&#39;X&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>We can modify the key with which to compare by passing a lambda expression to the <code>key</code> argument of <code>min</code> and <code>max</code>:</p>
+<div class="highlight"><pre><span></span><span class="c1"># min and max of vals based on 1st index:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">vals</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;Monday&quot;</span>   <span class="p">,</span> <span class="o">.</span><span class="mi">24</span><span class="p">,</span>  <span class="mi">7</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Tuesday&quot;</span>  <span class="p">,</span> <span class="o">.</span><span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">,</span> <span class="o">.</span><span class="mo">06</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="s2">&quot;X&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Thursday&quot;</span> <span class="p">,</span> <span class="o">.</span><span class="mo">03</span><span class="p">,</span> <span class="mi">56</span><span class="p">,</span> <span class="s2">&quot;U&quot;</span><span class="p">)]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">min_vals</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">max_vals</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;min of `vals` based on index 1: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">min_vals</span><span class="p">))</span>
+<span class="nb">min</span> <span class="n">of</span> <span class="sb">`vals`</span> <span class="n">based</span> <span class="n">on</span> <span class="n">index</span> <span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Thursday&#39;</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="mi">56</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;max of `vals` based on index 1: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_vals</span><span class="p">))</span>
+<span class="nb">max</span> <span class="n">of</span> <span class="sb">`vals`</span> <span class="n">based</span> <span class="n">on</span> <span class="n">index</span> <span class="mi">1</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Monday&#39;</span><span class="p">,</span> <span class="mf">0.24</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">)</span>
+
+
+<span class="c1"># min and max of vals based on 2nd index:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">vals</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;Monday&quot;</span>   <span class="p">,</span> <span class="o">.</span><span class="mi">24</span><span class="p">,</span>  <span class="mi">7</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Tuesday&quot;</span>  <span class="p">,</span> <span class="o">.</span><span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">,</span> <span class="o">.</span><span class="mo">06</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="s2">&quot;X&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Thursday&quot;</span> <span class="p">,</span> <span class="o">.</span><span class="mo">03</span><span class="p">,</span> <span class="mi">56</span><span class="p">,</span> <span class="s2">&quot;U&quot;</span><span class="p">)]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">min_vals</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">max_vals</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;min of `vals` based on index 2: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">min_vals</span><span class="p">))</span>
+<span class="nb">min</span> <span class="n">of</span> <span class="sb">`vals`</span> <span class="n">based</span> <span class="n">on</span> <span class="n">index</span> <span class="mi">2</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Monday&#39;</span><span class="p">,</span> <span class="mf">0.24</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;max of `vals` based on index 2: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_vals</span><span class="p">))</span>
+<span class="nb">max</span> <span class="n">of</span> <span class="sb">`vals`</span> <span class="n">based</span> <span class="n">on</span> <span class="n">index</span> <span class="mi">2</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Thursday&#39;</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="mi">56</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">)</span>
+
+
+<span class="c1"># min and max of vals based on 3rd index:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">vals</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;Monday&quot;</span>   <span class="p">,</span> <span class="o">.</span><span class="mi">24</span><span class="p">,</span>  <span class="mi">7</span><span class="p">,</span> <span class="s2">&quot;A&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Tuesday&quot;</span>  <span class="p">,</span> <span class="o">.</span><span class="mi">12</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="s2">&quot;R&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Wednesday&quot;</span><span class="p">,</span> <span class="o">.</span><span class="mo">06</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="s2">&quot;X&quot;</span><span class="p">),</span> 
+            <span class="p">(</span><span class="s2">&quot;Thursday&quot;</span> <span class="p">,</span> <span class="o">.</span><span class="mo">03</span><span class="p">,</span> <span class="mi">56</span><span class="p">,</span> <span class="s2">&quot;U&quot;</span><span class="p">)]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">min_vals</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">max_vals</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;min of `vals` based on index 3: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">min_vals</span><span class="p">))</span>
+<span class="nb">min</span> <span class="n">of</span> <span class="sb">`vals`</span> <span class="n">based</span> <span class="n">on</span> <span class="n">index</span> <span class="mi">3</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Monday&#39;</span><span class="p">,</span> <span class="mf">0.24</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">)</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;max of `vals` based on index 3: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">max_vals</span><span class="p">))</span>
+<span class="nb">max</span> <span class="n">of</span> <span class="sb">`vals`</span> <span class="n">based</span> <span class="n">on</span> <span class="n">index</span> <span class="mi">3</span><span class="p">:</span> <span class="p">(</span><span class="s1">&#39;Wednesday&#39;</span><span class="p">,</span> <span class="mf">0.06</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="s1">&#39;X&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<h3>Sorting</h3>
+<p>Python&#8217;s <code>sort</code> and <code>sorted</code> functions are also Higher Ordered Functions. A similiar construct to using <code>lambda</code><span class="quo">&#8216;</span>s can be used to sort nested sequences. There are two common&nbsp;approaches:</p>
+<div class="highlight"><pre><span></span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="bp">None</span><span class="p">)</span>       <span class="c1"># Strictly a list method: sorts list in place</span>
+<span class="nb">sorted</span><span class="p">(</span><span class="n">iterable</span><span class="p">[,</span> <span class="n">key</span><span class="p">][,</span> <span class="n">reverse</span><span class="p">])</span> <span class="c1"># Avaiable for any iterable. Return a new sorted list</span>
+</pre></div>
+
+
+<p>Typical&nbsp;usage:</p>
+<div class="highlight"><pre><span></span><span class="c1"># calling `sort` on list:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="mi">33</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">67</span><span class="p">,</span> <span class="mi">14</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Unsorted `lst`: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lst</span><span class="p">))</span>
+<span class="n">Unsorted</span> <span class="sb">`lst`</span><span class="p">:</span> <span class="p">[</span><span class="mi">33</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">67</span><span class="p">,</span> <span class="mi">14</span><span class="p">]</span>
+
+<span class="c1"># call lst.sort():</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">lst</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Sorted `lst`  : {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">lst</span><span class="p">))</span>
+<span class="n">Sorted</span> <span class="sb">`lst`</span>  <span class="p">:</span> <span class="p">[</span><span class="mi">14</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">33</span><span class="p">,</span> <span class="mi">67</span><span class="p">]</span>
+</pre></div>
+
+
+<p>Note that <code>sort</code> will not work on any data structure other than&nbsp;lists:</p>
+<div class="highlight"><pre><span></span><span class="c1"># calling `sort` on a tuple:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">tpl</span> <span class="o">=</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">67</span><span class="p">,</span> <span class="mi">14</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Unsorted tpl: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tpl</span><span class="p">))</span>
+<span class="n">Unsorted</span> <span class="n">tpl</span><span class="p">:</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">67</span><span class="p">,</span> <span class="mi">14</span><span class="p">)</span>
+
+<span class="c1"># call lst.sort():</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">tpl</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Sorted lst  : {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tpl</span><span class="p">))</span>
+<span class="ne">AttributeError</span><span class="p">:</span> <span class="s1">&#39;tuple&#39;</span> <span class="nb">object</span> <span class="n">has</span> <span class="n">no</span> <span class="n">attribute</span> <span class="s1">&#39;sort&#39;</span>
+</pre></div>
+
+
+<p><code>sorted</code> will work with any iterable, nested or&nbsp;otherwise:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="mi">33</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">67</span><span class="p">,</span> <span class="mi">14</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">tpl</span> <span class="o">=</span> <span class="p">(</span><span class="mi">33</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">67</span><span class="p">,</span> <span class="mi">14</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">strs</span> <span class="o">=</span> <span class="s2">&quot;Andromeda&quot;</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;sorted(lst) : {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">lst</span><span class="p">)))</span>
+<span class="nb">sorted</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span> <span class="p">:</span> <span class="p">[</span><span class="mi">14</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">33</span><span class="p">,</span> <span class="mi">67</span><span class="p">]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;sorted(tpl) : {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">tpl</span><span class="p">)))</span>
+<span class="nb">sorted</span><span class="p">(</span><span class="n">tpl</span><span class="p">)</span> <span class="p">:</span> <span class="p">[</span><span class="mi">14</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">33</span><span class="p">,</span> <span class="mi">67</span><span class="p">]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;sorted(strs): {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">strs</span><span class="p">)))</span>
+<span class="nb">sorted</span><span class="p">(</span><span class="n">strs</span><span class="p">):</span> <span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;n&#39;</span><span class="p">,</span> <span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">]</span>
+</pre></div>
+
+
+<p>And, as before, if we have a nested sequence, we can provide a key indicating which index to use for&nbsp;comparison:</p>
+<div class="highlight"><pre><span></span><span class="c1"># (ticker, close price, volume)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">closing</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;PGR&quot;</span><span class="p">,</span> <span class="mf">31.51</span> <span class="p">,</span> <span class="mi">3400000</span><span class="p">),</span> 
+               <span class="p">(</span><span class="s2">&quot;TRV&quot;</span><span class="p">,</span> <span class="mf">117.18</span><span class="p">,</span> <span class="mi">1506000</span><span class="p">),</span> 
+               <span class="p">(</span><span class="s2">&quot;CNA&quot;</span><span class="p">,</span> <span class="mf">32.09</span> <span class="p">,</span>  <span class="mi">152000</span><span class="p">)]</span>
+
+<span class="c1"># sorting by various tuple elements:</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Sorting by ticker: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">closing</span><span class="p">,</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>
+<span class="n">Sorting</span> <span class="n">by</span> <span class="n">ticker</span><span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;CNA&#39;</span><span class="p">,</span> <span class="mf">32.09</span><span class="p">,</span> <span class="mi">152000</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;PGR&#39;</span><span class="p">,</span> <span class="mf">31.51</span><span class="p">,</span> <span class="mi">3400000</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;TRV&#39;</span><span class="p">,</span> <span class="mf">117.18</span><span class="p">,</span> <span class="mi">1506000</span><span class="p">)]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Sorting by close : {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">closing</span><span class="p">,</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])))</span>
+<span class="n">Sorting</span> <span class="n">by</span> <span class="n">close</span> <span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;PGR&#39;</span><span class="p">,</span> <span class="mf">31.51</span><span class="p">,</span> <span class="mi">3400000</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;CNA&#39;</span><span class="p">,</span> <span class="mf">32.09</span><span class="p">,</span> <span class="mi">152000</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;TRV&#39;</span><span class="p">,</span> <span class="mf">117.18</span><span class="p">,</span> <span class="mi">1506000</span><span class="p">)]</span>
+
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="s2">&quot;Sorting by volume: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">closing</span><span class="p">,</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">])))</span>
+<span class="n">Sorting</span> <span class="n">by</span> <span class="n">volume</span> <span class="p">:</span> <span class="p">[(</span><span class="s1">&#39;CNA&#39;</span><span class="p">,</span> <span class="mf">32.09</span><span class="p">,</span> <span class="mi">152000</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;TRV&#39;</span><span class="p">,</span> <span class="mf">117.18</span><span class="p">,</span> <span class="mi">1506000</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;PGR&#39;</span><span class="p">,</span> <span class="mf">31.51</span><span class="p">,</span> <span class="mi">3400000</span><span class="p">)]</span>
+</pre></div>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

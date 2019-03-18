@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>LOESS - Nonparametric Scatterplot Smoothing in Python - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/loess-nonparametric-scatterplot-smoothing-in-python.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Statistical Modeling,Python" />
+        <meta name="description" content="Examination of the LOESS method with implementation in Python" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="LOESS - Nonparametric Scatterplot Smoothing in Python"/>
+        <meta property="og:url" content="https://jtrive84.github.io/loess-nonparametric-scatterplot-smoothing-in-python.html"/>
+        <meta property="og:description" content="Examination of the LOESS method with implementation in Python"/>
+        <meta property="article:published_time" content="2018-01-02" />
+            <meta property="article:section" content="Statistical Modeling" />
+            <meta property="article:tag" content="Statistical Modeling" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/statistical-modeling.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Statistical Modeling ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/loess-nonparametric-scatterplot-smoothing-in-python.html"
+                       rel="bookmark"
+                       title="Permalink to LOESS - Nonparametric Scatterplot Smoothing in Python">
+                        <span class="caps">LOESS</span> - Nonparametric Scatterplot Smoothing in&nbsp;Python
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-01-02T00:00:00-06:00"> 2018-01-02</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical Modeling</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/statistical-modeling.html">Statistical Modeling</a>
+        /
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p><span class="caps">LOESS</span>, also referred to as <em><span class="caps">LOWESS</span></em>, for <em>locally-weighted scatterplot smoothing</em>, is a non-parametric 
+regression method that combines multiple regression models in a k-nearest-neighbor-based 
+meta-model <a href="#Footnotes:">1</a>. Although <em><span class="caps">LOESS</span></em> and <em><span class="caps">LOWESS</span></em> can sometimes have slightly different meanings, 
+they are in many contexts treated as synonyms. For the remainder of this post, we will refer to the 
+fitting of localized subsets of data to build up a function that describes the deterministic part of 
+the variation in a dataset using weighted linear least squares as the <em><span class="caps">LOESS</span> method</em>. Although libraries 
+such as scikit-learn and statsmodels have highly optimized locally weighted regression routines, it&#8217;s 
+helpful to see how the estimates are actually generated, and that&#8217;s what we&#8217;ll be doing in this post.
+<br></p>
+<h2><span class="caps">LOESS</span> Fitting&nbsp;Procedure</h2>
+<p>Given a dataset consisting of a collection of <span class="math">\(n\)</span> <span class="math">\((x, y)\)</span> pairs, one of the purposes of <span class="caps">LOESS</span> is to provide 
+a general idea of the dataset&#8217;s distributional form prior to committing to a specific parametric model. One 
+of the benefits of <span class="caps">LOESS</span> is that there is no requirement to specify a global function to fit to the data. 
+Instead, locally weighted regression is performed on a pre-defined number of nearest neighbors around each 
+data point, then the composite of each locally weighted regression is plotted along with a scatterplot of 
+the original <span class="math">\((x, y)\)</span> data. 
+<br>
+In what follows, we&#8217;ll outline the steps of the <span class="caps">LOESS</span> algorithm, and along the way identify inputs to the fitting 
+routine that can be modified to alter the nature of the resulting composite fit. In addition, we&#8217;ll cover an 
+optional iterative robust estimation procedure, which attempts to mitigate the effect that outliers or influential 
+data points may have on each set of locally weighted regression parameters. 
+<br></p>
+<h3>Step I: Specify <span class="caps">LOESS</span>&nbsp;parameters</h3>
+<p>In order to carry out the <span class="caps">LOESS</span> fitting procedure, we need to specify the number of data points to use for each locally 
+weighted regression, and the degree of the polynomial used for estimation. The number of data points used for each 
+regression is obtained from <span class="math">\(\alpha\)</span>, the smoothing paramter. For example, if a dataset contains 20 observations and 
+<span class="math">\(\alpha=.50\)</span>, then the <span class="math">\(q = 20 * \alpha = 10\)</span> most proximate data points will be used for each locally weighted regression. 
+The degree of polynomial is represented by <span class="math">\(\lambda\)</span>, and within the context of <span class="caps">LOESS</span> is commonly set to <span class="math">\(\lambda=1\)</span> 
+(linear regression) or <span class="math">\(\lambda=2\)</span> (second-degree polynomial regression) for each subset consiting of <span class="math">\(q\)</span> data&nbsp;points. </p>
+<p>The first step is to define <span class="math">\(m\)</span> equally-spaced locations across the range of <span class="math">\(x\)</span> values, identified as <span class="math">\(v_{j}\)</span>, where <span class="math">\(j\)</span> 
+ranges from 1 to <span class="math">\(m\)</span>. Ultimately, the <span class="caps">LOESS</span> curve will be evaluated at each of the <span class="math">\(v_{j}\)</span><span class="quo">&#8216;</span>s, and the fitted value at each 
+<span class="math">\(v_{j}\)</span> will be given by <span class="math">\(\hat{g}(v_{j})\)</span>  <a href="#Footnotes:">2</a>. Generally, if the dataset contains <span class="math">\(n\)</span> data points, then 
+<span class="math">\(m = n + 1\)</span>, i.e., the number of equally-spaced locations will be one more than the total number of data points. 
+<br></p>
+<h3>Step <span class="caps">II</span>: Calculate proximate weights for each&nbsp;observation</h3>
+<p>For each <span class="math">\(v_{j}\)</span>, it is necessary to determine the <span class="math">\(q\)</span> closest points, <span class="math">\(d_{i}(v_{j}) = |x_{i}-v_{j}|\)</span>. Once the <span class="math">\(q\)</span>-nearest 
+observations have been determined, each distance is rescaled as a proportion of the maximum of the <span class="math">\(q\)</span>-nearest distances, 
+<span class="math">\(d^{*}_{i}(v_{j})=d_{i}(v_{j})/d_{q}(v_{j})\)</span>, where <span class="math">\(d^{*}_{1}(v_{j})\)</span> represents the nearest data point, and <span class="math">\(d^{*}_{q}(v_{j})\)</span> 
+the furthest. We calculate neighborhood weights for all observations, from <span class="math">\(i=1\)</span> to <span class="math">\(n\)</span>.
+Once the re-scaled distances have been calculated, the weight for observation <span class="math">\(i\)</span> is defined using the tricube weight function,
+given by:   <br>
+<br>
+</p>
+<div class="math">$$
+w_{i}(v_{j}) =
+\begin{cases} 
+(1-|d^{*}_{i}(v_{j})^{3}|)^{3} &amp; d^{*}_{i}(v_{j}) \lt 1 \\
+    0 &amp; otherwise
+\end{cases}
+$$</div>
+<p>
+<br>
+Because distances are rescaled in terms of the most distant of the <span class="math">\(q\)</span>-nearest observations, observations beyond the <span class="math">\(q^{th}\)</span>-nearest 
+will be given 0 weight when fitting the locally weighted regression coefficients. 
+<br></p>
+<h3>Step <span class="caps">III</span>: Determine local regression estimate at each&nbsp;location</h3>
+<p>For each location <span class="math">\(v_{j}\)</span>, determine the local weighted regression coefficients using the normal equations adapted to attribute greater 
+weight to more proximate observations. In matrix form, the regression parameters are given by<br>
+<br>
+</p>
+<div class="math">$$
+\hat{\beta} = (X^{T}WX)^{-1}X^{T}Wy,
+$$</div>
+<p>
+<br>
+where     <br>
+<br>
+  * <span class="math">\(X\)</span> is the <span class="math">\(n\)</span> x <span class="math">\((\lambda+1)\)</span> design matrix, with <span class="math">\(\lambda\)</span> representing the degree of the regression polynomial   <br>
+<br>
+  * <span class="math">\(W\)</span> is the <span class="math">\(n\)</span> x <span class="math">\(n\)</span> diagonal weight matrix      <br>
+<br>
+  * <span class="math">\(y\)</span> is the <span class="math">\(n\)</span> x <span class="math">\(1\)</span> response vector  <br>
+<br>
+  * <span class="math">\(\hat{\beta}\)</span> is the <span class="math">\((\lambda+1)\)</span> x <span class="math">\(1\)</span> parameter vector estimated for each location <span class="math">\(v_{j}\)</span>  <br>
+<br>
+The first column of <span class="math">\(X\)</span> will contain all 1&#8217;s, representing the intercept term. When <span class="math">\(\lambda=1\)</span>:   <br>
+<br>
+</p>
+<div class="math">$$
+\begin{align*} 
+    X &amp;=
+    \begin{bmatrix}
+    1&amp;x_{1} \\ 1&amp;x_{2} \\ \vdots &amp; \vdots\\1&amp;x_{n} \\ 
+    \end{bmatrix} \\\\
+    \hat{\beta} &amp;= 
+    \begin{bmatrix}
+    \beta_{0}&amp;\beta_{1} \\
+    \end{bmatrix}, \\
+\end{align*}
+$$</div>
+<p><br>
+and when <span class="math">\(\lambda=2\)</span>: 
+<br>
+</p>
+<div class="math">$$
+\begin{align*} 
+    X &amp;=
+    \begin{bmatrix}
+    1&amp;x_{1}&amp;x_{1}^{2} \\ 1&amp;x_{2}&amp;x_{2}^{2} \\ \vdots &amp; \vdots\\1&amp;x_{n}&amp;x_{n}^{2} \\ 
+    \end{bmatrix} \\\\
+    \hat{\beta} &amp;= 
+    \begin{bmatrix}
+    \beta_{0}&amp;\beta_{1}&amp;\beta_{2} \\
+    \end{bmatrix}. \\
+\end{align*}
+$$</div>
+<p>
+<br></p>
+<h3>Implementation</h3>
+<p>The code that follows encapsulates steps I, <span class="caps">II</span> and <span class="caps">III</span> of the <span class="caps">LOESS</span> fitting procedure described thus far. We&#8217;ll discuss the 
+optional robust estimation procedure after introducing the base <span class="caps">LOESS</span> algorithm:
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Local Regression (LOESS) estimation routine.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+
+
+<span class="k">def</span> <span class="nf">loc_eval</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate `x` using locally-weighted regression parameters.</span>
+<span class="sd">    Degree of polynomial used in loess is inferred from b. `x`</span>
+<span class="sd">    is assumed to be a scalar.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">loc_est</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">b</span><span class="p">):</span> <span class="n">loc_est</span><span class="o">+=</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">loc_est</span><span class="p">)</span>
+
+
+
+<span class="k">def</span> <span class="nf">loess</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">poly_degree</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform locally-weighted regression on xvals &amp; yvals.</span>
+<span class="sd">    Variables used inside `loess` function:</span>
+
+<span class="sd">        n         =&gt; number of data points in xvals</span>
+<span class="sd">        m         =&gt; nbr of LOESS evaluation points</span>
+<span class="sd">        q         =&gt; number of data points used for each</span>
+<span class="sd">                     locally-weighted regression</span>
+<span class="sd">        v         =&gt; x-value locations for evaluating LOESS</span>
+<span class="sd">        locsDF    =&gt; contains local regression details for each</span>
+<span class="sd">                     location v</span>
+<span class="sd">        evalDF    =&gt; contains actual LOESS output for each v</span>
+<span class="sd">        X         =&gt; n-by-(poly_degree+1) design matrix</span>
+<span class="sd">        W         =&gt; n-by-n diagonal weight matrix for each</span>
+<span class="sd">                     local regression</span>
+<span class="sd">        y         =&gt; yvals</span>
+<span class="sd">        b         =&gt; local regression coefficient estimates.</span>
+<span class="sd">                     b = `(X^T*W*X)^-1*X^T*W*y`. Note that `@`</span>
+<span class="sd">                     replaces `np.dot` in recent numpy versions.</span>
+<span class="sd">        local_est =&gt; response for local regression</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Sort dataset by xvals.</span>
+    <span class="n">all_data</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">all_data</span><span class="p">)</span>
+
+    <span class="n">locsDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+                  <span class="s1">&#39;loc&#39;</span><span class="p">,</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">,</span><span class="s1">&#39;raw_dists&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;scale_factor&#39;</span><span class="p">,</span><span class="s1">&#39;scaled_dists&#39;</span>
+                  <span class="p">])</span>
+    <span class="n">evalDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+                  <span class="s1">&#39;loc&#39;</span><span class="p">,</span><span class="s1">&#39;est&#39;</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;g&#39;</span>
+                  <span class="p">])</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">)</span> <span class="k">if</span> <span class="n">alpha</span> <span class="o">&lt;=</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">avg_interval</span> <span class="o">=</span> <span class="p">((</span><span class="nb">max</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span><span class="o">-</span><span class="nb">min</span><span class="p">(</span><span class="n">xvals</span><span class="p">))</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">xvals</span><span class="p">))</span>
+    <span class="n">v_lb</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">min</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="n">avg_interval</span><span class="p">))</span>
+    <span class="n">v_ub</span> <span class="o">=</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="n">avg_interval</span><span class="p">))</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">v_lb</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">v_ub</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">m</span><span class="p">),</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Generate design matrix based on poly_degree.</span>
+    <span class="n">xcols</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">xvals</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">poly_degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)):</span>
+        <span class="n">xcols</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span> <span class="o">**</span> <span class="n">j</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xvals</span><span class="p">])</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">xcols</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+
+        <span class="n">iterpos</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">iterval</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Determine q-nearest xvals to iterval.</span>
+        <span class="n">iterdists</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([(</span><span class="n">j</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="n">iterval</span><span class="p">))</span> \
+                           <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">xvals</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">raw_dists</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">iterdists</span><span class="p">)</span>
+
+        <span class="c1"># Scale local observations by qth-nearest raw_dist.</span>
+        <span class="n">scale_fact</span> <span class="o">=</span> <span class="n">raw_dists</span><span class="p">[</span><span class="n">q</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">scaled_dists</span> <span class="o">=</span> <span class="p">[(</span><span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">],(</span><span class="n">j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">scale_fact</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">iterdists</span><span class="p">]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">[(</span><span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">],((</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span><span class="o">**</span><span class="mi">3</span> \
+                      <span class="k">if</span> <span class="n">j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">&lt;=</span><span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">scaled_dists</span><span class="p">]</span>
+
+        <span class="c1"># Remove xvals from each tuple:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">weights</span>      <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span>     <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">raw_dists</span>    <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="n">iterdists</span><span class="p">,</span>   <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">scaled_dists</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="n">scaled_dists</span><span class="p">,</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+        <span class="n">iterDF1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                    <span class="s1">&#39;loc&#39;</span>         <span class="p">:</span><span class="n">iterpos</span><span class="p">,</span>
+                    <span class="s1">&#39;x&#39;</span>           <span class="p">:</span><span class="n">xvals</span><span class="p">,</span>
+                    <span class="s1">&#39;v&#39;</span>           <span class="p">:</span><span class="n">iterval</span><span class="p">,</span>
+                    <span class="s1">&#39;weights&#39;</span>     <span class="p">:</span><span class="n">weights</span><span class="p">,</span>
+                    <span class="s1">&#39;y&#39;</span>           <span class="p">:</span><span class="n">yvals</span><span class="p">,</span>
+                    <span class="s1">&#39;raw_dists&#39;</span>   <span class="p">:</span><span class="n">raw_dists</span><span class="p">,</span>
+                    <span class="s1">&#39;scale_fact&#39;</span>  <span class="p">:</span><span class="n">scale_fact</span><span class="p">,</span>
+                    <span class="s1">&#39;scaled_dists&#39;</span><span class="p">:</span><span class="n">scaled_dists</span>
+                    <span class="p">})</span>
+
+        <span class="n">locsDF</span>    <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">locsDF</span><span class="p">,</span> <span class="n">iterDF1</span><span class="p">])</span>
+        <span class="n">W</span>         <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+        <span class="n">y</span>         <span class="o">=</span> <span class="n">yvals</span>
+        <span class="n">b</span>         <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="err">@</span> <span class="n">W</span> <span class="err">@</span> <span class="n">X</span><span class="p">)</span> <span class="err">@</span> <span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="err">@</span> <span class="n">W</span> <span class="err">@</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">local_est</span> <span class="o">=</span> <span class="n">loc_eval</span><span class="p">(</span><span class="n">iterval</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+        <span class="n">iterDF2</span>   <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                       <span class="s1">&#39;loc&#39;</span><span class="p">:[</span><span class="n">iterpos</span><span class="p">],</span>
+                       <span class="s1">&#39;b&#39;</span>  <span class="p">:[</span><span class="n">b</span><span class="p">],</span>
+                       <span class="s1">&#39;v&#39;</span>  <span class="p">:[</span><span class="n">iterval</span><span class="p">],</span>
+                       <span class="s1">&#39;g&#39;</span>  <span class="p">:[</span><span class="n">local_est</span><span class="p">]</span>
+                       <span class="p">})</span>
+
+        <span class="n">evalDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">evalDF</span><span class="p">,</span> <span class="n">iterDF2</span><span class="p">])</span>
+
+    <span class="c1"># Reset indicies for returned DataFrames.</span>
+    <span class="n">locsDF</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">locsDF</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">locsDF</span><span class="p">[</span><span class="s1">&#39;est&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;est&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">locsDF</span> <span class="o">=</span> <span class="n">locsDF</span><span class="p">[[</span><span class="s1">&#39;loc&#39;</span><span class="p">,</span><span class="s1">&#39;est&#39;</span><span class="p">,</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">,</span><span class="s1">&#39;raw_dists&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;scale_fact&#39;</span><span class="p">,</span><span class="s1">&#39;scaled_dists&#39;</span><span class="p">,</span><span class="s1">&#39;weights&#39;</span><span class="p">]]</span>
+
+    <span class="c1"># Reset index for evalDF.</span>
+    <span class="n">evalDF</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">evalDF</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">evalDF</span> <span class="o">=</span> <span class="n">evalDF</span><span class="p">[[</span><span class="s1">&#39;loc&#39;</span><span class="p">,</span><span class="s1">&#39;est&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">]]</span>
+
+    <span class="k">return</span><span class="p">(</span><span class="n">locsDF</span><span class="p">,</span> <span class="n">evalDF</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+The first function, <code>loc_eval</code>, calculates the local regression estimate using the specified vector of regression coefficients. 
+<code>loess</code> takes 4 arguments: <code>xvals</code> and <code>yvals</code> are length <span class="math">\(n\)</span> arrays that serve as the target for the estimation procedure. <code>alpha</code> 
+is the smoothing paramater, <span class="math">\(0 \leq \alpha \leq 1\)</span>, which determines how many observations to use for each local regression. <code>poly_degree</code> 
+is the degree of each local regression polynomial, typically set to 1 or 2.    <br>
+<code>loess</code> returns a tuple consisting of two DataFrames: The first contains details related to each local regression, including the nearest 
+observations, tricube weights and the scale factor used for setting the weight matrix. The second DataFrame contains all regression 
+coefficients and actual <span class="caps">LOESS</span> estimates for each <span class="math">\(v_{j}\)</span> (the <span class="caps">LOESS</span> estimates are in column <code>g</code>). 
+<br>
+To demonstrate how<code>loess</code> works, it is passed a dataset that follows a known functional form but with added random perturbations:
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Calling `loess` on a dataset that follows a known functional </span>
+<span class="sd">form with added random perturbations.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="kn">as</span> <span class="nn">sns</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+
+<span class="n">xvals</span> <span class="o">=</span> <span class="p">[</span><span class="o">.</span><span class="mi">39</span><span class="p">,</span><span class="o">.</span><span class="mi">75</span><span class="p">,</span><span class="mf">1.1</span><span class="p">,</span><span class="mf">1.45</span><span class="p">,</span><span class="mf">1.95</span><span class="p">,</span><span class="mf">2.46</span><span class="p">,</span><span class="mf">3.07</span><span class="p">,</span><span class="mf">3.44</span><span class="p">,</span><span class="mf">4.57</span><span class="p">,</span><span class="mf">5.05</span><span class="p">,</span><span class="mf">5.68</span><span class="p">,</span>
+         <span class="mf">6.01</span><span class="p">,</span><span class="mf">6.63</span><span class="p">,</span><span class="mf">7.11</span><span class="p">,</span><span class="mf">7.62</span><span class="p">,</span><span class="mf">8.01</span><span class="p">,</span><span class="mf">8.54</span><span class="p">,</span><span class="mf">9.08</span><span class="p">,</span><span class="mf">9.48</span><span class="p">,</span> <span class="mf">9.91</span><span class="p">]</span>
+
+<span class="n">yvals</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.25</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">.</span><span class="mi">425</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xvals</span><span class="p">]</span>
+
+<span class="c1"># loess returns a tuple of DataFrames, named here as `regsDF` and</span>
+<span class="c1"># `evalDF` for &quot;Regression DataFrame&quot; and &quot;Evaluation DataFrame&quot;:</span>
+<span class="n">regsDF</span><span class="p">,</span> <span class="n">evalDF</span> <span class="o">=</span> <span class="n">loess</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=.</span><span class="mi">6</span><span class="p">,</span> <span class="n">poly_degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+Here&#8217;s the contents of <code>evalDF</code>:
+<br></p>
+<div class="highlight"><pre><span></span>   loc  est        v                                 b         g
+0    1    0   0.1520   [0.971309456784, 0.36775619248]  1.027208
+1    2    0   0.6518  [0.971037894146, 0.367892814498]  1.210830
+2    3    0   1.1516  [0.970870414448, 0.368032309445]  1.394696
+3    4    0   1.6514  [0.969933474046, 0.368445061391]  1.578384
+4    5    0   2.1512  [0.966646869447, 0.369833381406]  1.762232
+5    6    0   2.6510   [0.95975778471, 0.373072897623]  1.948774
+6    7    0   3.1508   [0.951294824032, 0.37704265022]  2.139281
+7    8    0   3.6506  [0.934302528565, 0.384487641362]  2.337913
+8    9    0   4.1504  [0.943742212522, 0.379817597861]  2.520137
+9   10    0   4.6502    [1.05795640166, 0.34805636124]  2.676488
+10  11    0   5.1500   [1.31080362855, 0.295077400117]  2.830452
+11  12    0   5.6498    [1.7907245679, 0.210302149182]  2.978890
+12  13    0   6.1496   [2.04555732953, 0.171963219408]  3.103062
+13  14    0   6.6494   [1.79314133537, 0.214725343498]  3.220936
+14  15    0   7.1492   [1.62970787356, 0.238031763905]  3.331445
+15  16    0   7.6490   [1.48509663441, 0.257554113797]  3.455128
+16  17    0   8.1488    [1.5109094503, 0.253071435328]  3.573138
+17  18    0   8.6486   [1.50473780555, 0.253257497761]  3.695061
+18  19    0   9.1484   [1.49131228675, 0.254851108695]  3.822792
+19  20    0   9.6482     [1.484099205, 0.255821994149]  3.952321
+20  21    0  10.1480   [1.48577211467, 0.255705004244]  4.080666
+</pre></div>
+
+
+<p><br>
+For each of the 21 locations in <code>v</code>, the 1st-degree polynomial <span class="caps">LOESS</span> estimate can be found in <code>g</code>, and <code>b</code> contains 
+the regression coefficients for each of the 21 regressions carried out within the function. To illustrate, for <span class="math">\(v=.1520\)</span>, 
+the model specification is given by <span class="math">\(\beta_{0} + \beta_{1}v = 0.9713 + 0.367756*0.1520 = 1.027208\)</span>, which is exactly the 
+value in <code>g</code>. 
+<br>
+To visualize, we can produce a scatterplot of <code>xvals</code> and <code>yvals</code> with the <span class="caps">LOESS</span> estimate overlaid:
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="kn">as</span> <span class="nn">sns</span>
+
+<span class="n">sns</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="s1">&#39;notebook&#39;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">&#39;darkgrid&#39;</span><span class="p">,</span> <span class="n">font_scale</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+
+<span class="n">xvals</span> <span class="o">=</span> <span class="p">[</span><span class="o">.</span><span class="mi">39</span><span class="p">,</span><span class="o">.</span><span class="mi">75</span><span class="p">,</span><span class="mf">1.1</span><span class="p">,</span><span class="mf">1.45</span><span class="p">,</span><span class="mf">1.95</span><span class="p">,</span><span class="mf">2.46</span><span class="p">,</span><span class="mf">3.07</span><span class="p">,</span><span class="mf">3.44</span><span class="p">,</span><span class="mf">4.57</span><span class="p">,</span><span class="mf">5.05</span><span class="p">,</span><span class="mf">5.68</span><span class="p">,</span>
+         <span class="mf">6.01</span><span class="p">,</span><span class="mf">6.63</span><span class="p">,</span><span class="mf">7.11</span><span class="p">,</span><span class="mf">7.62</span><span class="p">,</span><span class="mf">8.01</span><span class="p">,</span><span class="mf">8.54</span><span class="p">,</span><span class="mf">9.08</span><span class="p">,</span><span class="mf">9.48</span><span class="p">,</span> <span class="mf">9.91</span><span class="p">]</span>
+
+<span class="n">yvals</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.25</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">+</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="o">.</span><span class="mi">425</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xvals</span><span class="p">]</span>
+
+<span class="n">regsDF</span><span class="p">,</span> <span class="n">evalDF</span> <span class="o">=</span> <span class="n">loess</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=.</span><span class="mi">6</span><span class="p">,</span> <span class="n">poly_degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Obtain reference to LOESS x &amp; y values (v &amp; g).</span>
+<span class="n">l_x</span>  <span class="o">=</span> <span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">l_y</span>  <span class="o">=</span> <span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="c1"># Generate x-y scatterplot with loess estimate overlaid.</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">minorticks_on</span><span class="p">()</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Original Data&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">l_x</span><span class="p">,</span> <span class="n">l_y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#FF0000&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;1st-degree Polynomial LOESS&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Linear LOESS Estimator&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+           <span class="n">scatterpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+           <span class="n">frameon</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">fancybox</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span>
+           <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>
+Running the code above&nbsp;produces:</p>
+<p><br>
+<p align="center"> 
+  <img src="/images/loess1.png" alt="loess1" height="848" width="597"> 
+</p> <br>
+<br>
+We can specify <code>poly_degree=2</code> when calling <code>loess</code>, which will fit each local subset of data to a quadratic polynomial. Next, 
+we generate 1st and 2nd-degree polynomial <span class="caps">LOESS</span> estimates based on the same dataset and compare the resulting estimates. 
+Referring to the same <code>xvals</code> and <code>yvals</code> as before:
+<br></p>
+<div class="highlight"><pre><span></span><span class="n">regsDF1</span><span class="p">,</span> <span class="n">evalDF1</span> <span class="o">=</span> <span class="n">loess1</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=.</span><span class="mi">6</span><span class="p">,</span> <span class="n">poly_degree</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">regsDF2</span><span class="p">,</span> <span class="n">evalDF2</span> <span class="o">=</span> <span class="n">loess1</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=.</span><span class="mi">6</span><span class="p">,</span> <span class="n">poly_degree</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="n">l_x1</span>  <span class="o">=</span> <span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">l_y1</span>  <span class="o">=</span> <span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="n">l_x2</span> <span class="o">=</span> <span class="n">evalDF2</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">l_y2</span> <span class="o">=</span> <span class="n">evalDF2</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+
+<span class="c1"># `poly_degree=1` plot:</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+<span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">121</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">minorticks_on</span><span class="p">()</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Original Data&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">l_x1</span><span class="p">,</span> <span class="n">l_y1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#FF0000&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;1st-degree Polynomial LOESS&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Linear LOESS Estimator&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+           <span class="n">scatterpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+           <span class="n">frameon</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">fancybox</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span>
+           <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
+
+<span class="c1"># `poly_degree=2` plot:</span>
+<span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">122</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">minorticks_on</span><span class="p">()</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Original Data&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">l_x2</span><span class="p">,</span> <span class="n">l_y2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#FF0000&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;2nd-degree Polynomial LOESS&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;Quadratic LOESS Estimator&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+           <span class="n">scatterpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+           <span class="n">frameon</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">fancybox</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span>
+           <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>
+This produces a side-by-side comparison of the 1st and 2nd-degree polynomial estimates:
+<br>
+<br>
+<p align="center"> 
+<img alt="loess1" src="/images/loess2.png">
+</p> <br>
+<br>
+It may be necessary to adjust the smoothing parameter in order to compensate for areas of overfitting when specifying a 
+<span class="caps">LOESS</span> estimate with a higher degree polynomial. 
+<br></p>
+<h3>Step <span class="caps">IV</span> (optional): Iterative robust estimation&nbsp;procedure</h3>
+<p>After the initial <span class="caps">LOESS</span> estimate, each local regression model at each location can be replaced by another model using an 
+iterative robust estimation procedure <a href="#Footnotes:">2</a>. This involves four steps, which are repeated until some convergence 
+criteria are met. The four steps are carried out for each of the <span class="math">\(n+1\)</span> locations <span class="math">\(v_j\)</span>.</p>
+<h4>1. Calculate local regression model&nbsp;residuals</h4>
+<p>Calculate the difference between the local regression line and response. If the residuals for location <span class="math">\(j\)</span> are given by 
+<span class="math">\(e\)</span>, then   <br>
+<br>
+</p>
+<div class="math">$$
+e = y-X\hat{\beta_{j}}
+$$</div>
+<h4>2. Normalize&nbsp;residuals</h4>
+<p>We use the median of <span class="math">\(e\)</span> in 1) to calculate the normalized residuals, <span class="math">\(e^{*}\)</span>: <br>
+<br>
+</p>
+<div class="math">$$
+e^{*} = \frac{e}{6\,Median\, |e|}
+$$</div>
+<p>
+<br></p>
+<h4>3. Define robustness weight for each&nbsp;observation</h4>
+<p>For the robustness weight, we use the bisquare weight function, given by:  <br>
+<br>
+</p>
+<div class="math">$$
+r =
+\begin{cases} 
+(1-|e^{*}|^{2})^{2} &amp; |e^{*}| \lt 1 \\
+    0 &amp; otherwise
+\end{cases}
+$$</div>
+<p>
+<br>
+This new weight, <span class="math">\(r\)</span>, will have the same number of elements as the original tricube weights, which were used to create an <span class="math">\(n\)</span> x <span class="math">\(n\)</span> 
+diagonal weight matrix. For the robustness update, we proceed just as before, the only difference being the new weight matrix, <span class="math">\(W^{*}\)</span>, 
+will be the product of the original tricube weights and <span class="math">\(r\)</span> placed along the diagonal. 
+<br></p>
+<h4>4. Use updated weights to estimate new fitted&nbsp;value</h4>
+<p>If the updated parameter estimates are given by \hat{\beta^{*}}, then  <br>
+<br>
+</p>
+<div class="math">$$
+\hat{\beta^{*}} = (X^{T}W^{*}X)^{-1}X^{T}W^{*}y,
+$$</div>
+<p>
+<br>
+with <span class="math">\(X\)</span> and <span class="math">\(y\)</span> the same as before. Repeat until estimated coefficients converge.  <br>
+<br>
+We extend the original <code>loess</code> function by adding a <code>robustify</code> parameter (which defaults to <code>False</code>) that indicates whether or not to 
+perform the robust estimation procedure (&#8220;Step <span class="caps">IV</span>&#8221;). Iteration ceases when either 1) each new estimate, when compared with estimates 
+from the previous iteration, change by less than <span class="math">\(.5%\)</span>, or 2) the number of iterations exceeds 50:
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Local Regression (LOESS) estimation routine with optional </span>
+<span class="sd">iterative robust estimation procedure. Setting `robustify=True` </span>
+<span class="sd">indicates that the robust estimation procedure should be </span>
+<span class="sd">performed. </span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">scipy</span>
+
+
+<span class="k">def</span> <span class="nf">loc_eval</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate `x` using locally-weighted regression parameters.</span>
+<span class="sd">    Degree of polynomial used in loess is inferred from b. `x`</span>
+<span class="sd">    is assumed to be a scalar.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">loc_est</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">b</span><span class="p">):</span> <span class="n">loc_est</span><span class="o">+=</span><span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">loc_est</span><span class="p">)</span>
+
+
+
+<span class="k">def</span> <span class="nf">loess</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">poly_degree</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">robustify</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform locally-weighted regression via xvals &amp; yvals.</span>
+<span class="sd">    Variables used within `loess` function:</span>
+
+<span class="sd">        n         =&gt; number of data points in xvals</span>
+<span class="sd">        m         =&gt; nbr of LOESS evaluation points</span>
+<span class="sd">        q         =&gt; number of data points used for each</span>
+<span class="sd">                     locally-weighted regression</span>
+<span class="sd">        v         =&gt; x-value locations for evaluating LOESS</span>
+<span class="sd">        locsDF    =&gt; contains local regression details for each</span>
+<span class="sd">                     location v</span>
+<span class="sd">        evalDF    =&gt; contains actual LOESS output for each v</span>
+<span class="sd">        X         =&gt; n-by-(poly_degree+1) design matrix</span>
+<span class="sd">        W         =&gt; n-by-n diagonal weight matrix for each</span>
+<span class="sd">                     local regression</span>
+<span class="sd">        y         =&gt; yvals</span>
+<span class="sd">        b         =&gt; local regression coefficient estimates.</span>
+<span class="sd">                     b = `(X^T*W*X)^-1*X^T*W*y`. Note that `@`</span>
+<span class="sd">                     replaces np.dot in recent numpy versions.</span>
+<span class="sd">        local_est =&gt; response for local regression</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># sort dataset by xvals:</span>
+    <span class="n">all_data</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">all_data</span><span class="p">)</span>
+
+    <span class="n">locsDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+                  <span class="s1">&#39;loc&#39;</span><span class="p">,</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">,</span><span class="s1">&#39;raw_dists&#39;</span><span class="p">,</span>
+                  <span class="s1">&#39;scale_factor&#39;</span><span class="p">,</span><span class="s1">&#39;scaled_dists&#39;</span>
+                  <span class="p">])</span>
+    <span class="n">evalDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                <span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+                  <span class="s1">&#39;loc&#39;</span><span class="p">,</span><span class="s1">&#39;est&#39;</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;g&#39;</span>
+                  <span class="p">])</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">alpha</span><span class="p">)</span> <span class="k">if</span> <span class="n">alpha</span> <span class="o">&lt;=</span> <span class="mf">1.0</span> <span class="k">else</span> <span class="n">n</span><span class="p">)</span>
+    <span class="n">avg_interval</span> <span class="o">=</span> <span class="p">((</span><span class="nb">max</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span><span class="o">-</span><span class="nb">min</span><span class="p">(</span><span class="n">xvals</span><span class="p">))</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">xvals</span><span class="p">))</span>
+    <span class="n">v_lb</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">min</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="n">avg_interval</span><span class="p">))</span>
+    <span class="n">v_ub</span> <span class="o">=</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">xvals</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="o">.</span><span class="mi">5</span><span class="o">*</span><span class="n">avg_interval</span><span class="p">))</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">v_lb</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="n">v_ub</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">m</span><span class="p">),</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Generate design matrix based on poly_degree.</span>
+    <span class="n">xcols</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">xvals</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="p">(</span><span class="n">poly_degree</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)):</span>
+        <span class="n">xcols</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span> <span class="o">**</span> <span class="n">j</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xvals</span><span class="p">])</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">xcols</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+
+        <span class="n">iterpos</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">iterval</span> <span class="o">=</span> <span class="n">i</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># Determine q-nearest xvals to iterval.</span>
+        <span class="n">iterdists</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([(</span><span class="n">j</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="n">iterval</span><span class="p">))</span> \
+                           <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">xvals</span><span class="p">],</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">_</span><span class="p">,</span> <span class="n">raw_dists</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">iterdists</span><span class="p">)</span>
+
+        <span class="c1"># Scale local observations by qth-nearest raw_dist.</span>
+        <span class="n">scale_fact</span> <span class="o">=</span> <span class="n">raw_dists</span><span class="p">[</span><span class="n">q</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">scaled_dists</span> <span class="o">=</span> <span class="p">[(</span><span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">],(</span><span class="n">j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">scale_fact</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">iterdists</span><span class="p">]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">[(</span><span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">],((</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">3</span><span class="p">))</span><span class="o">**</span><span class="mi">3</span> \
+                      <span class="k">if</span> <span class="n">j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">&lt;=</span><span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span><span class="p">))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">scaled_dists</span><span class="p">]</span>
+
+        <span class="c1"># Remove xvals from each tuple:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">weights</span>      <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span>     <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">raw_dists</span>    <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="n">iterdists</span><span class="p">,</span>   <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">scaled_dists</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="nb">sorted</span><span class="p">(</span><span class="n">scaled_dists</span><span class="p">,</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+
+        <span class="n">iterDF1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                    <span class="s1">&#39;loc&#39;</span>         <span class="p">:</span><span class="n">iterpos</span><span class="p">,</span>
+                    <span class="s1">&#39;x&#39;</span>           <span class="p">:</span><span class="n">xvals</span><span class="p">,</span>
+                    <span class="s1">&#39;v&#39;</span>           <span class="p">:</span><span class="n">iterval</span><span class="p">,</span>
+                    <span class="s1">&#39;weights&#39;</span>     <span class="p">:</span><span class="n">weights</span><span class="p">,</span>
+                    <span class="s1">&#39;y&#39;</span>           <span class="p">:</span><span class="n">yvals</span><span class="p">,</span>
+                    <span class="s1">&#39;raw_dists&#39;</span>   <span class="p">:</span><span class="n">raw_dists</span><span class="p">,</span>
+                    <span class="s1">&#39;scale_fact&#39;</span>  <span class="p">:</span><span class="n">scale_fact</span><span class="p">,</span>
+                    <span class="s1">&#39;scaled_dists&#39;</span><span class="p">:</span><span class="n">scaled_dists</span>
+                    <span class="p">})</span>
+
+        <span class="n">locsDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">locsDF</span><span class="p">,</span> <span class="n">iterDF1</span><span class="p">])</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">yvals</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="err">@</span> <span class="n">W</span> <span class="err">@</span> <span class="n">X</span><span class="p">)</span> <span class="err">@</span> <span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="err">@</span> <span class="n">W</span> <span class="err">@</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">local_est</span> <span class="o">=</span> <span class="n">loc_eval</span><span class="p">(</span><span class="n">iterval</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+        <span class="n">iterDF2</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                     <span class="s1">&#39;loc&#39;</span><span class="p">:[</span><span class="n">iterpos</span><span class="p">],</span>
+                     <span class="s1">&#39;b&#39;</span>  <span class="p">:[</span><span class="n">b</span><span class="p">],</span>
+                     <span class="s1">&#39;v&#39;</span>  <span class="p">:[</span><span class="n">iterval</span><span class="p">],</span>
+                     <span class="s1">&#39;g&#39;</span>  <span class="p">:[</span><span class="n">local_est</span><span class="p">]</span>
+                     <span class="p">})</span>
+
+        <span class="n">evalDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">evalDF</span><span class="p">,</span> <span class="n">iterDF2</span><span class="p">])</span>
+
+    <span class="c1"># Reset indicies for returned DataFrames.</span>
+    <span class="n">locsDF</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">locsDF</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">locsDF</span><span class="p">[</span><span class="s1">&#39;est&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;est&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">locsDF</span> <span class="o">=</span> <span class="n">locsDF</span><span class="p">[[</span><span class="s1">&#39;loc&#39;</span><span class="p">,</span><span class="s1">&#39;est&#39;</span><span class="p">,</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;x&#39;</span><span class="p">,</span><span class="s1">&#39;y&#39;</span><span class="p">,</span><span class="s1">&#39;raw_dists&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;scale_fact&#39;</span><span class="p">,</span><span class="s1">&#39;scaled_dists&#39;</span><span class="p">,</span><span class="s1">&#39;weights&#39;</span><span class="p">]]</span>
+
+
+    <span class="k">if</span> <span class="n">robustify</span><span class="o">==</span><span class="bp">True</span><span class="p">:</span>
+
+        <span class="n">cycle_nbr</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">robust_est</span> <span class="o">=</span> <span class="p">[</span><span class="n">evalDF</span><span class="p">]</span>
+
+        <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="c1"># Perform iterative robustness procedure for each local regression.</span>
+            <span class="c1"># Evaluate local regression for each item in xvals.</span>
+            <span class="c1">#</span>
+            <span class="c1"># e1_i =&gt; raw residuals</span>
+            <span class="c1"># e2_i =&gt; scaled residuals</span>
+            <span class="c1"># r_i  =&gt; robustness weight</span>
+            <span class="n">revalDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+                            <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;loc&#39;</span><span class="p">,</span><span class="s1">&#39;est&#39;</span><span class="p">,</span><span class="s1">&#39;v&#39;</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">,</span><span class="s1">&#39;g&#39;</span><span class="p">]</span>
+                            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">robust_est</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;loc&#39;</span><span class="p">]:</span>
+
+                <span class="n">prevDF</span> <span class="o">=</span> <span class="n">robust_est</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">locDF</span> <span class="o">=</span> <span class="n">locsDF</span><span class="p">[</span><span class="n">locsDF</span><span class="p">[</span><span class="s1">&#39;loc&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">i</span><span class="p">]</span>
+                <span class="n">b_i</span> <span class="o">=</span> <span class="n">prevDF</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">prevDF</span><span class="p">[</span><span class="s1">&#39;loc&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">i</span><span class="p">,</span><span class="s1">&#39;b&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="n">w_i</span> <span class="o">=</span> <span class="n">locDF</span><span class="p">[</span><span class="s1">&#39;weights&#39;</span><span class="p">]</span>
+                <span class="n">v_i</span> <span class="o">=</span> <span class="n">prevDF</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">prevDF</span><span class="p">[</span><span class="s1">&#39;loc&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="n">g_i</span> <span class="o">=</span> <span class="n">prevDF</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">prevDF</span><span class="p">[</span><span class="s1">&#39;loc&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">i</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="n">e1_i</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span><span class="o">-</span><span class="n">loc_eval</span><span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">b_i</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span><span class="n">yvals</span><span class="p">)]</span>
+                <span class="n">e2_i</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">/</span><span class="p">(</span><span class="mi">6</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">e1_i</span><span class="p">)))</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">e1_i</span><span class="p">]</span>
+                <span class="n">r_i</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">1</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">j</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">e2_i</span><span class="p">]</span>
+                <span class="n">w_f</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="o">*</span><span class="n">k</span> <span class="k">for</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">w_i</span><span class="p">,</span> <span class="n">r_i</span><span class="p">)]</span>    <span class="c1"># new weights</span>
+                <span class="n">W_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">w_f</span><span class="p">)</span>
+                <span class="n">b_r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="err">@</span> <span class="n">W_r</span> <span class="err">@</span> <span class="n">X</span><span class="p">)</span> <span class="err">@</span> <span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="err">@</span> <span class="n">W_r</span> <span class="err">@</span> <span class="n">y</span><span class="p">)</span>
+                <span class="n">riter_est</span> <span class="o">=</span> <span class="n">loc_eval</span><span class="p">(</span><span class="n">v_i</span><span class="p">,</span> <span class="n">b_r</span><span class="p">)</span>
+
+                <span class="n">riterDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+                             <span class="s1">&#39;loc&#39;</span><span class="p">:[</span><span class="n">i</span><span class="p">],</span>
+                             <span class="s1">&#39;b&#39;</span>  <span class="p">:[</span><span class="n">b_r</span><span class="p">],</span>
+                             <span class="s1">&#39;v&#39;</span>  <span class="p">:[</span><span class="n">v_i</span><span class="p">],</span>
+                             <span class="s1">&#39;g&#39;</span>  <span class="p">:[</span><span class="n">riter_est</span><span class="p">],</span>
+                             <span class="s1">&#39;est&#39;</span><span class="p">:[</span><span class="n">cycle_nbr</span><span class="p">]</span>
+                             <span class="p">})</span>
+
+                <span class="n">revalDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">revalDF</span><span class="p">,</span> <span class="n">riterDF</span><span class="p">])</span>
+            <span class="n">robust_est</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">revalDF</span><span class="p">)</span>
+
+            <span class="c1"># Compare `g` vals from two latest revalDF&#39;s in robust_est.</span>
+            <span class="n">idiffs</span> <span class="o">=</span> \
+                <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">((</span><span class="n">robust_est</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">][</span><span class="s2">&quot;g&quot;</span><span class="p">]</span><span class="o">-</span><span class="n">robust_est</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;g&quot;</span><span class="p">])</span><span class="o">/</span><span class="n">robust_est</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">][</span><span class="s2">&quot;g&quot;</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">idiffs</span><span class="o">&lt;.</span><span class="mo">005</span><span class="p">))</span> <span class="ow">or</span> <span class="n">cycle_nbr</span><span class="o">&gt;</span><span class="mi">50</span><span class="p">):</span> <span class="k">break</span>
+
+            <span class="n">cycle_nbr</span><span class="o">+=</span><span class="mi">1</span>
+
+        <span class="c1"># Vertically bind all DataFrames from robust_est.</span>
+        <span class="n">evalDF</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">robust_est</span><span class="p">)</span>
+
+    <span class="n">evalDF</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">evalDF</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="n">evalDF</span> <span class="o">=</span> <span class="n">evalDF</span><span class="p">[[</span><span class="s1">&#39;loc&#39;</span><span class="p">,</span><span class="s1">&#39;est&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">]]</span>
+
+    <span class="k">return</span><span class="p">(</span><span class="n">locsDF</span><span class="p">,</span> <span class="n">evalDF</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+Originally, <code>evalDF</code> contained <span class="math">\(n+1\)</span> records, one estimate per location <span class="math">\(v_{j}\)</span>, and in the earlier example, <code>evalDF</code><span class="quo">&#8216;</span>s <code>est</code> 
+field contained all 0&#8217;s, indicating that the associated estimates were from the initial estimation. Now, when <code>robustify=True</code>, 
+<code>est</code> can be used to determine from which iteration a particular set of estimates originate. In the next example, we call <code>loess</code> 
+with <code>robustify=True</code>, and compare how the <span class="caps">LOESS</span> curve changes with each updated set of model coefficients. For the remaining 
+demonstrations, <code>poly_degree=1</code>:
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Graphical comparison of LOESS model estimates</span>
+<span class="sd">at each robustness iteration.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">locsDF</span><span class="p">,</span> <span class="n">evalDF</span> <span class="o">=</span> <span class="n">loess</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=.</span><span class="mi">6</span><span class="p">,</span> <span class="n">poly_degree</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">robustify</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="n">resDF0</span> <span class="o">=</span> <span class="n">evalDF</span><span class="p">[</span><span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;est&#39;</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">l_x0</span>   <span class="o">=</span> <span class="n">resDF0</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">l_y0</span>   <span class="o">=</span> <span class="n">resDF0</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="n">resDF1</span> <span class="o">=</span>  <span class="n">evalDF</span><span class="p">[</span><span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;est&#39;</span><span class="p">]</span><span class="o">==</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">l_x1</span>   <span class="o">=</span> <span class="n">resDF1</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">l_y1</span>   <span class="o">=</span> <span class="n">resDF1</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="n">resDF3</span> <span class="o">=</span>  <span class="n">evalDF</span><span class="p">[</span><span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;est&#39;</span><span class="p">]</span><span class="o">==</span><span class="mi">3</span><span class="p">]</span>
+<span class="n">l_x3</span>   <span class="o">=</span> <span class="n">resDF3</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">l_y3</span>   <span class="o">=</span> <span class="n">resDF3</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="n">resDF4</span> <span class="o">=</span>  <span class="n">evalDF</span><span class="p">[</span><span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;est&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">evalDF</span><span class="p">[</span><span class="s1">&#39;est&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+<span class="n">l_x4</span>   <span class="o">=</span> <span class="n">resDF4</span><span class="p">[</span><span class="s1">&#39;v&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">l_y4</span>   <span class="o">=</span> <span class="n">resDF4</span><span class="p">[</span><span class="s1">&#39;g&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+
+<span class="n">ax0</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">221</span><span class="p">)</span>
+<span class="n">ax0</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">ax0</span><span class="o">.</span><span class="n">minorticks_on</span><span class="p">()</span>
+<span class="n">ax0</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Original Data&quot;</span><span class="p">)</span>
+<span class="n">ax0</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">l_x0</span><span class="p">,</span> <span class="n">l_y0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#FF0000&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;1-D Polynomial LOESS Estimate&quot;</span><span class="p">)</span>
+<span class="n">ax0</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;LOESS Estimate 1&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+<span class="n">ax0</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+           <span class="n">scatterpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+           <span class="n">frameon</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">fancybox</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span>
+           <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
+
+<span class="n">ax1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">222</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">minorticks_on</span><span class="p">()</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Original Data&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">l_x1</span><span class="p">,</span> <span class="n">l_y1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#FF0000&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;1-D Polynomial LOESS Estimate&quot;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;LOESS Estimate 2&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+           <span class="n">scatterpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+           <span class="n">frameon</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">fancybox</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span>
+           <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
+
+<span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">223</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">minorticks_on</span><span class="p">()</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Original Data&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">l_x3</span><span class="p">,</span> <span class="n">l_y3</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#FF0000&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;1-D Polynomial LOESS Estimate&quot;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;LOESS Estimate 3&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+           <span class="n">scatterpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+           <span class="n">frameon</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">fancybox</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span>
+           <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
+
+<span class="n">ax3</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">224</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">minorticks_on</span><span class="p">()</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xvals</span><span class="p">,</span> <span class="n">yvals</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Original Data&quot;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">l_x4</span><span class="p">,</span> <span class="n">l_y4</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#FF0000&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;1-D Polynomial LOESS Estimate&quot;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s2">&quot;LOESS Estimate 4&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+<span class="n">ax3</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper left&quot;</span><span class="p">,</span>
+           <span class="n">scatterpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+           <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span>
+           <span class="n">frameon</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">fancybox</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+           <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span>
+           <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;#000000&quot;</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>
+Running the code above generates a comparison of the <span class="caps">LOESS</span> curves at each iteration of the robust estimation procedure:   <br>
+<br>
+<p align="center"> 
+<img alt="loess1" src="/images/loess3.png">
+</p> <br>
+<br>
+The change between iteration 1 (upper left) and iteration 4 (lower right) is subtle, primarily due to the fact that we&#8217;re modeling 
+a fairly well-behaved dataset, but notice how the influence of the very last observation on the <span class="caps">LOESS</span> curve is tempered as we move 
+from the initial to the final plot. At first, for x-value=10, the <span class="caps">LOESS</span> curve estimated a value in excess of 4,  between 4.10-4.20. 
+By the final iteration, the y-value associated with the same x-value was almost exactly 4.0. The robust estimation procedure will 
+have a greater affect on the <span class="caps">LOESS</span> approximation when modeling datasets that exhibit a greater degree of variation. 
+<br></p>
+<h2>Conclusion</h2>
+<p>The <span class="caps">LOESS</span> method can be especially valuable as an exploratory data analysis tool. If there exists little prior information on the distribution 
+of a particular dataset, using a locally-weighted regression routine can help lend insight into its general distributional&nbsp;form.     </p>
+<h3>Footnotes:</h3>
+<ol>
+<li><a href="https://en.wikipedia.org/wiki/Local_regression"></a>         </li>
+<li>Jacoby, William G. - <a href="https://jtrive84.github.io/docs/Jacoby_LOESS.pdf"><em>Loess: A Nonparametric, Graphical Tool for Depicting Relationships Between&nbsp;Variables</em></a>                  </li>
+<li>Cleveland,William S. - <a href="https://jtrive84.github.io/docs/Robust_Locally_Weighted_Regression_and_Smoothing_Scatterplots.pdf"><em>Robust Locally Weighted Regression and Smoothing&nbsp;Scatterplots</em></a>           </li>
+</ol>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

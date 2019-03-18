@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Setting Up Key-Based Authentication to a Linux Server - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/setting-up-key-based-authentication-to-a-linux-server.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Linux" />
+        <meta name="description" content="Authenticating to a Linux server without a password over SSH" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Setting Up Key-Based Authentication to a Linux Server"/>
+        <meta property="og:url" content="https://jtrive84.github.io/setting-up-key-based-authentication-to-a-linux-server.html"/>
+        <meta property="og:description" content="Authenticating to a Linux server without a password over SSH"/>
+        <meta property="article:published_time" content="2017-06-12" />
+            <meta property="article:section" content="Linux" />
+            <meta property="article:tag" content="Linux" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/linux.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Linux ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/setting-up-key-based-authentication-to-a-linux-server.html"
+                       rel="bookmark"
+                       title="Permalink to Setting Up Key-Based Authentication to a Linux Server">
+                        Setting Up Key-Based Authentication to a Linux&nbsp;Server
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-06-12T00:00:00-05:00"> 2017-06-12</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/linux.html">Linux</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>In this post, we&#8217;ll demonstrate how to setup automatic authentication to a Linux server using <span class="caps">SSH</span> and public key cryptography. Once properly configured, we&#8217;ll need only  to provide the remote hostname to <span class="caps">SSH</span> to successfully&nbsp;authenticate.   </p>
+<p><span class="caps">SSH</span> key pairs can be used to authenticate a client to a server. The client creates a key pair and then uploads the public key to a remote server it wishes to access. This is placed in a file called <code>authorized_keys</code> within the ~/.ssh directory in the user&#8217;s home directory on the remote&nbsp;host.</p>
+<p>To follow along with this post, it is assumed that <a href="https://www.cygwin.com/">Cygwin</a> is installed on a Windows client, and also that the user has access to a remote server accessible via Cygwin and <span class="caps">SSH</span>. For the code examples, commands entered and executed from the local Windows client are identified using the <code>local&gt;</code> prompt, and <code>remote&gt;</code> will be used to identify commands entered and executed from the remote server&nbsp;environment.</p>
+<h2><span class="caps">SSH</span>&nbsp;Authentication</h2>
+<p>The <span class="caps">SSH</span> authentication process is as follows (see <a href="https://www.digitalocean.com/community/tutorials/understanding-the-ssh-encryption-and-connection-process">here</a> for more&nbsp;information):</p>
+<ul>
+<li>
+<p>The client begins by sending an <span class="caps">ID</span> for the key pair it would like to authenticate with to the&nbsp;server.</p>
+</li>
+<li>
+<p>The server check&#8217;s the authorized_keys file of the account that the client is attempting to log into for the key <span class="caps">ID</span>.</p>
+</li>
+<li>
+<p>If a public key with matching <span class="caps">ID</span> is found in the file, the server generates a random number and uses the public key to encrypt the&nbsp;number.</p>
+</li>
+<li>
+<p>The server sends the client this encrypted&nbsp;message.</p>
+</li>
+<li>
+<p>If the client actually has the associated private key, it will be able to decrypt the message using that key, revealing the original&nbsp;number.</p>
+</li>
+<li>
+<p>The client combines the decrypted number with the shared session key that is being used to encrypt the communication, and calculates the <span class="caps">MD5</span> hash of this&nbsp;value.</p>
+</li>
+<li>
+<p>The client then sends this <span class="caps">MD5</span> hash back to the server as an answer to the encrypted number&nbsp;message.</p>
+</li>
+<li>
+<p>The server uses the same shared session key and the original number that it sent to the client to calculate the <span class="caps">MD5</span> value on its own. It compares its own calculation to the one that the client sent back. If these two values match, it proves that the client was in possession of the private key and the client is&nbsp;authenticated.</p>
+</li>
+</ul>
+<h2>Setup</h2>
+<p>Open Cygwin, and navigate to the Cygwin <code>/home/&lt;username&gt;</code> directory (for this post, we&#8217;ll assume the username for the local and remote hosts is <code>user1</code>). The first step is to generate a&nbsp;key-pair:</p>
+<div class="highlight"><pre><span></span>local&gt; <span class="nb">cd</span> /home/user1
+local&gt; ssh-keygen -t rsa
+</pre></div>
+
+
+<p>Accept the defaults for each option by pressing enter. After the first prompt, a <code>.ssh</code> directory will be created in the <code>/home/user1</code> directory on the local client, and it will contain the generated public and private keys (check out <a href="http://www.mathaware.org/mam/06/Kaliski.pdf">this</a> page for more information about the mathematics behind key generation). The public key will have the same name as the private key <code>id_rsa</code>, but with a <em>.pub</em> extension. You can display the contents of your generated public key cd&#8217;ing into your <em>.ssh</em> directory by passing <em>id_rsa.pub</em> to <em>cat</em>:</p>
+<div class="highlight"><pre><span></span>local&gt; <span class="nb">cd</span> .ssh
+local&gt; cat id_rsa.pub
+
+ssh-rsa 
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCyFOyCQ2VawpyLAcUx3sbcdAHc5TYlorJ/1AEXp9OQ462I
+b7sQgAsPr3R/lBvBJ3rit6Nogbbl1Lm3c9Tl5JyOHRE88tp1uLpAfD3oEoGFgb5mSLz6yZ+6brPDS+PONiEi
+MJtaZ3+zKTZkBfPomzEMUjhynS3aSn73mdChXPumSsbgod6Q4ZJVgPtCMKkD2vEdglTkC4qKXoyVYhvED31R
+6qgW27tP+0bLGnyulK/PTtUQLCV+kQkB+FlZ54yQCumS2Os25WCXH5l7xGsIv1Lme3H+IezwUCuwHWsVsGqo
+bnWY7hikTu8QJLhNqAzYhc3m3iklS2bh2sO8I5kBYWNZ user1@local
+</pre></div>
+
+
+<p>Next, open a new instance of Cygwin (this can be accomplished by pressing the Windows key + R, then entering <em>mintty</em> then Enter if Cygwin has been added to your <code>PATH</code> environmental variable). From the second terminal, we&#8217;re going&nbsp;to:</p>
+<ul>
+<li>Login to the remote server via <span class="caps">SSH</span></li>
+<li>Create an .ssh folder in /home/user1  if it doesn&#8217;t already&nbsp;exist</li>
+<li>Use the <code>scp</code> command to securely copy the public key (<em>id_rsa.pub</em>) from our local <em>/home/user1/.ssh</em> directory to our remote <em>/home/user1/.ssh</em>&nbsp;directory</li>
+<li>Append the contents of <em>id_rsa.pub</em> to <em>authorized_keys</em>, a file that we&#8217;ll create on the remote&nbsp;host</li>
+</ul>
+<p>We login to the remote server, then check whether or not the <em>.ssh</em> directory exists in <em>/home/user1</em>.
+In our case, it deosn&#8217;t, so we create&nbsp;it:</p>
+<div class="highlight"><pre><span></span>local&gt; ssh -p <span class="m">3333</span> user1@remote
+
+<span class="c1"># now on remote host:</span>
+remote&gt; <span class="nb">cd</span> /home/user1
+remote&gt; ls -1a .ssh
+
+<span class="c1"># nothing returned, so we create it:</span>
+remote&gt; mkdir .ssh
+</pre></div>
+
+
+<p>Notice in the first command, <em>ssh</em> was accompanied by <code>-p 3333</code>. This is an example of port forwarding, and is intended as an added security measure. If your server runs <span class="caps">SSH</span> on its standard port (22), you can omit this&nbsp;argument. </p>
+<p>To find the port <span class="caps">SSH</span> is using on your remote server, you can&nbsp;run:</p>
+<div class="highlight"><pre><span></span>remote&gt; <span class="nb">echo</span> <span class="si">${</span><span class="nv">SSH_CLIENT</span><span class="p">##* </span><span class="si">}</span>
+<span class="m">3333</span>
+</pre></div>
+
+
+<p>Alternatively, if you can access to the <em>/etc/ssh/sshd_config</em> file,&nbsp;run:</p>
+<div class="highlight"><pre><span></span>remote&gt; grep Port /etc/ssh/sshd_config
+grep: /etc/ssh/sshd_config: Permission denied
+</pre></div>
+
+
+<p>But in this case, the user does not have&nbsp;access.</p>
+<p>Back at the first terminal, we need to copy <em>id_rsa.pub</em> to the remote client via <em>scp</em> (&#8216;secure copy&#8217;). Notice the port specification for <em>scp</em> is different that with <span class="caps">SSH</span>: <code>-p</code> specifies a port other than standard for <span class="caps">SSH</span>, whereas <em>scp</em> uses<code>-P</code>. We&nbsp;enter:</p>
+<div class="highlight"><pre><span></span>local&gt; scp -P <span class="m">3333</span> id_rsa.pub user1@remote:/home/user1/.ssh
+</pre></div>
+
+
+<p>We&#8217;re using scp via port <em>3333</em> to copy <em>id_rsa.pub</em> to <em>/home/user1/.ssh</em> on <em>remote</em>.</p>
+<p>After pressing enter, , you’ll be prompted twice: The first time, press enter. The second time, enter your password. Upon doing so, you will receive a message indicating that the remote server has been added to the list of known&nbsp;hosts. </p>
+<p>Back at the second terminal, <code>ls –1</code> to verify that the public key was successfully copied over (Optionally, you can run <code>cat id_rsa.pub</code> to ensure that the key looks like it did when we first printed it to the terminal after it was&nbsp;created). </p>
+<p>Next, we&#8217;re going to redirect the contents of <em>id_rsa.pub</em> into a file we&#8217;re going to call <em>authorized_keys</em>, then compare the two files to ensure their identical. If so, we can delete the remote copy of <em>id_rsa.pub</em>:</p>
+<div class="highlight"><pre><span></span>remote&gt; cat id_rsa.pub &gt; authorized_keys
+remote&gt; diff id_rsa.pub authorized_keys
+
+<span class="c1"># no difference; delete id_rsa.pub:</span>
+remote&gt; rm -f id_rsa.pub
+</pre></div>
+
+
+<p>Finally, exit out of both terminals and open a new one. Login to the remote server as usual using <span class="caps">SSH</span>. The first login after setting up keys you may be prompted with a message requiring a yes/no response, but if the keys have been correctly configured, you should not be prompted for a password. If this is the case, congratulations! You&#8217;ve setup automatic authentication to your remote&nbsp;server!</p>
+<h2><span class="caps">SSH</span>&nbsp;Configuration</h2>
+<p>It&#8217;s possible to create an <span class="caps">SSH</span> configuration file which allows you to bypass entering a port specification (‘-p 3333’) at each login. From the local client, in <em>/home/user1/.ssh</em>, create a file with notepad and name it <em>config</em>. Note that what Cygwin sees as <em>/home/user1/.ssh</em>, Windows sees as <em>C:\cygwin64\home\user1.ssh</em>, so when notepad prompts you to save the file, save it to <em>C:\cygwin64\home\user1.ssh</em>. In addition, <strong>make sure to save <em>config</em> without a file extension</strong>. When you go to save, in the &#8216;Save as type:&#8217; dropdown, choose &#8216;All Files (*.*)&#8217;, and enter <em>config</em> without extension for the <em>File name:</em>. If you don&#8217;t do this, the file will be saved as <em>config.txt</em>, and will not be read by <span class="caps">SSH</span> at&nbsp;login.</p>
+<p>In the config file, enter the options specific to your login&nbsp;details:</p>
+<div class="highlight"><pre><span></span>Host remote
+    Hostname remote.com
+    User user1
+    Port <span class="m">3333</span>
+</pre></div>
+
+
+<p>Once saved, open Cygwin, and you will only need to enter the following to login to the remote&nbsp;server:</p>
+<div class="highlight"><pre><span></span>local&gt; ssh remote
+.
+.
+.
+remote&gt;
+</pre></div>
+
+
+<h2>Troubleshooting</h2>
+<p>If after following the instructions you’re still required to authenticate with a password, it’s almost certainly a permission issue. You may need to change permissions for the following files and&nbsp;directories:</p>
+<p>On <em>local</em>:      <br>
+<em> /home/user1/.ssh  (700)   <br>
+</em> /home/user1/.ssh/id_rsa&nbsp;(600)   </p>
+<p>On <em>remote</em>:      <br>
+<em> /home/user1/.ssh (700)   <br>
+</em> /home/user1/.ssh/authorized_key&nbsp;(644)    </p>
+<p>(For more information about file permissions visit <a href="http://linuxcommand.org/lc3_lts0090.php">this</a>&nbsp;page)</p>
+<p>The required octal permissions to setup ssh authentication are listed after each file/directory above. These settings should be assigned by default, but in some instances may vary. To find octal file permissions for your files/directories, run the&nbsp;following:</p>
+<div class="highlight"><pre><span></span>$ stat --format %a &lt;file_or_directory&gt;
+</pre></div>
+
+
+<p>For example, if I wanted to check the directory permission of <em>.ssh</em> on my server, I’d&nbsp;run:</p>
+<div class="highlight"><pre><span></span>remote&gt; stat –format %a /home/user1/.ssh
+<span class="m">700</span>
+</pre></div>
+
+
+<p>To change permissions, use the <em>chmod</em> command. For example, if my <em>.ssh</em> directory permission came back as 600, I could change it to 700 like&nbsp;so:</p>
+<div class="highlight"><pre><span></span>remote&gt; stat --format %a /home/user1/.ssh
+<span class="m">600</span>
+<span class="c1"># change permission to 700:</span>
+remote&gt; chmod <span class="m">700</span> /home/user1/.ssh
+remote&gt; stat --format %a /home/user1/.ssh
+<span class="m">700</span>
+</pre></div>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

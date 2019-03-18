@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Machine Learning Classification with Naive Bayes - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/machine-learning-classification-with-naive-bayes.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Machine Learning" />
+        <meta name="description" content="Implementing a Navie Bayes Classifier with and without scikit-learn" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Machine Learning Classification with Naive Bayes"/>
+        <meta property="og:url" content="https://jtrive84.github.io/machine-learning-classification-with-naive-bayes.html"/>
+        <meta property="og:description" content="Implementing a Navie Bayes Classifier with and without scikit-learn"/>
+        <meta property="article:published_time" content="2017-07-20" />
+            <meta property="article:section" content="Machine Learning" />
+            <meta property="article:tag" content="Machine Learning" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/machine-learning.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Machine Learning ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/machine-learning-classification-with-naive-bayes.html"
+                       rel="bookmark"
+                       title="Permalink to Machine Learning Classification with Naive Bayes">
+                        Machine Learning Classification with Naive&nbsp;Bayes
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-07-20T00:00:00-05:00"> 2017-07-20</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/machine-learning.html">Machine Learning</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/machine-learning.html">Machine Learning</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p><em>Naive Bayes</em> methods are a set of supervised learning algorithms based on 
+applying Bayes Theorem with the naive assumption of independence between every 
+pair of features <a href="#Footnotes:">1</a>. The Naive Bayes classifier makes two strong&nbsp;assumptions:    </p>
+<ol>
+<li>
+<p>The value of a particular feature is independent of the value of any other feature, given the class&nbsp;variable. </p>
+</li>
+<li>
+<p>The set of features associated with an unclassified instance are assumed to follow a normal&nbsp;distribution.        </p>
+</li>
+</ol>
+<p><br></p>
+<p><strong>To create a Gaussian Naive Bayes classifier (without&nbsp;scikit-learn):</strong>             </p>
+<ol>
+<li>
+<p>Ensure all explanatory variables are continuous: If the dataset contains 
+   categorical features, look into the Bernoulli or Multinomial form of 
+   Naive&nbsp;Bayes.        </p>
+</li>
+<li>
+<p>For each explanatory variable, calculate the maximum likelihood estimate of 
+   the mean and variance for each&nbsp;class.       </p>
+</li>
+<li>
+<p>To classify a new instance, calculate the posterior probability for each 
+   class. There will be as many posterior probabilities per unclassified 
+   instance as there are distinct&nbsp;classes.      </p>
+</li>
+<li>
+<p>The new instance will be classified based on the class with the greatest 
+   posterior&nbsp;probability.              </p>
+</li>
+</ol>
+<p><strong>Example:</strong></p>
+<p>Consider a sample dataset representing business school admissions: 
+<br>
+<p align="center"> 
+<img alt="naive1" src="/images/naive1.PNG">
+</p> <br>
+<br></p>
+<p>We have two additional instances that will be used to test the&nbsp;classifier:</p>
+<p><br>
+<p align="center"> 
+<img alt="naive2" src="/images/naive2.PNG">
+</p> <br>
+<br>
+For each feature, we calculate the mean and variance for admitted and&nbsp;not-admitted:   </p>
+<p><br>
+<p align="center"> 
+<img alt="naive3" src="/images/naive3.PNG">
+</p> <br>
+<br></p>
+<p>In the sample dataset, we have equiprobable priors 
+(since <span class="math">\(P(admit) = P(!admit) = .5\)</span>). However, the prior probabilities need not 
+be derived from the dataset of interest. They can be based on external data 
+sources (such as admissions from prior&nbsp;years).     </p>
+<p><br> 
+Recall the general form of Bayes&#8217;&nbsp;Theorem:     </p>
+<div class="math">$$
+P(A|B) = \frac{P(B|A)P(A)}{P(B)}
+$$</div>
+<p><br> 
+<br></p>
+<p>The posterior probability for admitted is given by: <br>
+<br>     </p>
+<div class="math">$$
+P(admit|data) = \frac {P(admit)P(GPA|admit)P(GMAT|admit)}{P(data)},
+$$</div>
+<p><br>
+<br> </p>
+<p>and for not-admitted:  <br>
+<br></p>
+<div class="math">$$
+p(!admit|data) = \frac {P(!admit)P(GPA|!admit)P(GMAT|!admit)}{P(data)},
+$$</div>
+<p><br><br>&nbsp;Where: </p>
+<ul>
+<li>
+<p><span class="math">\(P(admit)/P(!admit)\)</span> represents the prior probability, .50 in this&nbsp;example.         </p>
+</li>
+<li>
+<p><span class="math">\(P(GPA|admit)P(GMAT|admit)\)</span> represents the likelihood. We assume zero 
+   correlation between <span class="math">\(GPA\)</span> and <span class="math">\(GMAT\)</span> via the first assumption of Naive&nbsp;Bayes.         </p>
+</li>
+<li>
+<p><em>data</em> is a stand-in for <span class="math">\(GMAT\)</span> and <span class="math">\(GPA\)</span> for a given&nbsp;instance.            </p>
+</li>
+</ul>
+<p>The second assumption of Naive Bayes is that all explanatory variables follow a 
+normal distribution. Thus, <span class="math">\(P(GMAT|admitted)\)</span> is calculated by passing the 
+observation&#8217;s <span class="math">\(GMAT\)</span> score and <span class="math">\(GPA\)</span> into the associated normal density 
+function, parameterized by the corresponding estimates of mean and variance 
+determined above.<br>
+<br>  <br>
+For the admitted&nbsp;class:</p>
+<div class="math">$$
+\begin{align*}
+P(GMAT|admit) &amp;= \frac {1} {\sqrt{2 \pi \sigma^{2}_{GMAT|admit}}} exp\Big({-\frac {(GMAT - \mu_{GMAT|admit})^{2}}{2\sigma^{2}_{GMAT|admit}}}\Big)\\ \\
+P(GPA|admit) &amp;= \frac {1} {\sqrt{2 \pi \sigma^{2}_{GPA|admit}}} exp\Big({-\frac {(GPA - \mu_{GPA|admit})^{2}}{2\sigma^{2}_{GPA|admit}}}\Big)
+\end{align*}
+$$</div>
+<p><br>       </p>
+<p>For&nbsp;not-admitted:</p>
+<div class="math">$$
+\begin{align*}
+P(GMAT|!admit) &amp;= \frac {1} {\sqrt{2 \pi \sigma^{2}_{GMAT|!admit}}} exp\Big({-\frac {(GMAT - \mu_{GMAT|!admit})^{2}}{2\sigma^{2}_{GMAT|!admit}}}\Big) \\ \\
+P(GPA|!admit) &amp;= \frac {1} {\sqrt{2 \pi \sigma^{2}_{GPA|!admit}}} exp\Big({-\frac {(GPA - \mu_{GPA|!admit})^{2}}{2\sigma^{2}_{GPA|!admit}}}\Big)
+\end{align*}
+$$</div>
+<p><br><br>
+<br>  </p>
+<h3>Classifying&nbsp;Instances</h3>
+<p>Recall our test&nbsp;observations:</p>
+<p><br>
+<p align="center"> 
+<img alt="naive4" src="/images/naive4.PNG">
+</p> <br>
+<br></p>
+<p>We calculate the admitted and not-admitted posterior for each instance: The 
+observation will be classified as admitted/1 or not-admitted/0 based on the 
+class with the greatest posterior&nbsp;probability.   </p>
+<p><br>       </p>
+<h3>For <strong><span class="caps">ID</span>=000000009</strong>:</h3>
+<p><br>  </p>
+<p><span class="caps">GMAT</span> calculation for&nbsp;admitted:</p>
+<div class="math">$$
+\begin{align*}
+p(GMAT|admit) &amp;= \frac{1}{\sqrt{2 \pi \sigma^{2}_{GMAT|admit}}} exp\Big({-\frac{(GMAT - \mu_{GMAT|admit})^{2}}{2\sigma^{2}_{GMAT|admit}}}\Big) \\ \\
+&amp;= \frac{1}{\sqrt{2 \pi (3143)}} exp\Big({-\frac {(384 - 518.50)^{2}}{2(3143)}}\Big) \\ \\
+&amp;=\mathbf{.0004}
+\end{align*}
+$$</div>
+<p><span class="caps">GPA</span> calculation for&nbsp;admitted:</p>
+<div class="math">$$
+\begin{align*}
+p(GPA|admit) &amp;= \frac{1}{\sqrt{2 \pi \sigma^{2}_{GPA|admit}}} exp\Big({-\frac{(GPA - \mu_{GPA|admit})^{2}}{2\sigma^{2}_{GPA|admit}}}\Big) \\ \\
+&amp;= \frac{1}{\sqrt{2 \pi (0.0193)}} exp\Big({-\frac {(2.90 - 3.15)^{2}}{2(0.0193)}}\Big) \\ \\
+&amp;=\mathbf{0.568767}
+\end{align*}
+$$</div>
+<p><br>
+<br></p>
+<p><span class="caps">GMAT</span> calculation for&nbsp;not-admitted:</p>
+<div class="math">$$
+\begin{align*}
+p(GMAT|!admit) &amp;= \frac{1}{\sqrt{2 \pi \sigma^{2}_{GMAT|!admit}}} exp\Big({-\frac{(GMAT - \mu_{GMAT|!admit})^{2}}{2\sigma^{2}_{GMAT|!admit}}}\Big) \\ \\
+&amp;= \frac{1}{\sqrt{2 \pi (1128.25)}} exp\Big({-\frac {(384 - 409.25)^{2}}{2(1128.25)}}\Big) \\ \\
+&amp;=\mathbf{0.00895364}
+\end{align*}
+$$</div>
+<p><span class="caps">GPA</span> calculation for&nbsp;not-admitted:</p>
+<div class="math">$$
+\begin{align*}
+p(GPA|!admit) &amp;= \frac{1}{\sqrt{2 \pi \sigma^{2}_{GPA|!admit}}} exp\Big({-\frac{(GPA - \mu_{GPA|!admit})^{2}}{2\sigma^{2}_{GPA|!admit}}}\Big) \\ \\
+&amp;= \frac{1}{\sqrt{2 \pi (0.0474)}} exp\Big({-\frac {(2.90 - 2.610)^{2}}{2(0.0474)}}\Big) \\ \\
+&amp;=\mathbf{0.7546488}
+\end{align*}
+$$</div>
+<p>
+<br>   </p>
+<p>Then, plugging values into the posterior expression, class probabilities for 
+<strong><span class="caps">ID</span>=000000009</strong> are given&nbsp;by:</p>
+<p><br>   </p>
+<div class="math">$$
+\begin{align*}
+P(admit|data) &amp;= \frac{P(admit)P(GPA|admit)P(GMAT|admit)}{P(data)} \\ \\
+&amp;= \frac {(.5)*(0.568767)*(.0004)}{(0.568767)*(.0004)*(.5) + (0.7546488)* (0.00895364)*(.5)} \\ \\
+&amp;= \mathbf{0.03266} \\ \\
+P(!admit|data) &amp;= \frac{P(!admit)P(GPA|!admit)P(GMAT|!admit)}{P(data)} \\ \\
+&amp;= \frac {(.5)*(0.7546488)*(0.00895364)}{(0.568767)*(.0004)*(.5) + (0.7546488)* (0.00895364)*(.5)} \\ \\
+&amp;= \mathbf{0.967340} \\ \\
+\end{align*}
+$$</div>
+<p><br> 
+<br> 
+Thus, an individual with <span class="math">\(GPA=2.90\)</span> and <span class="math">\(GMAT=384\)</span> would almost certainly not 
+be admitted according to the Gaussian Naive Bayes classifier.
+<br> <br>
+<br>  </p>
+<h2>Naive Bayes in&nbsp;scikit-learn</h2>
+<p>Implementing a Gaussian Naive Bayes classifier in scikit-learn is 
+straightforward: All the details are abstracted away behind a simple, consistent 
+and easy-to-use interface that makes sense without requiring intimate 
+familiarity with the underlying mechanics. Generally, after we&#8217;ve decided on a 
+model to use for a classification task, the next steps&nbsp;are:      </p>
+<p><br></p>
+<ul>
+<li>
+<p>Pre-process explanatory data (scale, impute and&nbsp;encode)         </p>
+</li>
+<li>
+<p>Instantiate&nbsp;model          </p>
+</li>
+<li>
+<p>Fit model to training&nbsp;data             </p>
+</li>
+<li>
+<p>Predict classes on test/holdout&nbsp;data      </p>
+</li>
+</ul>
+<p>Using the sample admissions data above, we demonstrate how to carry out next 
+steps with&nbsp;scikit-learn:   </p>
+<div class="highlight"><pre><span></span><span class="c1"># ===========================================================</span>
+<span class="c1"># scikit-learn implementation of Naive Bayes classifier     | </span>
+<span class="c1"># ===========================================================</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">sklearn.preprocessing</span> <span class="kn">import</span> <span class="n">StandardScaler</span>
+<span class="kn">from</span> <span class="nn">sklearn.naive_bayes</span> <span class="kn">import</span> <span class="n">GaussianNB</span>
+
+
+<span class="c1"># Read dataset into pandas DataFrame =&gt;</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s1">&#39;ID&#39;</span><span class="p">:</span>          <span class="p">[</span><span class="s1">&#39;000000001&#39;</span><span class="p">,</span><span class="s1">&#39;000000002&#39;</span><span class="p">,</span><span class="s1">&#39;000000003&#39;</span><span class="p">,</span><span class="s1">&#39;000000004&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;000000005&#39;</span><span class="p">,</span><span class="s1">&#39;000000006&#39;</span><span class="p">,</span><span class="s1">&#39;000000007&#39;</span><span class="p">,</span><span class="s1">&#39;000000008&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;GPA&#39;</span>         <span class="p">:[</span><span class="mf">3.14</span><span class="p">,</span><span class="mf">3.22</span><span class="p">,</span><span class="mf">2.96</span><span class="p">,</span><span class="mf">3.28</span><span class="p">,</span><span class="mf">2.72</span><span class="p">,</span><span class="mf">2.85</span><span class="p">,</span><span class="mf">2.51</span><span class="p">,</span><span class="mf">2.36</span><span class="p">],</span>
+    <span class="s1">&#39;GMAT&#39;</span>        <span class="p">:[</span><span class="mi">473</span><span class="p">,</span><span class="mi">482</span><span class="p">,</span><span class="mi">596</span><span class="p">,</span><span class="mi">523</span><span class="p">,</span><span class="mi">399</span><span class="p">,</span><span class="mi">381</span><span class="p">,</span><span class="mi">458</span><span class="p">,</span><span class="mi">399</span><span class="p">],</span>
+    <span class="s1">&#39;ADMITTED_IND&#39;</span><span class="p">:[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">})</span>
+
+<span class="c1"># Split data into desiign matrix (X) and response (y) =&gt;</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;GPA&#39;</span><span class="p">,</span> <span class="s1">&#39;GMAT&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">as_matrix</span><span class="p">()</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;ADMITTED_IND&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+
+<span class="c1"># [1] Pre-process explanatory data </span>
+<span class="c1"># we use StandardScaler on explanatory data, which returns the features scaled </span>
+<span class="c1"># with 0 mean and unit variance =&gt;</span>
+<span class="n">scl</span> <span class="o">=</span> <span class="n">StandardScaler</span><span class="p">()</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">scl</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+
+<span class="c1"># [2] Fit model to training data</span>
+<span class="c1"># Instantiate model and call `fit` =&gt;</span>
+<span class="n">clf</span> <span class="o">=</span> <span class="n">GaussianNB</span><span class="p">()</span>
+<span class="n">clf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+
+<span class="c1"># [3] Predict classes on test/holdout data</span>
+<span class="c1"># Testing model on holdout observations =&gt;</span>
+
+<span class="c1"># scale test data by calling scaler&#39;s `transform` method (not fit!) =&gt;</span>
+<span class="n">pre_000000009</span> <span class="o">=</span> <span class="n">scl</span><span class="o">.</span><span class="n">transform</span><span class="p">([[</span><span class="mf">2.90</span><span class="p">,</span> <span class="mi">384</span><span class="p">]])</span>
+<span class="n">pre_000000010</span> <span class="o">=</span> <span class="n">scl</span><span class="o">.</span><span class="n">transform</span><span class="p">([[</span><span class="mf">3.40</span><span class="p">,</span> <span class="mi">431</span><span class="p">]])</span>
+
+<span class="c1"># For 000000009:</span>
+<span class="n">obs_000000009</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">pre_000000009</span><span class="p">)</span>
+
+<span class="c1"># For 000000010:</span>
+<span class="n">obs_000000010</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">pre_000000010</span><span class="p">)</span>
+
+
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;000000009 actual admission status: 0; predicited status: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">obs_000000009</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;000000009 actual admission status: 1; predicited status: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">obs_000000010</span><span class="p">))</span>
+
+<span class="c1"># returns:</span>
+<span class="c1">#    000000009 actual admission status: 0; predicited status: [0]</span>
+<span class="c1">#    000000009 actual admission status: 1; predicited status: [1]</span>
+</pre></div>
+
+
+<p><br>
+We see that the class labels predicted by our model agree with the actual 
+labels in both cases.  <br>
+<br>
+From the Gaussian Naive Bayes classifier, we can access both the label 
+predictions and posterior probabilities for each class. For demonstartion 
+purposes, we&#8217;ll generate the class predictions and probabiltities associated 
+with the training set of eight instances, but in practice you&#8217;ll be interested 
+in determining these metrics for the holdout&nbsp;dataset:</p>
+<div class="highlight"><pre><span></span><span class="c1"># continuing with clf object from above =&gt;</span>
+
+<span class="c1"># get model predicted classes =&gt;</span>
+<span class="n">y_hat</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+
+<span class="c1"># printing y_hat yields:</span>
+        <span class="c1"># array([1, 1, 1, 1, 0, 0, 0, 0], dtype=int64)</span>
+
+<span class="c1"># get model predicted probabilities =&gt;</span>
+<span class="n">p_hat</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X</span><span class="p">)[:,[</span><span class="mi">1</span><span class="p">]]</span>
+
+<span class="c1"># printing p_hat yields =&gt;</span>
+
+        <span class="c1"># array([[ 0.997114],</span>
+        <span class="c1">#        [ 0.999608],</span>
+        <span class="c1">#        [ 1.      ],</span>
+        <span class="c1">#        [ 0.999998],</span>
+        <span class="c1">#        [ 0.000098],</span>
+        <span class="c1">#        [ 0.002745],</span>
+        <span class="c1">#        [ 0.000001],</span>
+        <span class="c1">#        [ 0.      ]])</span>
+</pre></div>
+
+
+<p>Despite their naive design and apparently oversimplified assumptions, Naive Bayes 
+classifiers have worked quite well in many complex real-world situations. 
+In 2004, an analysis of the Bayesian classification problem showed that there 
+are sound theoretical reasons for the apparently implausible efficacy of naive 
+Bayes classifiers <a href="#Footnotes:">2</a>.</p>
+<p>In this post, we covered how to implement a Gaussian Naive Bayes classifier with 
+and without scikit-learn. Due to the <span class="caps">API</span>&#8217;s remarkable level of consistency, 
+implementing a Random Forest or Support Vector Machine with scikit-learn would 
+be virtually identical to the Naive Bayes implementation  above. The library 
+exposes a huge amount of functionality which can seem overwhelming at first, 
+but the documentation is so well compiled with many simple usage examples that 
+it encourages the interested individual to jump right&nbsp;in.    </p>
+<p>Until next time, happy&nbsp;coding!</p>
+<h3>Footnotes:</h3>
+<ol>
+<li>scikit-learn documentaton:&nbsp;http://scikit-learn.org/stable/modules/naive_bayes.html</li>
+<li>https://en.wikipedia.org/wiki/Naive_Bayes_classifier</li>
+</ol>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

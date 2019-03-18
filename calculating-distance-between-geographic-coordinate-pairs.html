@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Calculating Distance Between Geographic Coordinate Pairs - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/calculating-distance-between-geographic-coordinate-pairs.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python" />
+        <meta name="description" content="Using the Haversine formula to compute geographic distances with examples" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Calculating Distance Between Geographic Coordinate Pairs"/>
+        <meta property="og:url" content="https://jtrive84.github.io/calculating-distance-between-geographic-coordinate-pairs.html"/>
+        <meta property="og:description" content="Using the Haversine formula to compute geographic distances with examples"/>
+        <meta property="article:published_time" content="2018-12-28" />
+            <meta property="article:section" content="Python" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Python ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/calculating-distance-between-geographic-coordinate-pairs.html"
+                       rel="bookmark"
+                       title="Permalink to Calculating Distance Between Geographic Coordinate Pairs">
+                        Calculating Distance Between Geographic Coordinate&nbsp;Pairs
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-12-28T00:00:00-06:00"> 2018-12-28</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/python.html">Python</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>For many types of analysis, it is necessary to compute the distance between a 
+pair of geographic coordinates, or the distance between multiple sets of 
+coordinates and a central reference point. This can be readily accomplished by 
+making use of the <em>Haversine formula</em>, which determines the great-circle 
+distance between two points on a sphere given their longitudes and 
+latitudes<sup id=sf-calculating-distance-between-geographic-coordinate-pairs-1-back><a href=#sf-calculating-distance-between-geographic-coordinate-pairs-1 class=simple-footnote title="https://en.wikipedia.org/wiki/Haversine_formula">1</a></sup>. The 
+formulaic representation of the Haversine formula is:      </p>
+<div class=math>$$
+d = 2r\arcsin \left({\sqrt {\sin^{2}\left({\frac{\varphi_{2}-
+    \varphi_{1}}{2}}\right)+\cos(\varphi_{1})\cos(\varphi_{2})\sin^{2}
+    \left({\frac{\lambda_{2}-\lambda_{1}}{2}}\right)}}\right)
+$$</div>
+<p>Where:</p>
+<ul>
+<li><span class=math>\(\phi_{1}\)</span>: Latitude of point 1            </li>
+<li><span class=math>\(\phi_{2}\)</span>: Latitude of point 2        </li>
+<li><span class=math>\(\lambda_{1}\)</span>: Longitude of point 1       </li>
+<li><span class=math>\(\lambda_{2}\)</span>: Longitude of point 2    </li>
+<li><span class=math>\(r\)</span>: The radius of the Earth</li>
+</ul>
+<p>Using this notation:</p>
+<ul>
+<li><span class=math>\((\phi_{1}, \lambda_{1})\)</span>: Geographic coordinate pair 1</li>
+<li><span class=math>\((\phi_{2}, \lambda_{2})\)</span>: Geographic coordinate pair 2</li>
+</ul>
+<p>Geographic coordinates can be specified in many different formats, but one 
+common representation, and the one we’ll focus on for the remainder of the 
+article is the decimal degrees format (e.g., {41.8781N, 87.6298W} for Chicago; 
+{19.4326N, 99.1332W} for Mexico City, etc.).     </p>
+<p>Computer applications typically require the arguments of trigonometric 
+functions to be expressed in 
+radians<sup id=sf-calculating-distance-between-geographic-coordinate-pairs-2-back><a href=#sf-calculating-distance-between-geographic-coordinate-pairs-2 class=simple-footnote title="http://www.movable-type.co.uk/scripts/gis-faq-5.1.html">2</a></sup>. To 
+convert decimal degrees to radians, multiply the number of degrees by 
+<span class=math>\(\pi/180\)</span>.</p>
+<p>The Earth is not a perfect sphere, and as a result, the radius varies as a 
+function of distance from the equator (the radius is <strong>6357km</strong> at the poles 
+and <strong>6378km</strong> at the equator)<sup id=sf-calculating-distance-between-geographic-coordinate-pairs-3-back><a href=#sf-calculating-distance-between-geographic-coordinate-pairs-3 class=simple-footnote title="https://en.wikipedia.org/wiki/Earth_radius">3</a></sup>. 
+Due to this variation, the haversine distance calculation will always contain 
+some error, but for non-antipodal coordinate pairs provides a good 
+approximation. In the examples that follow, we specify a constant Earth radius 
+of <strong>6367km</strong>. Adjust as necessary for your purposes.</p>
+<p>Typically, inverse trigonometric functions return results expressed in 
+radians. This is the case for the Python Standard Library’s inverse 
+trigonometric functions in the <code>math</code> library, which can be verified from the 
+docstring for <code>arcsin</code>:   </p>
+<div class=highlight><pre><span></span><span class=o>&gt;&gt;&gt;</span> <span class=kn>import</span> <span class=nn>math</span>
+<span class=o>&gt;&gt;&gt;</span> <span class=n>help</span><span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>asin</span><span class=p>)</span>
+<span class=n>Help</span> <span class=n>on</span> <span class=n>built</span><span class=o>-</span><span class=ow>in</span> <span class=n>function</span> <span class=n>asin</span> <span class=ow>in</span> <span class=n>module</span> <span class=n>math</span><span class=p>:</span>
+
+<span class=n>asin</span><span class=p>(</span><span class=o>...</span><span class=p>)</span>
+    <span class=n>asin</span><span class=p>(</span><span class=n>x</span><span class=p>)</span>
+
+    <span class=n>Return</span> <span class=n>the</span> <span class=n>arc</span> <span class=n>sine</span> <span class=p>(</span><span class=n>measured</span> <span class=ow>in</span> <span class=n>radians</span><span class=p>)</span> <span class=n>of</span> <span class=n>x</span><span class=o>.</span>
+</pre></div>
+
+
+<p>To express the result in decimal degrees, multiply the number of radians 
+returned by the inverse trigonometric function by <span class=math>\(180/\pi=57.295780\)</span> degrees/radian. </p>
+<p>Next we create a function that computes the haversine formula and returns the 
+distance between two geographic coordinate pairs specified in decimal degrees.</p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>Haversine formula implementation. For more information, refer to:</span>
+
+<span class=sd>    http://www.movable-type.co.uk/scripts/gis-faq-5.1.html</span>
+<span class=sd>"""</span>
+<span class=kn>import</span> <span class=nn>math</span>
+
+
+<span class=k>def</span> <span class=nf>haverdist</span><span class=p>(</span><span class=n>geoloc1</span><span class=p>,</span> <span class=n>geoloc2</span><span class=p>,</span> <span class=n>R</span><span class=o>=</span><span class=mi>6367</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Compute distance between geographic coordinate pairs.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    geoloc1: tuple or list</span>
+<span class=sd>        (lat1, lon1) of first geolocation.</span>
+<span class=sd>    geoloc2: tuple or list</span>
+<span class=sd>        (lat2, lon2) of second geolocation.</span>
+<span class=sd>    R: float</span>
+<span class=sd>        Radius of the Earth (est).</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    float</span>
+<span class=sd>        Distance in kilometers between geoloc1 and geoloc2.</span>
+
+<span class=sd>    See Also</span>
+<span class=sd>    --------</span>
+<span class=sd>    .. [1] http://www.movable-type.co.uk/scripts/gis-faq-5.1.html</span>
+<span class=sd>    """</span>
+    <span class=c1># Convert degress to radians then compute differences.</span>
+    <span class=n>rlat1</span><span class=p>,</span> <span class=n>rlon1</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=o>*</span> <span class=n>math</span><span class=o>.</span><span class=n>pi</span> <span class=o>/</span> <span class=mi>180</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>geoloc1</span><span class=p>]</span>
+    <span class=n>rlat2</span><span class=p>,</span> <span class=n>rlon2</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=o>*</span> <span class=n>math</span><span class=o>.</span><span class=n>pi</span> <span class=o>/</span> <span class=mi>180</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>geoloc2</span><span class=p>]</span>
+    <span class=n>drlat</span><span class=p>,</span> <span class=n>drlon</span> <span class=o>=</span> <span class=p>(</span><span class=n>rlat2</span> <span class=o>-</span> <span class=n>rlat1</span><span class=p>),</span> <span class=p>(</span><span class=n>rlon2</span> <span class=o>-</span> <span class=n>rlon1</span><span class=p>)</span>
+
+    <span class=n>init</span> <span class=o>=</span> <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>drlat</span> <span class=o>/</span> <span class=mf>2.</span><span class=p>))</span><span class=o>**</span><span class=mi>2</span> <span class=o>+</span> <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>rlat1</span><span class=p>))</span> <span class=o>*</span> \
+           <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>rlat2</span><span class=p>))</span> <span class=o>*</span> <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>drlon</span> <span class=o>/</span><span class=mf>2.</span><span class=p>))</span><span class=o>**</span><span class=mi>2</span>
+
+    <span class=c1># The intermediate result `init` is the great circle distance</span>
+    <span class=c1># in radians. The return value will be in the same units as R.</span>
+    <span class=c1># min protects against possible roundoff errors that could</span>
+    <span class=c1># sabotage computation of the arcsine if the two points are</span>
+    <span class=c1># very nearly antipodal, e.g., on opposide sides of the Earth</span>
+    <span class=k>return</span><span class=p>(</span><span class=mf>2.0</span> <span class=o>*</span> <span class=n>R</span> <span class=o>*</span> <span class=n>math</span><span class=o>.</span><span class=n>asin</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=mf>1.</span><span class=p>,</span> <span class=n>math</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>init</span><span class=p>))))</span>
+</pre></div>
+
+
+<p>To test <code>haverdist</code>, we compute the distance between New York City and 
+Chicago. For Chicago, use latitude=41.881832, and longitude=-87.623177 and New 
+York City latitude=40.730610 and longitude=-73.935242. It’s now only a matter 
+of passing the coordinates as tuples to the function and verifying the result:            </p>
+<div class=highlight><pre><span></span><span class=o>&gt;&gt;&gt;</span> <span class=n>loc1</span> <span class=o>=</span> <span class=p>(</span><span class=mf>41.881832</span><span class=p>,</span> <span class=o>-</span><span class=mf>87.623177</span><span class=p>)</span> <span class=c1># Chicago</span>
+<span class=o>&gt;&gt;&gt;</span> <span class=n>loc2</span> <span class=o>=</span> <span class=p>(</span><span class=mf>40.730610</span><span class=p>,</span> <span class=o>-</span><span class=mf>73.935242</span><span class=p>)</span> <span class=c1># NYC</span>
+<span class=o>&gt;&gt;&gt;</span> <span class=n>haverdist</span><span class=p>(</span><span class=n>geoloc1</span><span class=o>=</span><span class=n>loc1</span><span class=p>,</span> <span class=n>geoloc2</span><span class=o>=</span><span class=n>loc2</span><span class=p>,</span> <span class=n>R</span><span class=o>=</span><span class=mi>6367</span><span class=p>)</span>
+<span class=mf>1148.514752233814</span>
+</pre></div>
+
+
+<p>Thus, <code>haverdist</code> indicates that the distance between Chicago, Illinois and 
+New York City is ~1149km. </p>
+<p>If we compare this to Google Maps GeoDistance <span class=caps>API</span> using the same set of 
+coordinate pairs, we get 1,296km. The discrepancy is due to the nature of the 
+measurement: The distance calculated with <code>haverdist</code> computes the shortest 
+distance between the two pairs of geographic coordinates, or the “air travel 
+distance”. The Google Maps <span class=caps>API</span> calculates the driving distance, which is 
+always greater than or equal to the air travel distance.        </p>
+<p>We can validate our measurement using <a href=distancefromto.net>distancefromto.net</a>. 
+Plugging in <a href="https://www.distancefromto.net/distance-from-new-york-to-chicago-us">Chicago to New York City</a>, 
+we see that the air travel distance is 1,149km (714 miles), which agrees with 
+the distance computed using the haversine formula.</p>
+<h3>Application</h3>
+<p>We can use the ability to calculate the distance between two or more 
+geographic coordinate pairs for a variety of purposes. To demonstrate, we use 
+the <code>haverdist</code> function to compute the velocity of the International Space 
+Station with respect to the surface of the Earth, by taking two snapshots of 
+the <span class=caps>ISS</span>’s Earth-relative position separated by a known time differential. The 
+velocity is then the distance between the two sets of coordinates 
+(from <code>haverdist</code>) divided by the time differential. </p>
+<p>In order to obtain the position of the International Space Station relative to 
+the Earth’s surface at any given moment, we leverage the 
+<a href="http://open-notify.org/Open-Notify-API/ISS-Location-Now/">Open Notify <span class=caps>API</span></a>, 
+querying the following <span class=caps>URL</span> (which takes no inputs):</p>
+<div class=highlight><pre><span></span>http://api.open-notify.org/iss-now.json
+</pre></div>
+
+
+<p>A successful response resembles:        </p>
+<div class=highlight><pre><span></span><span class=p>{</span>
+  <span class=nt>"message"</span><span class=p>:</span> <span class=s2>"success"</span><span class=p>,</span> 
+  <span class=nt>"timestamp"</span><span class=p>:</span> <span class=err>UNIX_TIME_STAMP</span><span class=p>,</span> 
+  <span class=nt>"iss_position"</span><span class=p>:</span> <span class=p>{</span>
+    <span class=nt>"latitude"</span><span class=p>:</span> <span class=err>CURRENT_LATITUDE</span><span class=p>,</span> 
+    <span class=nt>"longitude"</span><span class=p>:</span> <span class=err>CURRENT_LONGITUDE</span>
+  <span class=p>}</span>
+<span class=p>}</span>
+</pre></div>
+
+
+<p>According to the Open Notify website, polling should occur at 5 second 
+intervals. We’ll use the same duration as the time differential component in 
+the velocity calculation.      </p>
+<p>In what follows, we define two additional functions: <code>getiss</code> which returns 
+the Open Notify json response with timestamped latitude and longitude of the 
+<span class=caps>ISS</span>, and <code>getspeed</code>, which takes two coordinate pairs and the units in which 
+the computed speed should be returned:       </p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>Compute the speed of ISS relative to the surface of the Earth.</span>
+<span class=sd>Distance calculation relies on the haversine function, which</span>
+<span class=sd>estimates the radius of the Earth as a constant scalar.</span>
+<span class=sd>"""</span>
+<span class=kn>import</span> <span class=nn>datetime</span>
+<span class=kn>import</span> <span class=nn>math</span>
+<span class=kn>import</span> <span class=nn>os</span>
+<span class=kn>import</span> <span class=nn>sys</span>
+<span class=kn>import</span> <span class=nn>time</span>
+<span class=kn>import</span> <span class=nn>requests</span>
+
+
+
+<span class=k>def</span> <span class=nf>getiss</span><span class=p>(</span><span class=n>proxy</span><span class=o>=</span><span class=bp>None</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Get timestamped geo-coordinates of International Space Station.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    proxy: dict, optional</span>
+<span class=sd>        Proxy details if required to make web requests. </span>
+<span class=sd>        Defaults to None. </span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    dict</span>
+<span class=sd>        Dictionary with keys "latitude", "longitude" and </span>
+<span class=sd>        "timestamp" indicating time and position of ISS. </span>
+<span class=sd>    """</span>
+    <span class=n>dpos</span> <span class=o>=</span> <span class=nb>dict</span><span class=p>()</span>
+    <span class=n>url</span>  <span class=o>=</span> <span class=s2>"http://api.open-notify.org/iss-now.json"</span>
+    <span class=n>resp</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>proxies</span><span class=o>=</span><span class=n>proxy</span><span class=p>)</span><span class=o>.</span><span class=n>json</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>resp</span><span class=p>[</span><span class=s2>"message"</span><span class=p>]</span><span class=o>==</span><span class=s2>"success"</span><span class=p>:</span>
+        <span class=n>dpos</span><span class=p>[</span><span class=s2>"timestamp"</span><span class=p>]</span> <span class=o>=</span> <span class=n>resp</span><span class=p>[</span><span class=s2>"timestamp"</span><span class=p>]</span>
+        <span class=n>dpos</span><span class=p>[</span><span class=s2>"latitude"</span><span class=p>]</span>  <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>resp</span><span class=p>[</span><span class=s2>"iss_position"</span><span class=p>][</span><span class=s2>"latitude"</span><span class=p>])</span>
+        <span class=n>dpos</span><span class=p>[</span><span class=s2>"longitude"</span><span class=p>]</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>resp</span><span class=p>[</span><span class=s2>"iss_position"</span><span class=p>][</span><span class=s2>"longitude"</span><span class=p>])</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>RuntimeError</span><span class=p>(</span><span class=s2>"Unable to access Open Notify API"</span><span class=p>)</span>
+    <span class=k>return</span><span class=p>(</span><span class=n>dpos</span><span class=p>)</span>
+
+
+
+<span class=k>def</span> <span class=nf>haverdist</span><span class=p>(</span><span class=n>geoloc1</span><span class=p>,</span> <span class=n>geoloc2</span><span class=p>,</span> <span class=n>R</span><span class=o>=</span><span class=mi>6367</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Compute distance between geographic coordinate pairs in kilometers.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    geoloc1: tuple or list</span>
+<span class=sd>        (lat1, lon1) of first geolocation.</span>
+<span class=sd>    geoloc2: tuple or list</span>
+<span class=sd>        (lat2, lon2) of second geolocation.</span>
+<span class=sd>    R: float</span>
+<span class=sd>        Radius of the Earth (est).</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    float</span>
+<span class=sd>        Distance in kilometers between geoloc1 and geoloc2.</span>
+
+<span class=sd>    See Also</span>
+<span class=sd>    --------</span>
+<span class=sd>    .. [1] http://www.movable-type.co.uk/scripts/gis-faq-5.1.html</span>
+<span class=sd>    """</span>
+    <span class=c1># Convert degress to radians then compute differences.</span>
+    <span class=n>rlat1</span><span class=p>,</span> <span class=n>rlon1</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=o>*</span> <span class=n>math</span><span class=o>.</span><span class=n>pi</span> <span class=o>/</span> <span class=mi>180</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>geoloc1</span><span class=p>]</span>
+    <span class=n>rlat2</span><span class=p>,</span> <span class=n>rlon2</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=o>*</span> <span class=n>math</span><span class=o>.</span><span class=n>pi</span> <span class=o>/</span> <span class=mi>180</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>geoloc2</span><span class=p>]</span>
+    <span class=n>drlat</span><span class=p>,</span> <span class=n>drlon</span> <span class=o>=</span> <span class=p>(</span><span class=n>rlat2</span> <span class=o>-</span> <span class=n>rlat1</span><span class=p>),</span> <span class=p>(</span><span class=n>rlon2</span> <span class=o>-</span> <span class=n>rlon1</span><span class=p>)</span>
+
+    <span class=n>init</span> <span class=o>=</span> <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>drlat</span> <span class=o>/</span> <span class=mf>2.</span><span class=p>))</span><span class=o>**</span><span class=mi>2</span> <span class=o>+</span> <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>rlat1</span><span class=p>))</span> <span class=o>*</span> \
+           <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>rlat2</span><span class=p>))</span> <span class=o>*</span> <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>drlon</span> <span class=o>/</span><span class=mf>2.</span><span class=p>))</span><span class=o>**</span><span class=mi>2</span>
+
+    <span class=c1># The intermediate result `init` is the great circle distance</span>
+    <span class=c1># in radians. The return value will be in the same units as R.</span>
+    <span class=c1># min protects against possible roundoff errors that could</span>
+    <span class=c1># sabotage computation of the arcsine if the two points are</span>
+    <span class=c1># very nearly antipodal, e.g., on opposide sides of the Earth</span>
+    <span class=k>return</span><span class=p>(</span><span class=mf>2.0</span> <span class=o>*</span> <span class=n>R</span> <span class=o>*</span> <span class=n>math</span><span class=o>.</span><span class=n>asin</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=mf>1.</span><span class=p>,</span> <span class=n>math</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>init</span><span class=p>))))</span>
+
+
+
+<span class=k>def</span> <span class=nf>getspeed</span><span class=p>(</span><span class=n>dloc1</span><span class=p>,</span> <span class=n>dloc2</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Compute speed of ISS relative to Earth's surface using</span>
+<span class=sd>    a pair of coordinates retrieved from `getiss`. </span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    dloc1: dict</span>
+<span class=sd>        Dictionary with keys "latitude", "longitude" "timestamp"</span>
+<span class=sd>        associated with the first positional snapshot.</span>
+<span class=sd>    dloc2: dict</span>
+<span class=sd>        Dictionary with keys "latitude", "longitude" "timestamp"</span>
+<span class=sd>        associated with the second positional snapshot.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    float</span>
+<span class=sd>        Scalar value representing the average speed of the International</span>
+<span class=sd>        Space Station relative to the Earth going from ``dloc1`` to </span>
+<span class=sd>        ``dloc2``. </span>
+<span class=sd>    """</span>
+    <span class=c1># Convert unix epochs to timestamp datetime objects.</span>
+    <span class=n>ts1</span>   <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>fromtimestamp</span><span class=p>(</span><span class=n>dloc1</span><span class=p>[</span><span class=s1>'timestamp'</span><span class=p>])</span>
+    <span class=n>ts2</span>   <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>fromtimestamp</span><span class=p>(</span><span class=n>dloc2</span><span class=p>[</span><span class=s1>'timestamp'</span><span class=p>])</span>
+    <span class=n>secs</span>  <span class=o>=</span> <span class=nb>abs</span><span class=p>((</span><span class=n>ts2</span><span class=o>-</span><span class=n>ts1</span><span class=p>)</span><span class=o>.</span><span class=n>total_seconds</span><span class=p>())</span>
+    <span class=n>loc1</span>  <span class=o>=</span> <span class=p>(</span><span class=n>dloc1</span><span class=p>[</span><span class=s2>"latitude"</span><span class=p>],</span> <span class=n>dloc1</span><span class=p>[</span><span class=s2>"longitude"</span><span class=p>])</span>
+    <span class=n>loc2</span>  <span class=o>=</span> <span class=p>(</span><span class=n>dloc2</span><span class=p>[</span><span class=s2>"latitude"</span><span class=p>],</span> <span class=n>dloc2</span><span class=p>[</span><span class=s2>"longitude"</span><span class=p>])</span>
+    <span class=n>dist</span>  <span class=o>=</span> <span class=n>haverdist</span><span class=p>(</span><span class=n>geoloc1</span><span class=o>=</span><span class=n>loc1</span><span class=p>,</span> <span class=n>geoloc2</span><span class=o>=</span><span class=n>loc2</span><span class=p>)</span>
+    <span class=n>vinit</span> <span class=o>=</span> <span class=p>(</span><span class=n>dist</span> <span class=o>/</span> <span class=n>secs</span><span class=p>)</span> <span class=c1># kilometers per second</span>
+    <span class=k>return</span><span class=p>(</span><span class=n>vinit</span> <span class=o>*</span> <span class=mi>3600</span><span class=p>)</span>
+
+
+<span class=c1># Typically, the following would be collected under a `main`</span>
+<span class=c1># function and called from the command line, but for ease of </span>
+<span class=c1># demonstration, we present the logic immediately following </span>
+<span class=c1># the function declarations.</span>
+<span class=n>ts_init</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>now</span><span class=p>()</span><span class=o>.</span><span class=n>strftime</span><span class=p>(</span><span class=s2>"</span><span class=si>%c</span><span class=s2>"</span><span class=p>)</span>
+<span class=k>print</span><span class=p>(</span><span class=n>f</span><span class=s2>"[{ts_init}] Retrieving ISS geographic coordinate snapshots..."</span><span class=p>)</span>
+<span class=n>dpos1</span> <span class=o>=</span> <span class=n>getiss</span><span class=p>()</span>
+<span class=n>time</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>5</span><span class=p>)</span>
+<span class=n>dpos2</span> <span class=o>=</span> <span class=n>getiss</span><span class=p>()</span>
+<span class=n>speed</span> <span class=o>=</span> <span class=n>getspeed</span><span class=p>(</span><span class=n>dloc1</span><span class=o>=</span><span class=n>dpos1</span><span class=p>,</span> <span class=n>dloc2</span><span class=o>=</span><span class=n>dpos2</span><span class=p>)</span>
+<span class=n>ts_final</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>now</span><span class=p>()</span><span class=o>.</span><span class=n>strftime</span><span class=p>(</span><span class=s2>"</span><span class=si>%c</span><span class=s2>"</span><span class=p>)</span>
+<span class=k>print</span><span class=p>(</span><span class=n>f</span><span class=s2>"[{ts_final}] ISS speed relative to Earth's surface: {speed:.2f}km/h"</span><span class=p>)</span>
+</pre></div>
+
+
+<p>Running this produces the following:</p>
+<div class=highlight><pre><span></span>[Sat Dec 29 12:40:30 2018] Retrieving ISS geographic coordinate snapshots...
+[Sat Dec 29 12:40:35 2018] ISS speed relative to Earth's surface: 26253.60km/h
+</pre></div>
+
+
+<p>According to our calculations, the average orbital speed of the <span class=caps>ISS</span> relative 
+to the Earth’s surface for the targeted time interval exceeded 26,000km/h 
+(~16,313.23mph). Wikipedia’s 
+<a href="https://en.wikipedia.org/wiki/International_Space_Station"><span class=caps>ISS</span> page</a> puts the 
+average orbital speed at 27,600km/h (17,100 mph), a difference of only 5% when 
+compared with <code>getspeed</code><span class=quo>‘</span>s estimate, which isn’t bad considering our constant 
+Earth radius assumption.     </p>
+<h3>A Note on Parameterized Decorators</h3>
+<p>The official definition of a decorator is <em>a function that takes another 
+function and extends the behavior of the latter function without explicitly 
+modifying it</em>. I never really understood the purpose of decorators until 
+coming to the realization that they can be used as a way to update the units 
+of a value returned by a function without needing to alter the nature of the 
+function of interest in anyway. </p>
+<p>To illustrate, we refer back to <code>getspeed</code> declared in the previous code block. 
+This function returns a scalar representing the average speed of the <span class=caps>ISS</span> over 
+a given time differential. The result is returned in kilometers per hour, with 
+no parameter available to apply a change of units. To incorporate this 
+functionality, we can either (1) add a <code>units</code> parameter to change the units 
+of the calculated speed prior to returning to caller, or (2) implement a 
+decorator which specifies the units of the calculated value independent of 
+<code>getspeed</code>.         </p>
+<p>In this case, the first option seems like an obvious choice, but instead of 
+<code>getspeed</code> imagine a different function (we’ll call it <code>legacyfunc</code>) that we 
+didn’t author, which has been in production for a very long time, which is 
+very difficult step through due to overly-complicated control structures, has 
+lots of strange optional parameters and many more lines of code than 
+<code>getspeed</code>, was responsible for returning the value of interest, and it is 
+this value that requires a change of units. In this case, leaving the original 
+declaration unmodified and wrapping the result returned by <code>legacyfunc</code> with 
+logic to handle the change of units conversion would be the better choice.       </p>
+<p>We can implement a function to handle the change of units conversion. This 
+will result in a parameterized decorator, the parameter indicating which units 
+to return the orbital speed. For this implementation, the only options will be 
+kilometers per hour or miles per hour, but the decorator can be extended to 
+facilitate any number of additional distance or time conversions.    </p>
+<div class=highlight><pre><span></span><span class=sd>"""</span>
+<span class=sd>Demonstration of parameterized decorator to facilitate change of </span>
+<span class=sd>units conversion.</span>
+<span class=sd>"""</span>
+<span class=kn>import</span> <span class=nn>functools</span>
+
+
+<span class=k>def</span> <span class=nf>units</span><span class=p>(</span><span class=n>spec</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Specify the units to represent orbital speed. `spec` can be either </span>
+<span class=sd>    "kmph" (kilometer per hour) or "mph" (miles per hour). Defaults</span>
+<span class=sd>    to "kmph".</span>
+<span class=sd>    """</span>
+    <span class=k>def</span> <span class=nf>decorator</span><span class=p>(</span><span class=n>function</span><span class=p>):</span>
+        <span class=nd>@functools.wraps</span><span class=p>(</span><span class=n>function</span><span class=p>)</span>
+        <span class=k>def</span> <span class=nf>wrapper</span><span class=p>(</span><span class=o>*</span><span class=n>args</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>):</span>
+            <span class=n>resinit</span> <span class=o>=</span> <span class=n>function</span><span class=p>(</span><span class=o>*</span><span class=n>args</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>)</span>
+            <span class=c1># resinit is speed represented in kilometers per hour</span>
+            <span class=k>if</span> <span class=n>spec</span><span class=o>==</span><span class=s2>"mph"</span><span class=p>:</span>
+                <span class=n>result</span> <span class=o>=</span> <span class=n>resinit</span> <span class=o>*</span> <span class=mf>0.62137119</span> 
+            <span class=k>else</span><span class=p>:</span> <span class=n>result</span> <span class=o>=</span> <span class=n>res_init</span>
+            <span class=k>return</span><span class=p>(</span><span class=n>result</span><span class=p>)</span>
+        <span class=k>return</span><span class=p>(</span><span class=n>wrapper</span><span class=p>)</span>
+    <span class=k>return</span><span class=p>(</span><span class=n>decorator</span><span class=p>)</span>
+</pre></div>
+
+
+<p>Once <code>units</code> has been declared, we modify the declaration of <code>getspeed</code> by 
+referencing the <code>units</code> decorator as follows: </p>
+<div class=highlight><pre><span></span><span class=kn>import</span> <span class=nn>functools</span>
+
+
+<span class=nd>@units</span><span class=p>(</span><span class=s2>"mph"</span><span class=p>)</span>
+<span class=k>def</span> <span class=nf>getspeed</span><span class=p>(</span><span class=n>dloc1</span><span class=p>,</span> <span class=n>dloc2</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Compute speed of ISS relative to Earth's surface using</span>
+<span class=sd>    a pair of coordinates retrieved from `getiss`. </span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    dloc1: dict</span>
+<span class=sd>        Dictionary with keys "latitude", "longitude" "timestamp"</span>
+<span class=sd>        associated with the first positional snapshot.</span>
+<span class=sd>    dloc2: dict</span>
+<span class=sd>        Dictionary with keys "latitude", "longitude" "timestamp"</span>
+<span class=sd>        associated with the second positional snapshot.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    float</span>
+<span class=sd>        Scalar value representing the average speed of the International</span>
+<span class=sd>        Space Station relative to the Earth going from ``dloc1`` to </span>
+<span class=sd>        ``dloc2``. </span>
+<span class=sd>    """</span>
+    <span class=c1># Convert unix epochs to timestamp datetime objects.</span>
+    <span class=n>ts1</span>   <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>fromtimestamp</span><span class=p>(</span><span class=n>dloc1</span><span class=p>[</span><span class=s1>'timestamp'</span><span class=p>])</span>
+    <span class=n>ts2</span>   <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>fromtimestamp</span><span class=p>(</span><span class=n>dloc2</span><span class=p>[</span><span class=s1>'timestamp'</span><span class=p>])</span>
+    <span class=n>secs</span>  <span class=o>=</span> <span class=nb>abs</span><span class=p>((</span><span class=n>ts2</span><span class=o>-</span><span class=n>ts1</span><span class=p>)</span><span class=o>.</span><span class=n>total_seconds</span><span class=p>())</span>
+    <span class=n>loc1</span>  <span class=o>=</span> <span class=p>(</span><span class=n>dloc1</span><span class=p>[</span><span class=s2>"latitude"</span><span class=p>],</span> <span class=n>dloc1</span><span class=p>[</span><span class=s2>"longitude"</span><span class=p>])</span>
+    <span class=n>loc2</span>  <span class=o>=</span> <span class=p>(</span><span class=n>dloc2</span><span class=p>[</span><span class=s2>"latitude"</span><span class=p>],</span> <span class=n>dloc2</span><span class=p>[</span><span class=s2>"longitude"</span><span class=p>])</span>
+    <span class=n>dist</span>  <span class=o>=</span> <span class=n>haverdist</span><span class=p>(</span><span class=n>geoloc1</span><span class=o>=</span><span class=n>loc1</span><span class=p>,</span> <span class=n>geoloc2</span><span class=o>=</span><span class=n>loc2</span><span class=p>)</span>
+    <span class=n>vinit</span> <span class=o>=</span> <span class=p>(</span><span class=n>dist</span> <span class=o>/</span> <span class=n>secs</span><span class=p>)</span> <span class=c1># kilometers per second</span>
+    <span class=k>return</span><span class=p>(</span><span class=n>vinit</span> <span class=o>*</span> <span class=mi>3600</span><span class=p>)</span>
+</pre></div>
+
+
+<p>With this change, the scalar representing kilometers per hour returned by 
+<code>getspeed</code> will be converted to miles per hour. Here’s the full implementation 
+repeated, the differences being the <code>units</code> decoarator and decorated 
+<code>getspeed</code> function:       </p>
+<div class=highlight><pre><span></span><span class=kn>import</span> <span class=nn>datetime</span>
+<span class=kn>import</span> <span class=nn>functools</span>
+<span class=kn>import</span> <span class=nn>math</span>
+<span class=kn>import</span> <span class=nn>os</span>
+<span class=kn>import</span> <span class=nn>sys</span>
+<span class=kn>import</span> <span class=nn>time</span>
+<span class=kn>import</span> <span class=nn>requests</span>
+
+
+
+<span class=k>def</span> <span class=nf>units</span><span class=p>(</span><span class=n>spec</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Specify the units to represent orbital speed. `spec` can be either </span>
+<span class=sd>    "kmph" (kilometer per hour) or "mph" (miles per hour). Defaults</span>
+<span class=sd>    to "kmph".</span>
+<span class=sd>    """</span>
+    <span class=k>def</span> <span class=nf>decorator</span><span class=p>(</span><span class=n>function</span><span class=p>):</span>
+        <span class=nd>@functools.wraps</span><span class=p>(</span><span class=n>function</span><span class=p>)</span>
+        <span class=k>def</span> <span class=nf>wrapper</span><span class=p>(</span><span class=o>*</span><span class=n>args</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>):</span>
+            <span class=n>resinit</span> <span class=o>=</span> <span class=n>function</span><span class=p>(</span><span class=o>*</span><span class=n>args</span><span class=p>,</span> <span class=o>**</span><span class=n>kwargs</span><span class=p>)</span>
+            <span class=c1># resinit is speed represented in kilometers per hour</span>
+            <span class=k>if</span> <span class=n>spec</span><span class=o>==</span><span class=s2>"mph"</span><span class=p>:</span>
+                <span class=n>result</span> <span class=o>=</span> <span class=n>resinit</span> <span class=o>*</span> <span class=mf>0.62137119</span> 
+            <span class=k>else</span><span class=p>:</span> <span class=n>result</span> <span class=o>=</span> <span class=n>res_init</span>
+            <span class=k>return</span><span class=p>(</span><span class=n>result</span><span class=p>)</span>
+        <span class=k>return</span><span class=p>(</span><span class=n>wrapper</span><span class=p>)</span>
+    <span class=k>return</span><span class=p>(</span><span class=n>decorator</span><span class=p>)</span>
+
+
+
+<span class=k>def</span> <span class=nf>getiss</span><span class=p>(</span><span class=n>proxy</span><span class=o>=</span><span class=bp>None</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Get timestamped geo-coordinates of International Space Station.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    proxy: dict, optional</span>
+<span class=sd>        Proxy details if required to make web requests. </span>
+<span class=sd>        Defaults to None. </span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    dict</span>
+<span class=sd>        Dictionary with keys "latitude", "longitude" and </span>
+<span class=sd>        "timestamp" indicating time and position of ISS. </span>
+<span class=sd>    """</span>
+    <span class=n>dpos</span> <span class=o>=</span> <span class=nb>dict</span><span class=p>()</span>
+    <span class=n>url</span>  <span class=o>=</span> <span class=s2>"http://api.open-notify.org/iss-now.json"</span>
+    <span class=n>resp</span> <span class=o>=</span> <span class=n>requests</span><span class=o>.</span><span class=n>get</span><span class=p>(</span><span class=n>url</span><span class=p>,</span> <span class=n>proxies</span><span class=o>=</span><span class=n>proxy</span><span class=p>)</span><span class=o>.</span><span class=n>json</span><span class=p>()</span>
+    <span class=k>if</span> <span class=n>resp</span><span class=p>[</span><span class=s2>"message"</span><span class=p>]</span><span class=o>==</span><span class=s2>"success"</span><span class=p>:</span>
+        <span class=n>dpos</span><span class=p>[</span><span class=s2>"timestamp"</span><span class=p>]</span> <span class=o>=</span> <span class=n>resp</span><span class=p>[</span><span class=s2>"timestamp"</span><span class=p>]</span>
+        <span class=n>dpos</span><span class=p>[</span><span class=s2>"latitude"</span><span class=p>]</span>  <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>resp</span><span class=p>[</span><span class=s2>"iss_position"</span><span class=p>][</span><span class=s2>"latitude"</span><span class=p>])</span>
+        <span class=n>dpos</span><span class=p>[</span><span class=s2>"longitude"</span><span class=p>]</span> <span class=o>=</span> <span class=nb>float</span><span class=p>(</span><span class=n>resp</span><span class=p>[</span><span class=s2>"iss_position"</span><span class=p>][</span><span class=s2>"longitude"</span><span class=p>])</span>
+    <span class=k>else</span><span class=p>:</span>
+        <span class=k>raise</span> <span class=ne>RuntimeError</span><span class=p>(</span><span class=s2>"Unable to access Open Notify API"</span><span class=p>)</span>
+    <span class=k>return</span><span class=p>(</span><span class=n>dpos</span><span class=p>)</span>
+
+
+
+<span class=k>def</span> <span class=nf>haverdist</span><span class=p>(</span><span class=n>geoloc1</span><span class=p>,</span> <span class=n>geoloc2</span><span class=p>,</span> <span class=n>R</span><span class=o>=</span><span class=mi>6367</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Compute distance between geographic coordinate pairs in kilometers.</span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    geoloc1: tuple or list</span>
+<span class=sd>        (lat1, lon1) of first geolocation.</span>
+<span class=sd>    geoloc2: tuple or list</span>
+<span class=sd>        (lat2, lon2) of second geolocation.</span>
+<span class=sd>    R: float</span>
+<span class=sd>        Radius of the Earth (est).</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    float</span>
+<span class=sd>        Distance in kilometers between geoloc1 and geoloc2.</span>
+
+<span class=sd>    See Also</span>
+<span class=sd>    --------</span>
+<span class=sd>    .. [1] http://www.movable-type.co.uk/scripts/gis-faq-5.1.html</span>
+<span class=sd>    """</span>
+    <span class=c1># Convert degress to radians then compute differences.</span>
+    <span class=n>rlat1</span><span class=p>,</span> <span class=n>rlon1</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=o>*</span> <span class=n>math</span><span class=o>.</span><span class=n>pi</span> <span class=o>/</span> <span class=mi>180</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>geoloc1</span><span class=p>]</span>
+    <span class=n>rlat2</span><span class=p>,</span> <span class=n>rlon2</span> <span class=o>=</span> <span class=p>[</span><span class=n>i</span> <span class=o>*</span> <span class=n>math</span><span class=o>.</span><span class=n>pi</span> <span class=o>/</span> <span class=mi>180</span> <span class=k>for</span> <span class=n>i</span> <span class=ow>in</span> <span class=n>geoloc2</span><span class=p>]</span>
+    <span class=n>drlat</span><span class=p>,</span> <span class=n>drlon</span> <span class=o>=</span> <span class=p>(</span><span class=n>rlat2</span> <span class=o>-</span> <span class=n>rlat1</span><span class=p>),</span> <span class=p>(</span><span class=n>rlon2</span> <span class=o>-</span> <span class=n>rlon1</span><span class=p>)</span>
+
+    <span class=n>init</span> <span class=o>=</span> <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>drlat</span> <span class=o>/</span> <span class=mf>2.</span><span class=p>))</span><span class=o>**</span><span class=mi>2</span> <span class=o>+</span> <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>rlat1</span><span class=p>))</span> <span class=o>*</span> \
+           <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>cos</span><span class=p>(</span><span class=n>rlat2</span><span class=p>))</span> <span class=o>*</span> <span class=p>(</span><span class=n>math</span><span class=o>.</span><span class=n>sin</span><span class=p>(</span><span class=n>drlon</span> <span class=o>/</span><span class=mf>2.</span><span class=p>))</span><span class=o>**</span><span class=mi>2</span>
+
+    <span class=c1># The intermediate result `init` is the great circle distance</span>
+    <span class=c1># in radians. The return value will be in the same units as R.</span>
+    <span class=c1># min protects against possible roundoff errors that could</span>
+    <span class=c1># sabotage computation of the arcsine if the two points are</span>
+    <span class=c1># very nearly antipodal, e.g., on opposide sides of the Earth</span>
+    <span class=k>return</span><span class=p>(</span><span class=mf>2.0</span> <span class=o>*</span> <span class=n>R</span> <span class=o>*</span> <span class=n>math</span><span class=o>.</span><span class=n>asin</span><span class=p>(</span><span class=nb>min</span><span class=p>(</span><span class=mf>1.</span><span class=p>,</span> <span class=n>math</span><span class=o>.</span><span class=n>sqrt</span><span class=p>(</span><span class=n>init</span><span class=p>))))</span>
+
+
+
+<span class=nd>@units</span><span class=p>(</span><span class=s2>"mph"</span><span class=p>)</span>
+<span class=k>def</span> <span class=nf>getspeed</span><span class=p>(</span><span class=n>dloc1</span><span class=p>,</span> <span class=n>dloc2</span><span class=p>):</span>
+    <span class=sd>"""</span>
+<span class=sd>    Compute speed of ISS relative to Earth's surface using</span>
+<span class=sd>    a pair of coordinates retrieved from `getiss`. </span>
+
+<span class=sd>    Parameters</span>
+<span class=sd>    ----------</span>
+<span class=sd>    dloc1: dict</span>
+<span class=sd>        Dictionary with keys "latitude", "longitude" "timestamp"</span>
+<span class=sd>        associated with the first positional snapshot.</span>
+<span class=sd>    dloc2: dict</span>
+<span class=sd>        Dictionary with keys "latitude", "longitude" "timestamp"</span>
+<span class=sd>        associated with the second positional snapshot.</span>
+
+<span class=sd>    Returns</span>
+<span class=sd>    -------</span>
+<span class=sd>    float</span>
+<span class=sd>        Scalar value representing the average speed of the International</span>
+<span class=sd>        Space Station relative to the Earth going from ``dloc1`` to </span>
+<span class=sd>        ``dloc2``. </span>
+<span class=sd>    """</span>
+    <span class=c1># Convert unix epochs to timestamp datetime objects.</span>
+    <span class=n>ts1</span>   <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>fromtimestamp</span><span class=p>(</span><span class=n>dloc1</span><span class=p>[</span><span class=s1>'timestamp'</span><span class=p>])</span>
+    <span class=n>ts2</span>   <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>fromtimestamp</span><span class=p>(</span><span class=n>dloc2</span><span class=p>[</span><span class=s1>'timestamp'</span><span class=p>])</span>
+    <span class=n>secs</span>  <span class=o>=</span> <span class=nb>abs</span><span class=p>((</span><span class=n>ts2</span><span class=o>-</span><span class=n>ts1</span><span class=p>)</span><span class=o>.</span><span class=n>total_seconds</span><span class=p>())</span>
+    <span class=n>loc1</span>  <span class=o>=</span> <span class=p>(</span><span class=n>dloc1</span><span class=p>[</span><span class=s2>"latitude"</span><span class=p>],</span> <span class=n>dloc1</span><span class=p>[</span><span class=s2>"longitude"</span><span class=p>])</span>
+    <span class=n>loc2</span>  <span class=o>=</span> <span class=p>(</span><span class=n>dloc2</span><span class=p>[</span><span class=s2>"latitude"</span><span class=p>],</span> <span class=n>dloc2</span><span class=p>[</span><span class=s2>"longitude"</span><span class=p>])</span>
+    <span class=n>dist</span>  <span class=o>=</span> <span class=n>haverdist</span><span class=p>(</span><span class=n>geoloc1</span><span class=o>=</span><span class=n>loc1</span><span class=p>,</span> <span class=n>geoloc2</span><span class=o>=</span><span class=n>loc2</span><span class=p>)</span>
+    <span class=n>vinit</span> <span class=o>=</span> <span class=p>(</span><span class=n>dist</span> <span class=o>/</span> <span class=n>secs</span><span class=p>)</span> <span class=c1># kilometers per second</span>
+    <span class=k>return</span><span class=p>(</span><span class=n>vinit</span> <span class=o>*</span> <span class=mi>3600</span><span class=p>)</span>
+
+
+
+<span class=c1># Note that as a result of decorating `getspeed` with the `units`,</span>
+<span class=c1># the ISS speed estimate will be in miles per hour instead of </span>
+<span class=c1># kilometers per hour.</span>
+<span class=n>ts_init</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>now</span><span class=p>()</span><span class=o>.</span><span class=n>strftime</span><span class=p>(</span><span class=s2>"</span><span class=si>%c</span><span class=s2>"</span><span class=p>)</span>
+<span class=k>print</span><span class=p>(</span><span class=n>f</span><span class=s2>"[{ts_init}] Retrieving ISS geographic coordinate snapshots..."</span><span class=p>)</span>
+<span class=n>dpos1</span> <span class=o>=</span> <span class=n>getiss</span><span class=p>()</span>
+<span class=n>time</span><span class=o>.</span><span class=n>sleep</span><span class=p>(</span><span class=mi>5</span><span class=p>)</span>
+<span class=n>dpos2</span> <span class=o>=</span> <span class=n>getiss</span><span class=p>()</span>
+<span class=n>speed</span> <span class=o>=</span> <span class=n>getspeed</span><span class=p>(</span><span class=n>dloc1</span><span class=o>=</span><span class=n>dpos1</span><span class=p>,</span> <span class=n>dloc2</span><span class=o>=</span><span class=n>dpos2</span><span class=p>)</span>
+<span class=n>ts_final</span> <span class=o>=</span> <span class=n>datetime</span><span class=o>.</span><span class=n>datetime</span><span class=o>.</span><span class=n>now</span><span class=p>()</span><span class=o>.</span><span class=n>strftime</span><span class=p>(</span><span class=s2>"</span><span class=si>%c</span><span class=s2>"</span><span class=p>)</span>
+<span class=k>print</span><span class=p>(</span><span class=n>f</span><span class=s2>"[{ts_final}] ISS speed relative to Earth's surface: {speed:.2f}mph"</span><span class=p>)</span>
+</pre></div>
+
+
+<p>Running results in:      </p>
+<div class=highlight><pre><span></span>[Sat Dec 29 13:44:17 2018] Retrieving ISS geographic coordinate snapshots...
+[Sat Dec 29 13:44:22 2018] ISS speed relative to Earth's surface: 16126.21mph
+</pre></div>
+
+
+<p>Once decorated, the call to <code>getspeed</code> is no different than before. The speed 
+is returned in miles per hour, which is then passed to the decorator, which 
+converts the speed to the units specified.</p>
+<h3>Conclusion</h3>
+<p>The haversine formula can be applied in many cases, and as demonstrated in 
+this post, provides an acceptable method for computing distances between pairs 
+of geographic coordinates. As mentioned before, the constant Earth radius 
+assumption does not exactly model reality, but can still provide relatively 
+accurate distance measurements for locations not nearly antipodal.    <br>
+We also introduced parameterized function decorators, explained their 
+motivation and demonstrated a real-world use case. Decorators have found wide 
+use in Python, and gaining a deeper understanding of their use cases will only 
+make you a better developer. Until next time, happy coding!</p>
+<hr>
+
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script><ol class=simple-footnotes><li id=sf-calculating-distance-between-geographic-coordinate-pairs-1>https://en.wikipedia.org/wiki/Haversine_formula <a href=#sf-calculating-distance-between-geographic-coordinate-pairs-1-back class=simple-footnote-back>↩</a></li><li id=sf-calculating-distance-between-geographic-coordinate-pairs-2>http://www.movable-type.co.uk/scripts/gis-faq-5.1.html <a href=#sf-calculating-distance-between-geographic-coordinate-pairs-2-back class=simple-footnote-back>↩</a></li><li id=sf-calculating-distance-between-geographic-coordinate-pairs-3>https://en.wikipedia.org/wiki/Earth_radius <a href=#sf-calculating-distance-between-geographic-coordinate-pairs-3-back class=simple-footnote-back>↩</a></li></ol>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

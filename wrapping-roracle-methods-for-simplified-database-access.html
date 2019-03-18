@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Wrapping ROracle Methods for Simplified Database Access - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/wrapping-roracle-methods-for-simplified-database-access.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="R,ROracle,closures,database" />
+        <meta name="description" content="Wrapping ROracle methods using closures in R" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Wrapping ROracle Methods for Simplified Database Access"/>
+        <meta property="og:url" content="https://jtrive84.github.io/wrapping-roracle-methods-for-simplified-database-access.html"/>
+        <meta property="og:description" content="Wrapping ROracle methods using closures in R"/>
+        <meta property="article:published_time" content="2016-12-13" />
+            <meta property="article:section" content="R" />
+            <meta property="article:tag" content="R" />
+            <meta property="article:tag" content="ROracle" />
+            <meta property="article:tag" content="closures" />
+            <meta property="article:tag" content="database" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/r.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out R ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/wrapping-roracle-methods-for-simplified-database-access.html"
+                       rel="bookmark"
+                       title="Permalink to Wrapping ROracle Methods for Simplified Database Access">
+                        Wrapping ROracle Methods for Simplified Database&nbsp;Access
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2016-12-13T20:18:00-06:00"> 2016-12-13</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/r.html">R</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/r.html">R</a>
+        /
+	<a href="https://jtrive84.github.io/tag/roracle.html">ROracle</a>
+        /
+	<a href="https://jtrive84.github.io/tag/closures.html">closures</a>
+        /
+	<a href="https://jtrive84.github.io/tag/database.html">database</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>The <a href="https://cran.r-project.org/web/packages/ROracle/ROracle.pdf">ROracle</a> library exposes a powerful collection of methods intended to simplify  the exchange of data and other resources across the R-Oracle interface. In particular, R data.frames and/or data.tables can be uploaded to Oracle without first having to explicitly generate <span class="caps">DDL</span>: Simply pass the necessary login credentials, name of the table to be created and a data.frame to 
+<code>dbWriteTable</code>, and ROracle takes care of the&nbsp;rest.</p>
+<p>Querying existing Oracle table data is even more straightforward: To query a table as is without filtering conditions, pass 1) authentication details in the form of a connection object, and 2) the name of the table in question to <code>dbReadTable</code>. The dataset will be and returned as a data.frame.  If a <span class="caps">WHERE</span> clause is necessary, instead pass the same connection object along with a query string to <code>dbGetQuery</code>. </p>
+<p>What follows are call signatures for some of the more commonly used methods of the  <code>OraConnection</code> class (trailing <code>...</code> represents additional method arguments. See the <a href="https://cran.r-project.org/web/packages/ROracle/ROracle.pdf">ROracle documentation</a> for the full&nbsp;specification):</p>
+<div class="highlight"><pre><span></span>dbGetQuery    signature<span class="p">(</span>conn<span class="o">=</span><span class="s">&quot;OraConnection&quot;</span><span class="p">,</span> statement<span class="o">=</span><span class="s">&quot;character&quot;</span><span class="p">,</span> <span class="kc">...</span> <span class="p">)</span>
+dbReadTable   signature<span class="p">(</span>conn<span class="o">=</span><span class="s">&quot;OraConnection&quot;</span><span class="p">,</span> name<span class="o">=</span><span class="s">&quot;character&quot;</span><span class="p">)</span>
+dbWriteTable  signature<span class="p">(</span>conn<span class="o">=</span><span class="s">&quot;OraConnection&quot;</span><span class="p">,</span> name<span class="o">=</span><span class="s">&quot;character&quot;</span><span class="p">,</span> value<span class="o">=</span><span class="s">&quot;data.frame&quot;</span><span class="p">)</span>
+dbExistsTable signature<span class="p">(</span>conn<span class="o">=</span><span class="s">&quot;OraConnection&quot;</span><span class="p">,</span> name<span class="o">=</span><span class="s">&quot;character&quot;</span><span class="p">)</span>
+dbRemoveTable signature<span class="p">(</span>conn<span class="o">=</span><span class="s">&quot;OraConnection&quot;</span><span class="p">,</span> name<span class="o">=</span><span class="s">&quot;character&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>For the following examples, assume we&#8217;ll be interacting with <code>SAMPLE_TABLE</code> located in <code>SAMPLE_SCHEMA</code> from the <code>SAMPLE_DB</code> database:</p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span>ROracle<span class="p">)</span>
+
+tablename <span class="o">&lt;-</span> <span class="s">&quot;SAMPLE_TABLE&quot;</span>
+schema    <span class="o">&lt;-</span> <span class="s">&quot;SAMPLE_SCHEMA&quot;</span>
+password  <span class="o">&lt;-</span> <span class="s">&quot;PASSWORD&quot;</span>
+db        <span class="o">&lt;-</span> <span class="s">&quot;SAMPLE_DB&quot;</span>
+oradrv    <span class="o">&lt;-</span> dbDriver<span class="p">(</span><span class="s">&quot;Oracle&quot;</span><span class="p">)</span>   <span class="c1"># Creates an Oracle Database instance</span>
+
+<span class="c1"># pass authentication details to `dbConnect` =&gt;</span>
+conn <span class="o">&lt;-</span> dbConnect<span class="p">(</span>drv<span class="o">=</span>oradrv<span class="p">,</span> 
+                  username<span class="o">=</span>schema<span class="p">,</span> 
+                  password<span class="o">=</span>password<span class="p">,</span> 
+                  dbname<span class="o">=</span>db<span class="p">)</span>
+</pre></div>
+
+
+<p>An Oracle database instance has been created and a database connection setup. All that&#8217;s left to do is pass the connection and tablename along to <code>dbReadTable</code>, and the dataset will be returned to R as a&nbsp;data.frame:</p>
+<div class="highlight"><pre><span></span>df <span class="o">&lt;-</span> dbReadTable<span class="p">(</span>conn<span class="o">=</span>conn<span class="p">,</span> name<span class="o">=</span>tablename<span class="p">)</span>
+
+<span class="kp">print</span><span class="p">(</span><span class="kp">class</span><span class="p">(</span>df<span class="p">))</span>    <span class="c1"># returns `data.frame`</span>
+<span class="kp">print</span><span class="p">(</span><span class="kp">nrow</span><span class="p">(</span>df<span class="p">))</span>     <span class="c1"># returns number of rows in df</span>
+<span class="kp">print</span><span class="p">(</span><span class="kp">ncol</span><span class="p">(</span>df<span class="p">))</span>     <span class="c1"># returns number of cols in df</span>
+</pre></div>
+
+
+<p>A query string can be passed to <code>dbGetQuery</code> to handle situations in which the dataset first requires filtering prior to returning to R (unlike 
+<code>dbGetTable</code> which returns all table&nbsp;records):</p>
+<div class="highlight"><pre><span></span><span class="c1"># using the same connection created earlier =&gt;</span>
+SQLstr <span class="o">&lt;-</span> <span class="s">&quot;SELECT * FROM SAMPLE_TABLE WHERE FIELD_1=&#39;Y&#39;&quot;</span>
+df_2   <span class="o">&lt;-</span> dbGetQuery<span class="p">(</span>conn<span class="o">=</span>conn<span class="p">,</span> statement<span class="o">=</span>SQLstr<span class="p">)</span>
+
+<span class="kp">print</span><span class="p">(</span><span class="kp">class</span><span class="p">(</span>df_2<span class="p">))</span>      <span class="c1"># returns `data.frame`</span>
+<span class="kp">print</span><span class="p">(</span><span class="kp">nrow</span><span class="p">(</span>df_2<span class="p">))</span>       <span class="c1"># returns number of rows in df</span>
+<span class="kp">print</span><span class="p">(</span><span class="kp">ncol</span><span class="p">(</span>df_2<span class="p">))</span>       <span class="c1"># returns number of cols in df</span>
+</pre></div>
+
+
+<p>R data.frames can be loaded into Oracle tables via <code>dbWriteTable</code>:</p>
+<div class="highlight"><pre><span></span><span class="c1"># using the same connection created earlier, and assuming `df2export` is a</span>
+<span class="c1"># data.frame with all(ncol(df2export)&gt;0, nrow(df2export)&gt;0)) = TRUE =&gt;</span>
+newtablename <span class="o">&lt;-</span> <span class="s">&quot;NEW_SAMPLE_TABLE&quot;</span>
+
+result <span class="o">&lt;-</span> dbWriteTable<span class="p">(</span>conn<span class="o">=</span>conn<span class="p">,</span>
+                       name<span class="o">=</span>newtablename<span class="p">,</span>
+                       value<span class="o">=</span>df2export<span class="p">)</span>
+</pre></div>
+
+
+<p>When finished, terminate the database connection (<code>dbDisconnect</code>) and remove the communication link between Oracle and the R client (<code>dbUnloadDriver</code>):</p>
+<div class="highlight"><pre><span></span>dbDisconnect<span class="p">(</span>conn<span class="p">)</span>
+
+<span class="c1"># verify that `dbListConnections` is empty =&gt;</span>
+dbListConnections<span class="p">(</span>oradrv<span class="p">)</span>
+
+<span class="c1"># remove communication link between database and R client =&gt;</span>
+dbUnloadDriver<span class="p">(</span>oradrv<span class="p">)</span>
+</pre></div>
+
+
+<h2>Wrapping ROracle Methods: Working with&nbsp;Closures</h2>
+<p>Closures get their name because they enclose the environment of the parent function and can access all its variables (check out <a href="http://adv-r.had.co.nz/Functional-programming.html#closures">this</a> section from Hadley Wickham&#8217;s <a href="http://adv-r.had.co.nz/"><em>Advanced R</em></a> for an excellent introduction to closures and their application). 
+We&#8217;re going to use R&#8217;s closure abstraction to create a wrapper around <code>dbReadTable</code> and <code>dbWriteTable</code> from the <code>OraConnection</code> class that will allow 
+writing/retrieving data to/from Oracle without having to pass a connection object at each invocation. The outer function handles authentication details, while 
+the inner function takes the connection object and passes it to the  wrapped <code>OraConnection</code> class method, along with either a tablename (in the case of 
+<code>dbReadTable</code>) or a tablename and data.frame/data.table (in the case of <code>dbWriteTable</code>). </p>
+<h3>Exporting Datasets from Oracle to&nbsp;R</h3>
+<p>First we&#8217;ll create the retrevial closure, which wraps <code>dbReadTable</code>. The same connection is used as before, 
+repeated here for&nbsp;convenience:</p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span>ROracle<span class="p">)</span>
+
+tablename <span class="o">&lt;-</span> <span class="s">&quot;SAMPLE_TABLE&quot;</span>
+schema    <span class="o">&lt;-</span> <span class="s">&quot;SAMPLE_SCHEMA&quot;</span>
+password  <span class="o">&lt;-</span> <span class="s">&quot;PASSWORD&quot;</span>
+db        <span class="o">&lt;-</span> <span class="s">&quot;SAMPLE_DB&quot;</span>
+oradrv    <span class="o">&lt;-</span> dbDriver<span class="p">(</span><span class="s">&quot;Oracle&quot;</span><span class="p">)</span>   <span class="c1"># Creates an Oracle Database instance</span>
+
+<span class="c1"># pass authentication details to `dbConnect` =&gt;</span>
+conn <span class="o">&lt;-</span> dbConnect<span class="p">(</span>drv<span class="o">=</span>oradrv<span class="p">,</span>
+                  username<span class="o">=</span>schema<span class="p">,</span>
+                  password<span class="o">=</span>password<span class="p">,</span>
+                  dbname<span class="o">=</span>db<span class="p">)</span>
+
+<span class="c1"># `dfGetTableAuth`: simple dbReadTable wrapper =&gt; </span>
+dfGetTableAuth <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>connection<span class="p">)</span> <span class="p">{</span>
+    conn <span class="o">&lt;-</span> connection
+    <span class="kr">function</span><span class="p">(</span>tablename<span class="p">)</span> <span class="p">{</span>
+        df <span class="o">&lt;-</span> <span class="kp">as.data.frame</span><span class="p">(</span>dbReadTable<span class="p">(</span>conn<span class="p">,</span> tablename<span class="p">))</span>
+        <span class="kr">return</span><span class="p">(</span>df<span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+
+<p><code>dfGetTableAuth</code> takes a single argument: An <code>ROracle</code> connection object. After <code>dfGetTableAuth</code> initialization, it will no longer be necessary to pass 
+the connection along with a tablename or SQLstr at each <code>dbReadTable</code> invocation:</p>
+<div class="highlight"><pre><span></span><span class="c1"># Authenticate to `SAMPLE_SCHEMA@SAMPLE_DB` =&gt;</span>
+dfGetTable <span class="o">&lt;-</span> dfGetTableAuth<span class="p">(</span>connection<span class="o">=</span>conn<span class="p">)</span>    <span class="c1"># only pass `conn` once</span>
+
+
+<span class="c1"># Verify that dfGetTable&#39;s argument is `tablename` =&gt;</span>
+<span class="kp">print</span><span class="p">(</span><span class="kp">formals</span><span class="p">(</span>dfGetTable<span class="p">))</span>    <span class="c1"># prints &#39;tablename&#39;</span>
+
+
+<span class="c1"># Query `TABLE_1`, `TABLE_2`, `TABLE_3` &amp; `TABLE_4` from SAMPLE_SCHEMA@SAMPLE_DB</span>
+<span class="c1"># and return the dataset as an R data.frame. </span>
+<span class="c1"># (It is not necessary to pass &quot;tablename=&lt;tablename&gt;&quot; as a key-value pair. Passing </span>
+<span class="c1"># the tablename alone as a string will suffice. In this example, the `tablename` keyword is </span>
+<span class="c1"># provided for clarity) =&gt;</span>
+table_1 <span class="o">&lt;-</span> dfGetTable<span class="p">(</span>tablename<span class="o">=</span><span class="s">&quot;TABLE_1&quot;</span><span class="p">)</span>
+table_2 <span class="o">&lt;-</span> dfGetTable<span class="p">(</span>tablename<span class="o">=</span><span class="s">&quot;TABLE_2&quot;</span><span class="p">)</span>
+table_3 <span class="o">&lt;-</span> dfGetTable<span class="p">(</span>tablename<span class="o">=</span><span class="s">&quot;TABLE_3&quot;</span><span class="p">)</span>
+table_4 <span class="o">&lt;-</span> dfGetTable<span class="p">(</span>tablename<span class="o">=</span><span class="s">&quot;TABLE_4&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>As demonstrated in the standard usage examples of <code>dbReadTable</code> and <code>dbGetQuery</code>, we can replace <code>tablename</code> with <code>SQLstr</code> and <code>dbReadTable</code> with <code>dbGetQuery</code> 
+in <code>dfGetTableAuth</code>. This will transform our closure from one that takes a connection object followed by a tablename, to one that takes a connection object 
+followed by any valid <span class="caps">SQL</span> <span class="caps">SELECT</span>-stamement, rendering the construct much more generally&nbsp;applicable:</p>
+<div class="highlight"><pre><span></span><span class="c1"># Assume same connection as above  </span>
+
+<span class="c1"># `dfGetSQLAuth`: simple dbGetQuery wrapper =&gt; </span>
+dfGetSQLAuth <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>connection<span class="p">)</span> <span class="p">{</span>
+    conn <span class="o">&lt;-</span> connection
+    <span class="kr">function</span><span class="p">(</span>SQLstr<span class="p">)</span> <span class="p">{</span>
+        df <span class="o">&lt;-</span> <span class="kp">as.data.frame</span><span class="p">(</span>dbGetQuery<span class="p">(</span>conn<span class="p">,</span> SQLstr<span class="p">))</span>
+        <span class="kr">return</span><span class="p">(</span>df<span class="p">)</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1"># Authenticate to `SAMPLE_SCHEMA@SAMPLE_DB` =&gt;</span>
+dfGetSQL <span class="o">&lt;-</span> dfGetSQLAuth<span class="p">(</span>connection<span class="o">=</span>conn<span class="p">)</span>
+
+<span class="c1"># Verify that dfGetSQL&#39;s argument is `SQLstr` =&gt;</span>
+<span class="kp">print</span><span class="p">(</span><span class="kp">formals</span><span class="p">(</span>dfGetTable<span class="p">))</span>    <span class="c1"># prints &#39;SQLstr&#39;</span>
+
+SQL_1 <span class="o">&lt;-</span> <span class="s">&quot;SELECT * FROM TABLE_1 WHERE FIELD_1=&#39;Y&#39;&quot;</span>
+SQL_2 <span class="o">&lt;-</span> <span class="s">&quot;SELECT * FROM TABLE_2 WHERE FIELD_1=&#39;N&#39;&quot;</span>
+SQL_3 <span class="o">&lt;-</span> <span class="s">&quot;SELECT * FROM TABLE_3 WHERE FIELD_1=&#39;Y&#39;&quot;</span>
+SQL_4 <span class="o">&lt;-</span> <span class="s">&quot;SELECT * FROM TABLE_4 WHERE FIELD_1=&#39;N&#39;&quot;</span>
+
+result_1 <span class="o">&lt;-</span> dfGetSQL<span class="p">(</span>SQLstr<span class="o">=</span>SQL_1<span class="p">)</span>
+result_2 <span class="o">&lt;-</span> dfGetSQL<span class="p">(</span>SQLstr<span class="o">=</span>SQL_2<span class="p">)</span>
+result_3 <span class="o">&lt;-</span> dfGetSQL<span class="p">(</span>SQLstr<span class="o">=</span>SQL_3<span class="p">)</span>
+result_4 <span class="o">&lt;-</span> dfGetSQL<span class="p">(</span>SQLstr<span class="o">=</span>SQL_4<span class="p">)</span>   <span class="c1"># Each result is a data.frame</span>
+</pre></div>
+
+
+<h3>Importing Datasets to Oracle From&nbsp;R</h3>
+<p>Similiar to the previous wrapping of <code>dbReadTable</code> and <code>dbGetQuery</code>, <code>dbWriteTable</code> can be wrapped, resulting in a closure initially requiring a connection 
+object, followed by a tablename and an R data.frame/data.table to load into a database table. Assuming the same connection as before, we want to import the 
+R data.frame <code>df2export</code> into <code>SAMPLE_SCHEMA</code>, and want to name it <code>DATA_FROM_R</code>. First, we&#8217;ll define our&nbsp;closure: </p>
+<div class="highlight"><pre><span></span><span class="c1"># `dfPutTableAuth`: simple dbGetQuery wrapper =&gt; </span>
+dfPutTableAuth <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>connection<span class="p">)</span> <span class="p">{</span>
+    conn <span class="o">&lt;-</span> connection
+    <span class="kr">function</span><span class="p">(</span>df<span class="p">,</span> tablename<span class="p">)</span> <span class="p">{</span>
+        <span class="kr">if</span> <span class="p">(</span>dbExistsTable<span class="p">(</span>conn<span class="p">,</span> tablename<span class="p">))</span> <span class="p">{</span>
+            dbRemoveTable<span class="p">(</span>conn<span class="p">,</span> tablename<span class="p">,</span> purge<span class="o">=</span><span class="kc">TRUE</span><span class="p">)</span>
+        <span class="p">}</span>
+        retcode<span class="o">=</span>dbWriteTable<span class="p">(</span>conn<span class="o">=</span>conn<span class="p">,</span> 
+                             name<span class="o">=</span>tablename<span class="p">,</span> 
+                             value<span class="o">=</span>df<span class="p">)</span>       
+        <span class="kr">return</span><span class="p">(</span><span class="kp">ifelse</span><span class="p">(</span>retcode<span class="o">==</span><span class="kc">TRUE</span><span class="p">,</span><span class="m">0</span><span class="p">,</span><span class="m">1</span><span class="p">))</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+
+<span class="c1"># Authenticate to `SAMPLE_SCHEMA@SAMPLE_DB` =&gt;</span>
+dfPutTable <span class="o">&lt;-</span> dfPutTableAuth<span class="p">(</span>connection<span class="o">=</span>conn<span class="p">)</span>
+
+<span class="c1"># Verify that dfPutTable&#39;s arguments are `df` and `tablename` =&gt;</span>
+<span class="kp">print</span><span class="p">(</span><span class="kp">formals</span><span class="p">(</span>dfPutTable<span class="p">))</span>    <span class="c1"># prints &#39;df&#39; and &#39;tablename&#39;</span>
+
+<span class="c1"># Load `df2export` to `SAMPLE_SCHEMA@SAMPLE_DB` =&gt;</span>
+exit_status <span class="o">&lt;-</span> dfPutTable<span class="p">(</span>df<span class="o">=</span>df2export<span class="p">,</span> tablename<span class="o">=</span><span class="s">&quot;DATA_FROM_R&quot;</span><span class="p">)</span>
+
+<span class="kr">if</span> <span class="p">(</span><span class="o">!</span>exit_status<span class="o">==</span><span class="m">0</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kp">stop</span><span class="p">(</span><span class="s">&quot;An error occurred attempting to create `DATA_FROM_R`. Exiting.&quot;</span><span class="p">)</span>
+<span class="p">}</span>
+
+
+dbDisconnect<span class="p">(</span>conn<span class="p">)</span>
+dbUnloadDriver<span class="p">(</span>oradrv<span class="p">)</span>
+</pre></div>
+
+
+<p>A few things to note about <code>dfPutTableAuth</code>:</p>
+<ul>
+<li>
+<p>If a table with the same name as <code>tablename</code> exists in the target
+  schema, it will first be purged prior to loading <df>. This behavior
+  can be modified by placing a third inner function argument named 
+  something like &#8216;delete_if_exists&#8217;, set to <span class="caps">FALSE</span> by default, allowing 
+  for finer-grained control over how to handle name collisions in a 
+  particular&nbsp;schema. </p>
+</li>
+<li>
+<p><code>dbWriteTable</code> returns <code>TRUE</code> upon successful table load, <code>FALSE</code> 
+  otherwise. If you anticipate a boolean return value from your 
+  implementation, there&#8217;s no need to coerce the returned value to 
+  0 or&nbsp;1. </p>
+</li>
+</ul>
+<p>In summary, we&#8217;ve demonstrated how to use R closures to wrap existing <code>ROracle</code> <code>OraConnection</code> methods 
+for Oracle table access, permitting us to forego the provision of an database connection object at each
+function invocation, thus simplifying the call and response across the R-Oracle&nbsp;interface. </p>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

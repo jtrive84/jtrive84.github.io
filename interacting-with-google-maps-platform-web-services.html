@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Interacting with Google Maps Platform Web Services - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/interacting-with-google-maps-platform-web-services.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python" />
+        <meta name="description" content="Obtaining coordinates, elevation, distance and directions using the Google Maps API" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Interacting with Google Maps Platform Web Services"/>
+        <meta property="og:url" content="https://jtrive84.github.io/interacting-with-google-maps-platform-web-services.html"/>
+        <meta property="og:description" content="Obtaining coordinates, elevation, distance and directions using the Google Maps API"/>
+        <meta property="article:published_time" content="2018-12-31" />
+            <meta property="article:section" content="Python" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Python ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/interacting-with-google-maps-platform-web-services.html"
+                       rel="bookmark"
+                       title="Permalink to Interacting with Google Maps Platform Web Services">
+                        Interacting with Google Maps Platform Web&nbsp;Services
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-12-31T00:00:00-06:00"> 2018-12-31</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/python.html">Python</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>The Google Maps Platform offers a number of Web Services all things map 
+related: End users can retrieve geographic coordinates from addresses, lookup 
+an address from a geographic coordinate pair, retrieve elevation data, travel 
+distance and time and directions in a programmatic way. In this post, we 
+demonstrate how to query and retrieve various geogrpahic data using the Web 
+Services <span class="caps">API</span> directly and without the aid of any 3rd-party Python packages 
+(the one exception being <code>requests</code>). </p>
+<p>Note that in order to access the Web Services <span class="caps">API</span>, you need to obtain an <span class="caps">API</span> 
+key. Details can be found <a href="https://developers.google.com/maps/documentation/distance-matrix/get-api-key">here</a>.       </p>
+<p>Also note that although we do not rely on 3rd-party packages in this post, 
+packages do exist that help simplify interacting with the Google Maps 
+Platform. One such package is <a href="https://github.com/googlemaps/google-maps-services-python"><code>googlemaps</code></a>.    </p>
+<p>In the remainder of this post, we demonstrate how to perform the&nbsp;following:    </p>
+<ul>
+<li>Determine latitude and longitude from a street&nbsp;address    </li>
+<li>Address lookup from (latitude, longitude) coordinate&nbsp;pair     </li>
+<li>Compute the distance between two sets of coordinate&nbsp;pairs      </li>
+<li>Compute the elevation of an address or coordinate&nbsp;pair       </li>
+<li>Retrieve directions between two locations (addresses or&nbsp;coordinates)</li>
+<li>Place a pin corresponding to a particular address or coordinate pair on a&nbsp;map     </li>
+</ul>
+<p>In addition task-specific parameters, each of the functions introduced in this 
+article will include four additional&nbsp;parameters: </p>
+<ul>
+<li><code>authkey</code>: Required to access the Google Maps&nbsp;Platform      </li>
+<li><code>proxy</code>: Proxy server specific details (Defaults to&nbsp;None)           </li>
+<li><code>full_response</code>: Return unmodified json response as opposed to parsed response (Defaults to&nbsp;False)</li>
+<li><code>dryrun</code>: If True, return encoded url then exit (Defaults to&nbsp;False)      </li>
+</ul>
+<p>If <code>proxy</code> is specified, it should be a dict, similar to the&nbsp;following:   </p>
+<div class="highlight"><pre><span></span><span class="n">proxydict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;http&quot;</span> <span class="p">:</span><span class="s2">&quot;http://USERNAME:PASSWORD@proxy.address.com:PORT/&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;https&quot;</span><span class="p">:</span><span class="s2">&quot;https://USERNAME:PASSWORD@proxy.address.com:PORT/&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+</pre></div>
+
+
+<h2>Determine Latitude and Longitude from a Street&nbsp;Address</h2>
+<p>For this example, we introduce <code>get_latlng</code>. Task-specific arguments&nbsp;include:</p>
+<ul>
+<li><code>address</code>: String address for which to lookup (lat,&nbsp;lng)    </li>
+</ul>
+<p>The&nbsp;implementation:     </p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Retrieve coordinates for specified address using Google Maps API.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+
+
+<span class="n">API_KEY</span>  <span class="o">=</span> <span class="s2">&quot;API_KEY&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">get_latlng</span><span class="p">(</span><span class="n">address</span><span class="p">,</span> <span class="n">authkey</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">full_response</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">dryrun</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Obtain geographic coordinates corresponding to address.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Either dict of parsed values or full json response as dict.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    https://developers.google.com/maps/documentation/geocoding/start</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">baseurl</span> <span class="o">=</span> <span class="s2">&quot;https://maps.googleapis.com/maps/api/geocode/json?address=&quot;</span>
+    <span class="n">addrstr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;\s+&quot;</span><span class="p">,</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">address</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">fullurl</span> <span class="o">=</span> <span class="n">baseurl</span> <span class="o">+</span> <span class="n">addrstr</span> <span class="o">+</span> <span class="s2">&quot;&amp;key=&quot;</span> <span class="o">+</span> <span class="n">authkey</span>
+    <span class="k">if</span> <span class="n">dryrun</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;lat&quot;</span><span class="p">:</span><span class="bp">None</span><span class="p">,</span> <span class="s2">&quot;lng&quot;</span><span class="p">:</span><span class="bp">None</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fullurl</span><span class="p">,</span> <span class="n">proxies</span><span class="o">=</span><span class="n">proxy</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">full_response</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;geometry&quot;</span><span class="p">][</span><span class="s2">&quot;location&quot;</span><span class="p">]</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;lat&quot;</span><span class="p">:</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span> <span class="s2">&quot;lng&quot;</span><span class="p">:</span><span class="n">coords</span><span class="p">[</span><span class="s2">&quot;lng&quot;</span><span class="p">]}</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+
+<p>We can test <code>get_latlng</code> with the address of <span class="caps">CNA</span>&#8217;s home office, <code>151 N.Randolph, Chicago, IL 60606</code>:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">addr</span> <span class="o">=</span> <span class="s2">&quot;151 N. Franklin Chicago IL 60606&quot;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">resp</span> <span class="o">=</span> <span class="n">get_latlng</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">authkey</span><span class="o">=</span><span class="n">API_KEY</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">lat</span><span class="p">,</span> <span class="n">lng</span> <span class="o">=</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;lat&quot;</span><span class="p">],</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;lng&quot;</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;(Latitude, Longitude): {lat}, {lng}&quot;</span><span class="p">)</span>
+<span class="p">(</span><span class="n">Latitude</span><span class="p">,</span> <span class="n">Longitude</span><span class="p">):</span> <span class="mf">41.8845877</span><span class="p">,</span> <span class="o">-</span><span class="mf">87.6352125</span>
+</pre></div>
+
+
+<p><code>get_latlng</code> returns a dict with three keys:<code>url</code>, corresponding to the 
+encoded url submitted to the <span class="caps">API</span>, <code>lat</code> representing the latitude of the 
+address and <code>lng</code> the longitude of the&nbsp;address.       </p>
+<h2>Address Retrieval from (latitude, longitude) Coordinate&nbsp;Pair</h2>
+<p>Next we introduce <code>get_address</code>. The call signature is identical to 
+<code>get_latlng</code>, except <code>address</code> is replaced with <code>coords</code>:    </p>
+<ul>
+<li><code>coords</code>: Coordinate pair for location of&nbsp;interest</li>
+</ul>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_address</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">authkey</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">full_response</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">dryrun</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reverse geocode lookup. For a given coordinate pair, return the</span>
+<span class="sd">    associated address, or most proximate address to the location.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Either dict of parsed values or full json response as dict.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    https://developers.google.com/maps/documentation/geocoding/start</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">baseurl</span> <span class="o">=</span> <span class="s2">&quot;https://maps.googleapis.com/maps/api/geocode/json?latlng=&quot;</span>
+    <span class="n">locstr</span>  <span class="o">=</span> <span class="n">locstr1</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">)</span>
+    <span class="n">fullurl</span> <span class="o">=</span> <span class="n">baseurl</span> <span class="o">+</span> <span class="n">locstr</span> <span class="o">+</span> <span class="s2">&quot;&amp;key=&quot;</span> <span class="o">+</span> <span class="n">authkey</span>
+    <span class="k">if</span> <span class="n">dryrun</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span><span class="bp">None</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fullurl</span><span class="p">,</span> <span class="n">proxies</span><span class="o">=</span><span class="n">proxy</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">full_response</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">address</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;formatted_address&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;address&quot;</span><span class="p">:</span><span class="n">address</span><span class="p">}</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+
+<p>We test <code>get_address</code> with the coordinates returned by <code>get_latlng</code>, 
+(41.8845877, -87.6352125). We anticipate the response to be at or near 
+<code>151 N.Randolph, Chicago, IL 60606</code>:    </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">coords</span> <span class="o">=</span> <span class="p">(</span><span class="mf">41.8845877</span><span class="p">,</span><span class="o">-</span><span class="mf">87.6352125</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">resp</span> <span class="o">=</span> <span class="n">get_address</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">authkey</span><span class="o">=</span><span class="n">API_KEY</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">resp</span><span class="p">[</span><span class="s2">&quot;address&quot;</span><span class="p">]</span>
+<span class="s1">&#39;151 N Franklin St, Chicago, IL 60606, USA&#39;</span>
+</pre></div>
+
+
+<h2>Determine Travel Distance Between Two Sets of Coordinate&nbsp;Pairs</h2>
+<p>In a previous <a href="https://jtrive84.github.io/calculating-distance-between-geographic-coordinate-pairs.html">post</a>, we introduced a 
+method to determine the air distance between two non-antipodal locations on 
+the Earth&#8217;s surface using the Haversine formula. Alternatively, we can use the 
+Google Maps Distance Matrix <span class="caps">API</span> to compute the distance between two addresses 
+or sets coordinate pairs, but the distance will be the <em>driving distance</em>, not 
+the air&nbsp;distance.      </p>
+<p>Task specific arguments for <code>get_dist</code> include:</p>
+<ul>
+<li>loc1: List of geographic coordinates (lat, lng) or address as&nbsp;str   </li>
+<li>loc2: List of geographic coordinates (lat, lng) or address as&nbsp;str        </li>
+</ul>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_dist</span><span class="p">(</span><span class="n">loc1</span><span class="p">,</span> <span class="n">loc2</span><span class="p">,</span> <span class="n">authkey</span><span class="p">,</span>  <span class="n">proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">full_response</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+             <span class="n">dryrun</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute distance between two addresses or coordinate pairs.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Either dict of parsed values or full json response as dict.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    https://developers.google.com/maps/documentation/distance-matrix/start</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">baseurl</span> <span class="o">=</span> <span class="s2">&quot;https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&quot;</span>
+
+    <span class="c1"># locs are either a sequence of coordinates or string address.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loc1</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">locstr1</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">loc1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">locstr1</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;\s+&quot;</span><span class="p">,</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">loc1</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loc2</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">locstr2</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">loc2</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">locstr2</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;\s+&quot;</span><span class="p">,</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">loc2</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">initstr</span>  <span class="o">=</span> <span class="s2">&quot;&amp;origins=&quot;</span>      <span class="o">+</span> <span class="n">locstr1</span>
+    <span class="n">deststr</span>  <span class="o">=</span> <span class="s2">&quot;&amp;destinations=&quot;</span> <span class="o">+</span> <span class="n">locstr2</span> <span class="o">+</span> <span class="s2">&quot;&amp;key=&quot;</span> <span class="o">+</span> <span class="n">authkey</span>
+    <span class="n">fullurl</span>  <span class="o">=</span> <span class="n">baseurl</span> <span class="o">+</span> <span class="n">initstr</span> <span class="o">+</span> <span class="n">deststr</span>
+    <span class="k">if</span> <span class="n">dryrun</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;distance&quot;</span><span class="p">:</span><span class="bp">None</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fullurl</span><span class="p">,</span> <span class="n">proxies</span><span class="o">=</span><span class="n">proxy</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">full_response</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">distance</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;rows&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;elements&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;distance&quot;</span><span class="p">][</span><span class="s2">&quot;value&quot;</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1000</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;distance&quot;</span><span class="p">:</span><span class="n">distance</span><span class="p">}</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Let&#8217;s retrieve the unprocessed response first by setting <code>full_response=True</code>, 
+then the processed response after. To test <code>get_dist</code>, we request the distance 
+between London (51.509865, -0.118092) and Berlin (52.520008,&nbsp;13.404954):     </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">coords1</span> <span class="o">=</span> <span class="p">(</span><span class="mf">51.509865</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.118092</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">coords2</span> <span class="o">=</span> <span class="p">(</span><span class="mf">52.520008</span><span class="p">,</span> <span class="mf">13.404954</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">get_dist</span><span class="p">(</span><span class="n">coords1</span><span class="p">,</span> <span class="n">coords2</span><span class="p">,</span> <span class="n">authkey</span><span class="o">=</span><span class="n">API_KEY</span><span class="p">,</span> <span class="n">full_response</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="p">{</span><span class="s1">&#39;destination_addresses&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;B2 7, 10178 Berlin, Germany&#39;</span><span class="p">],</span>
+ <span class="s1">&#39;origin_addresses&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;1 Waterloo Bridge, London WC2R 2AB, UK&#39;</span><span class="p">],</span>
+ <span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;elements&#39;</span><span class="p">:</span> <span class="p">[{</span><span class="s1">&#39;distance&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="s1">&#39;1,095 km&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="mi">1094974</span><span class="p">},</span>
+     <span class="s1">&#39;duration&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="s1">&#39;12 hours 2 mins&#39;</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="mi">43318</span><span class="p">},</span>
+     <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;OK&#39;</span><span class="p">}]}],</span>
+ <span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;OK&#39;</span><span class="p">}</span>
+</pre></div>
+
+
+<p>And the processed&nbsp;response:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">coords1</span> <span class="o">=</span> <span class="p">(</span><span class="mf">51.509865</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.118092</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">coords2</span> <span class="o">=</span> <span class="p">(</span><span class="mf">52.520008</span><span class="p">,</span> <span class="mf">13.404954</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">get_dist</span><span class="p">(</span><span class="n">coords1</span><span class="p">,</span> <span class="n">coords2</span><span class="p">,</span> <span class="n">authkey</span><span class="o">=</span><span class="n">API_KEY</span><span class="p">,</span> <span class="n">full_response</span><span class="o">=</span><span class="bp">False</span><span class="p">)[</span><span class="s2">&quot;distance&quot;</span><span class="p">]</span>
+<span class="mf">1094.974</span>
+</pre></div>
+
+
+<h2>Determine the Elevation of an Address or Coordinate&nbsp;Pair</h2>
+<p><code>get_elevation</code> takes one task-specific&nbsp;argument:</p>
+<ul>
+<li><code>loc</code>: The target location for elevation determination as coordinate pair or address as&nbsp;string    </li>
+</ul>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_elevation</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">authkey</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">full_response</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                  <span class="n">dryrun</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the elevation of the specified location.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Either dict of parsed values or full json response as dict.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    .. [1] https://developers.google.com/maps/documentation/elevation/start</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">baseurl</span> <span class="o">=</span> <span class="s2">&quot;https://maps.googleapis.com/maps/api/elevation/json?locations=&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">locstr</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">loc</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">locstr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;\s+&quot;</span><span class="p">,</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">fullurl</span>  <span class="o">=</span> <span class="n">baseurl</span> <span class="o">+</span> <span class="n">locstr</span> <span class="o">+</span> <span class="s2">&quot;&amp;key=&quot;</span> <span class="o">+</span> <span class="n">authkey</span>
+    <span class="k">if</span> <span class="n">dryrun</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;elevation&quot;</span><span class="p">:</span><span class="bp">None</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fullurl</span><span class="p">,</span> <span class="n">proxies</span><span class="o">=</span><span class="n">proxy</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">full_response</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">elevation</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;elevation&quot;</span><span class="p">]</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;elevation&quot;</span><span class="p">:</span><span class="n">elevation</span><span class="p">}</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Determining the elevation of Atlanta, Georgia (33.753746,&nbsp;-84.386330):      </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">coords</span> <span class="o">=</span> <span class="p">(</span><span class="mf">33.753746</span><span class="p">,</span> <span class="o">-</span><span class="mf">84.386330</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">get_elevation</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">authkey</span><span class="o">=</span><span class="n">API_KEY</span><span class="p">)[</span><span class="s2">&quot;elevation&quot;</span><span class="p">]</span>
+<span class="mf">312.0538635253906</span>
+</pre></div>
+
+
+<h2>Retrieve Directions Between Two&nbsp;Locations</h2>
+<p><code>get_directions</code> returns the directions between two locations, provided as a 
+coordinate pair or as string addresses. Task specific arguments&nbsp;are:    </p>
+<ul>
+<li><code>start</code>: Starting address as string or coordinate&nbsp;pair     </li>
+<li><code>end</code>: Ending address as string or coordinate&nbsp;pair         </li>
+</ul>
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">get_directions</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">authkey</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">full_response</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                   <span class="n">dryrun</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate directions from start location to end location.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        Either dict of parsed values or full json response as dict.</span>
+
+<span class="sd">    References</span>
+<span class="sd">    ----------</span>
+<span class="sd">    https://developers.google.com/maps/documentation/directions/start</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">baseurl</span> <span class="o">=</span> <span class="s2">&quot;https://maps.googleapis.com/maps/api/directions/json?&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">initstr</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">start</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">initstr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;\s+&quot;</span><span class="p">,</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">start</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">end</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">deststr</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">end</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">deststr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;\s+&quot;</span><span class="p">,</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">fullurl</span> <span class="o">=</span> \
+        <span class="n">baseurl</span> <span class="o">+</span> <span class="s2">&quot;origin=&quot;</span> <span class="o">+</span> <span class="n">initstr</span> <span class="o">+</span> <span class="s2">&quot;&amp;destination=&quot;</span> <span class="o">+</span> <span class="n">deststr</span> <span class="o">+</span> <span class="s2">&quot;&amp;key=&quot;</span> <span class="o">+</span> <span class="n">authkey</span>
+    <span class="k">if</span> <span class="n">dryrun</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;directions&quot;</span><span class="p">:</span><span class="bp">None</span><span class="p">}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fullurl</span><span class="p">,</span> <span class="n">proxies</span><span class="o">=</span><span class="n">proxy</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">full_response</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">response</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Parse html instructions for plain-text display.</span>
+            <span class="n">stepslist</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;routes&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;legs&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;steps&quot;</span><span class="p">]</span>
+            <span class="n">directions</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="s2">&quot;html_instructions&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">stepslist</span><span class="p">]</span>
+            <span class="n">directions</span> <span class="o">=</span> <span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&lt;/?b&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">]</span>
+            <span class="n">directions</span> <span class="o">=</span> <span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&lt;div.*?&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">]</span>
+            <span class="n">directions</span> <span class="o">=</span> <span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&lt;/div&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">]</span>
+            <span class="n">directions</span> <span class="o">=</span> <span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&amp;nbsp;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">directions</span><span class="p">]</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;url&quot;</span><span class="p">:</span><span class="n">fullurl</span><span class="p">,</span> <span class="s2">&quot;directions&quot;</span><span class="p">:</span><span class="n">directions</span><span class="p">}</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+
+
+<p>To test, we request directions between Fermilab in Batavia, Illinois and 
+Argonne National Laboratory in Lemont,&nbsp;Illinois:     </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">addr1</span> <span class="o">=</span> <span class="s2">&quot;Kirk Road and Pine Street Batavia IL 60510-5011&quot;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">addr2</span> <span class="o">=</span> <span class="s2">&quot;9700 Cass Avenue, Lemont, IL 60439&quot;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">get_directions</span><span class="p">(</span><span class="n">addr1</span><span class="p">,</span> <span class="n">addr2</span><span class="p">,</span> <span class="n">authkey</span><span class="o">=</span><span class="n">API_KEY</span><span class="p">)[</span><span class="s2">&quot;directions&quot;</span><span class="p">]</span>
+<span class="p">[</span><span class="s1">&#39;Head west on Pine St toward Kirk Rd&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Turn left onto Woodland Hills Rd&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Turn left onto Chillem Dr&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Turn right onto Kirk Rd&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Continue onto N Farnsworth Ave&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Take the Route 88 E ramp to Chicago Toll road&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Merge onto I-88 E Toll road&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Take exit 131 toward Joliet Toll road&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Merge onto I-355 S Toll road&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Keep left at the fork to stay on I-355 S Toll road&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Take exit 12B to merge onto I-55 N toward Chicago&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Take exit 271A for S Lemont Rd&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Merge onto Lemont Rd&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Turn left onto Westgate Rd Partial restricted usage road&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Turn right onto Outer Cir Restricted usage road&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;Turn right onto Bluff Rd/Southwood Dr Restricted usage road Destination will be on the right&#39;</span><span class="p">]</span>
+</pre></div>
+
+
+<h2>Place a Pin Corresponding to a Particular Address or Coordinate Pair on a&nbsp;Map</h2>
+<p><code>pin_address</code> takes a single task-specific argument <code>loc</code>, representing the target&nbsp;address. </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">webbrowser</span>
+
+<span class="k">def</span> <span class="nf">pin_address</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="n">authkey</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set pin at location given by address using google maps API.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">baseurl</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;https://www.google.com/maps/search/?api=1&amp;query=&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loc</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">locstr</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">loc</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">locstr</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot;\s+&quot;</span><span class="p">,</span> <span class="s2">&quot;+&quot;</span><span class="p">,</span> <span class="n">loc</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">fullurl</span> <span class="o">=</span> <span class="n">baseurl</span> <span class="o">+</span> <span class="n">locstr</span> <span class="o">+</span> <span class="s2">&quot;&amp;key=&quot;</span> <span class="o">+</span> <span class="n">authkey</span>
+    <span class="n">webbrowser</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">fullurl</span><span class="p">,</span> <span class="n">new</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span>
+</pre></div>
+
+
+<p>We test <code>pin_address</code> by placing a pin at Argonne National&nbsp;Laboratory:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">addr</span> <span class="o">=</span> <span class="s2">&quot;9700 Cass Avenue, Lemont, IL 60439&quot;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">pin_address</span><span class="p">(</span><span class="n">addr</span><span class="p">,</span> <span class="n">authkey</span><span class="o">=</span><span class="n">API_KEY</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Renders the&nbsp;following:</p>
+<p><br>
+<p align="center"> 
+<img alt="pinaddress" src="/images/pinaddress.png">
+</p> <br>
+<br></p>
+<h2>Conclusion</h2>
+<p>In this post, we introduced how to access the Google Maps <span class="caps">API</span> directly, 
+without the aid of 3rd-party utilities. There are other use cases in which the 
+Google Maps <span class="caps">API</span> can be leveraged, and I encourage you to explore them. Until 
+next time, happy&nbsp;coding!</p>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

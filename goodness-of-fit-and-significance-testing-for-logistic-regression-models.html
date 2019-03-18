@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Goodness of Fit and Significance Testing for Logistic Regression Models - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/goodness-of-fit-and-significance-testing-for-logistic-regression-models.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Statistical Modeling,R" />
+        <meta name="description" content="Assessing the quality of fit of a Logistic Regression model" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Goodness of Fit and Significance Testing for Logistic Regression Models"/>
+        <meta property="og:url" content="https://jtrive84.github.io/goodness-of-fit-and-significance-testing-for-logistic-regression-models.html"/>
+        <meta property="og:description" content="Assessing the quality of fit of a Logistic Regression model"/>
+        <meta property="article:published_time" content="2017-06-06" />
+            <meta property="article:section" content="Statistical Modeling" />
+            <meta property="article:tag" content="Statistical Modeling" />
+            <meta property="article:tag" content="R" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/statistical-modeling.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Statistical Modeling ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/goodness-of-fit-and-significance-testing-for-logistic-regression-models.html"
+                       rel="bookmark"
+                       title="Permalink to Goodness of Fit and Significance Testing for Logistic Regression Models">
+                        Goodness of Fit and Significance Testing for Logistic Regression&nbsp;Models
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-06-06T00:00:00-05:00"> 2017-06-06</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical Modeling</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/statistical-modeling.html">Statistical Modeling</a>
+        /
+	<a href="https://jtrive84.github.io/tag/r.html">R</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>In an earlier <a href="https://jtrive84.github.io/estimating-logistic-regression-coefficents-from-scratch-r-version.html">post</a>, we implemented the Fisher Scoring algorithm, which we then used to estimate the coefficients for a Logistic Regression model. We demonstrated that our algorithm&#8217;s coefficient estimates were identical to the coefficients produced by R&#8217;s <code>glm</code> function, but we didn&#8217;t formally assess the quality of the model in any way. In this post, we&#8217;ll determine the goodness of fit of our Logistic Regression model and test the the significance of our coefficient&nbsp;estimates. </p>
+<h2>Deviance</h2>
+<p><a href="https://en.wikipedia.org/wiki/Deviance_(statistics)">Deviance</a> is used as goodness of fit measure for Generalized Linear Models, and in cases when parameters are estimated using maximum likelihood, is a generalization of the residual sum of squares in Ordinary Least Squares Regression. The deviance of a fitted model compares the log-likelihood of the model of interest to the log-likelihood of the <em>saturated model</em>, the model with n parameters that fits the n observations perfectly, but is overparameterized to the point that it is basically just interpolating the&nbsp;data.</p>
+<p>In large samples, deviance follows a chi-square distribution with <span class="math">\(n-p\)</span> degrees of freedom, where <span class="math">\(n\)</span> is the number of observations and <span class="math">\(p\)</span> is the number of parameters in the model. The null hypothesis, <span class="math">\(H_{0}\)</span>, is that the model fits. The alternative hypothesis, <span class="math">\(H_{1}\)</span>, is that the model does not fit. A deviance much higher than <span class="math">\(n-p\)</span> indicates the model is a poor fit to the data. Quantifiably, smaller is always better: The smaller the deviance, the better the fit of the&nbsp;model.</p>
+<p>Let:</p>
+<ul>
+<li><span class="math">\(\hat{L}\)</span> = the likelihood for the current model of&nbsp;interest      </li>
+<li><span class="math">\(\hat{L}_{max}\)</span> = the likelihood of the saturated model, the model having n parameters which fit the n observations&nbsp;perfectly        </li>
+<li><span class="math">\(\hat{l}\)</span> = the log-likelihood for the current model of&nbsp;interest       </li>
+<li><span class="math">\(\hat{l}_{max}\)</span> = the log-likelihood of the saturated model, the model having n parameters which fit the n observations&nbsp;perfectly        </li>
+</ul>
+<p>Then the <em>deviance</em> can be represented&nbsp;as:</p>
+<div class="math">$$
+D = -2Ln \Big(\frac{\hat{L}}{\hat{L}_{max}}\Big) = -2(\hat{l} - \hat{l}_{max})
+$$</div>
+<p>As demonstrated [here](({filename}/articles/Statistical_Modeling/Logistic_Estimation.md), the binomial log-likelihood function&nbsp;is:</p>
+<div class="math">$$
+l(\hat{\beta}) = \sum_{i=1}^n \big(y_{i}Ln(\pi_{i}) + (1-y_{i})Ln(1 - \pi_{i})\big)
+$$</div>
+<p>For the saturated model, <span class="math">\(\pi_{i}=y_{i}\)</span>, and for the model of interest, <span class="math">\(\pi_{i} = \hat{y}_{i}\)</span>. Thus, the the deviance is represented&nbsp;as:</p>
+<div class="math">$$
+D = 2\sum_{i=1}^n \Big(y_{i} Ln\frac{y_{i}}{\hat{y}_{i}}+(1-y_{i})Ln \frac{1 - y_{i}}{1 - \hat{y}_{i}}\Big)
+$$</div>
+<h2>Calculation</h2>
+<p>For the example in this post, we&#8217;ll be using <a href="https://gist.github.com/jtrive84/f4185fcbf02a92138b76d8ae56e5ffad">PlacekickerData.csv</a>, a data set with a dichotomous response indicating the success or failure of all placekicks in the 1995 <span class="caps">NFL</span> season <a href="#Footnotes:">1</a>. What follows is a brief description of the fields in <em>PlacekickerData.csv</em>:</p>
+<ul>
+<li><strong><span class="caps">WEEK</span></strong>: Week of the <span class="caps">NFL</span>&nbsp;season     </li>
+<li><strong><span class="caps">DISTANCE</span></strong>: Distance in yards of the&nbsp;placekick    </li>
+<li><strong><span class="caps">CHANGE</span></strong>: Whether success of the placekick would have resulted in a lead-change (1) or not&nbsp;(0)   </li>
+<li><strong><span class="caps">ELAP30</span></strong>: Minutes remaining before trhe end of the&nbsp;half    </li>
+<li><strong><span class="caps">PAT</span></strong>: Point After Attempt (1) or field goal&nbsp;(0)   </li>
+<li><strong><span class="caps">TYPE</span></strong>: Outdoor (1) or indoor&nbsp;(0)   </li>
+<li><strong><span class="caps">FIELD</span></strong>: Grass (1) or artificial turf&nbsp;(0)           </li>
+<li><strong><span class="caps">WIND</span></strong>:Whether placekick was attepted in windy conditions (1) or not&nbsp;(0)</li>
+<li><strong><span class="caps">GOOD</span></strong>: The response variable, (1) if placekick is successful, otherwise&nbsp;(0)           </li>
+</ul>
+<p>We will model <em><span class="caps">GOOD</span></em> as a function of <em><span class="caps">DISTANCE</span></em> and <em><span class="caps">WIND</span></em>.First read the dataset into R then pass the model specification to <code>glm</code> in order to generate the model summary&nbsp;statistics:</p>
+<div class="highlight"><pre><span></span>df <span class="o">&lt;-</span> read.table<span class="p">(</span>
+             file<span class="o">=</span><span class="s">&quot;PlacekickerData.csv&quot;</span><span class="p">,</span>
+             header<span class="o">=</span><span class="kc">TRUE</span><span class="p">,</span> 
+             sep<span class="o">=</span><span class="s">&quot;,&quot;</span><span class="p">,</span> 
+             stringsAsFactors<span class="o">=</span><span class="kc">FALSE</span>
+             <span class="p">)</span>
+
+
+pkfit <span class="o">&lt;-</span> glm<span class="p">(</span>
+          formula<span class="o">=</span>GOOD <span class="o">~</span> DISTANCE <span class="o">+</span> WIND<span class="p">,</span>
+          family<span class="o">=</span>binomial<span class="p">(</span>link<span class="o">=</span>logit<span class="p">),</span>
+          data<span class="o">=</span>df
+          <span class="p">)</span>
+</pre></div>
+
+
+<p>Calling <code>summary(pkfit)</code> returns:</p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="kp">summary</span><span class="p">(</span>pkfit<span class="p">)</span>
+
+glm<span class="p">(</span>formula <span class="o">=</span> GOOD <span class="o">~</span> DISTANCE <span class="o">+</span> WIND<span class="p">,</span> family <span class="o">=</span> binomial<span class="p">(</span>link <span class="o">=</span> logit<span class="p">),</span> 
+    data <span class="o">=</span> df2<span class="p">)</span>
+
+Deviance Residuals<span class="o">:</span> 
+    Min       <span class="m">1</span>Q   Median       <span class="m">3</span>Q      Max  
+<span class="m">-2.7662</span>   <span class="m">0.2353</span>   <span class="m">0.2353</span>   <span class="m">0.3706</span>   <span class="m">1.5914</span>  
+
+Coefficients<span class="o">:</span>
+             Estimate Std. Error z value Pr<span class="p">(</span><span class="o">&gt;|</span>z<span class="o">|</span><span class="p">)</span>    
+<span class="p">(</span>Intercept<span class="p">)</span>  <span class="m">5.884528</span>   <span class="m">0.331916</span>  <span class="m">17.729</span>   <span class="o">&lt;</span><span class="m">2e-16</span> <span class="o">***</span>
+DISTANCE    <span class="m">-0.115588</span>   <span class="m">0.008396</span> <span class="m">-13.767</span>   <span class="o">&lt;</span><span class="m">2e-16</span> <span class="o">***</span>
+WIND        <span class="m">-0.582124</span>   <span class="m">0.314051</span>  <span class="m">-1.854</span>   <span class="m">0.0638</span> <span class="m">.</span>  
+<span class="o">---</span>
+Signif. codes<span class="o">:</span>  <span class="m">0</span> ‘<span class="o">***</span>’ <span class="m">0.001</span> ‘<span class="o">**</span>’ <span class="m">0.01</span> ‘<span class="o">*</span>’ <span class="m">0.05</span> ‘<span class="m">.</span>’ <span class="m">0.1</span> ‘ ’ <span class="m">1</span>
+
+<span class="p">(</span>Dispersion parameter <span class="kr">for</span> binomial family taken to be <span class="m">1</span><span class="p">)</span>
+
+    Null deviance<span class="o">:</span> <span class="m">1013.43</span>  on <span class="m">1424</span>  degrees of freedom
+Residual deviance<span class="o">:</span>  <span class="m">772.53</span>  on <span class="m">1422</span>  degrees of freedom
+AIC<span class="o">:</span> <span class="m">778.53</span>
+</pre></div>
+
+
+<p>The following sections highlight the calculations used in generating the model summary&nbsp;statistics.</p>
+<h3>Residual&nbsp;Deviance</h3>
+<p>We&#8217;ll begin by reproducing the <em>Residual Deviance</em> (or simply the <em>deviance</em>) output, which, for the model in question, has a value of <span class="math">\(772.53\)</span>. To do so, we make use of the fact that specific to Logistic Regression models, the likelihood of the saturated model is 1, which means the saturated model&#8217;s log-likelihood is 0. Thus the original Deviance expression, <span class="math">\(D = 2(l_{max} - l)\)</span> reduces to <span class="math">\(D = -2l\)</span>. The deviance is computed by multiplying the model of interest&#8217;s log-likelihood by <span class="math">\(-2\)</span>:</p>
+<div class="highlight"><pre><span></span><span class="c1"># recall that pkfit resulted from calling glm on `PlacekickerData.csv`</span>
+<span class="c1"># with model specification GOOD ~ DISTANCE + WIND =&gt;</span>
+fitted <span class="o">&lt;-</span> <span class="kp">unname</span><span class="p">(</span>pkfit<span class="o">$</span>fitted.values<span class="p">)</span>
+actual <span class="o">&lt;-</span> df<span class="o">$</span>GOOD
+
+
+<span class="c1"># function to compute the log-likelihood</span>
+<span class="c1"># y  =&gt; actual values (1/0)</span>
+<span class="c1"># pi =&gt; fitted probabilities</span>
+ll <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>y<span class="p">,</span> <span class="kc">pi</span><span class="p">)</span> <span class="kr">return</span><span class="p">(</span>y<span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="kc">pi</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="m">1</span><span class="o">-</span>y<span class="p">)</span><span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="m">1</span><span class="o">-</span><span class="kc">pi</span><span class="p">))</span>
+
+D <span class="o">&lt;-</span> <span class="m">-2</span> <span class="o">*</span> <span class="kp">sum</span><span class="p">(</span>ll<span class="p">(</span>y<span class="o">=</span>actual<span class="p">,</span> <span class="kc">pi</span><span class="o">=</span>fitted<span class="p">))</span>
+
+<span class="kp">print</span><span class="p">(</span>D<span class="p">)</span>
+<span class="c1"># yields 772.5335</span>
+</pre></div>
+
+
+<p>Looking back at <em>Residual deviance</em> in the original model summary, we note that the results are identical (<span class="math">\(772.53\)</span> from the summary vrs. <span class="math">\(772.5335\)</span>&nbsp;here). </p>
+<p>To test the goodness of fit of the model, recall that the null hypothesis is that the model is correctly specified. Pass the residual deviance, <span class="math">\(772.5335\)</span> along with the model degrees of freedom to <code>pchisq</code> to determine whether there is strong evidence to reject the null&nbsp;hypothesis:</p>
+<div class="highlight"><pre><span></span>df       <span class="o">&lt;-</span> <span class="m">1422</span>
+deviance <span class="o">&lt;-</span> <span class="m">772.5335</span>
+p_val    <span class="o">&lt;-</span> pchisq<span class="p">(</span>deviance<span class="p">,</span> df<span class="o">=</span>df<span class="p">,</span> lower.tail<span class="o">=</span><span class="kc">FALSE</span><span class="p">)</span>
+
+<span class="kp">print</span><span class="p">(</span>p_val<span class="p">)</span>
+<span class="c1"># returns 1</span>
+</pre></div>
+
+
+<p>There is no evidence to reject the null hypothesis that the model fits. 
+Also note that the model passes the &#8216;off-the-cuff&#8217; goodness of fit test since the deviance is less than <span class="math">\(n-p\)</span>, <span class="math">\(772.5335 &lt; 1425-3 = 1422\)</span>.</p>
+<h3>Null&nbsp;Deviance</h3>
+<p>The <em>null deviance</em> shows how well the model with nothing but an intercept predicts the response. If the null deviance is really small, it means that the intercept-only model sufficiently explains the data.  <br>
+To calculate <em>null deviance</em>, the same approach used to calculate residual deviance can be leveraged by simply replacing the fitted values with the mean over all values of the&nbsp;response:</p>
+<div class="highlight"><pre><span></span><span class="c1"># recall that pkfit resulted from calling glm on `PlacekickerData.csv`</span>
+<span class="c1"># with model specification GOOD ~ DISTANCE + WIND =&gt;</span>
+actual <span class="o">&lt;-</span> df<span class="o">$</span>GOOD
+ravg   <span class="o">&lt;-</span> <span class="kp">mean</span><span class="p">(</span>df<span class="o">$</span>GOOD<span class="p">)</span> <span class="c1"># 0.885614</span>
+
+<span class="c1"># function to compute the log-likelihood</span>
+<span class="c1"># y  =&gt; actual values (1/0)</span>
+<span class="c1"># pi =&gt; fitted probabilities</span>
+ll <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>y<span class="p">,</span> <span class="kc">pi</span><span class="p">)</span> <span class="kr">return</span><span class="p">(</span>y<span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="kc">pi</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="m">1</span><span class="o">-</span>y<span class="p">)</span><span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="m">1</span><span class="o">-</span><span class="kc">pi</span><span class="p">))</span>
+
+nullDeviance <span class="o">&lt;-</span> <span class="m">-2</span> <span class="o">*</span> <span class="kp">sum</span><span class="p">(</span>ll<span class="p">(</span>y<span class="o">=</span>actual<span class="p">,</span> <span class="kc">pi</span><span class="o">=</span>ravg<span class="p">))</span>
+
+<span class="kp">print</span><span class="p">(</span>nullDeviance<span class="p">)</span>
+<span class="c1"># yields 1013.426</span>
+</pre></div>
+
+
+<p>The output matches the <em>Null deviance</em> from the model summary, which was <span class="math">\(1013.43\)</span>.</p>
+<h3>Comparison of Null and Residual&nbsp;Deviance</h3>
+<p>The difference between log-likelihoods for two models (the model with more parameters identified as the <em>full model</em>, the other the <em>reduced model</em>), one being a proper subset of the other, has an approximate chi-square distribution in large samples with degrees of freedom equal to the difference in the number of parameters between the full and reduced models. It can also be shown that the difference in deviances between the full and reduced model also follows a chi-square distribution with degrees of freedom equal to the difference in the number of parameters between the full and reduced&nbsp;models:</p>
+<div class="math">$$
+-2Ln(L_{reduced})--2Ln(L_{full}) = -2Ln\Big(\frac{L_{reduced}}{L_{full}}\Big) = D_{reduced} - D_{full} \sim \chi^{2}(q),
+$$</div>
+<p>where <span class="math">\(q\)</span> represents the degrees of freedom. The statistic on the left in the expression is the <em>likelihood ratio statistic</em>. By comparing the residual and null deviances, we can assess the significance of the parameters in the full model that are not present in the null model. Large values of the chi-square statistic are taken as evidence that the the null hypothesis is&nbsp;implausible.</p>
+<p>For the reduced model (same as the null model in this example), the degrees of freedom are the number of observations minus one for the intercept term, <span class="math">\(df_{reduced} = n - 1\)</span>. For the full model, the degrees of freedom are the number of observations minus the number of parameters including the intercept, or <span class="math">\(df_{full} = n - 3\)</span>. Thus, for significance test, <span class="math">\(df = df_{full} - df_{reduced} = n - 1 - n + 3 = 2\)</span>.</p>
+<p>The null hypothesis, <span class="math">\(H_{0}\)</span>, states that <span class="math">\(\beta_{DISTANCE} = \beta_{WIND} = 0\)</span>. The alternative hypothesis, <span class="math">\(H_{1}\)</span>, states that either <span class="math">\(\beta_{DISTANCE}\)</span> or <span class="math">\(\beta_{WIND}\)</span> (or both) are&nbsp;non-zero.      </p>
+<p>(Note that you can test each explanatory variable (<code>DISTANCE</code> and <code>WIND</code> here) separately against the intercept-only model in order to isolate their respective contribution to the residual deviance, but in this example, we&#8217;re testing their combined&nbsp;significance)</p>
+<p>If the difference between null and residual deviances is close to zero, it&#8217;s an indication that <code>DISTANCE</code> and <code>WIND</code> are not significant. Alternatively, a large difference in deviance indicates that either 
+<code>DISTANCE</code> or <code>WIND</code> (or both) are significant, and it&#8217;s unlikely that we would have seen as much reduction in deviance by chance alone. Now we calculate the significance of the fit&nbsp;parameters:</p>
+<div class="highlight"><pre><span></span><span class="c1"># recall that pkfit resulted from calling glm on `PlacekickerData.csv`</span>
+<span class="c1"># with model specification GOOD ~ DISTANCE + WIND =&gt;</span>
+fitted <span class="o">&lt;-</span> <span class="kp">unname</span><span class="p">(</span>pkfit<span class="o">$</span>fitted.values<span class="p">)</span>
+actual <span class="o">&lt;-</span> df<span class="o">$</span>GOOD
+ravg   <span class="o">&lt;-</span> <span class="kp">mean</span><span class="p">(</span>df<span class="o">$</span>GOOD<span class="p">)</span>  <span class="c1"># 0.885614</span>
+
+
+<span class="c1"># function to compute the log-likelihood</span>
+<span class="c1"># y  =&gt; actual values (1/0)</span>
+<span class="c1"># pi =&gt; fitted probabilities</span>
+ll <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>y<span class="p">,</span> <span class="kc">pi</span><span class="p">)</span> <span class="kr">return</span><span class="p">(</span>y<span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="kc">pi</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="m">1</span><span class="o">-</span>y<span class="p">)</span><span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="m">1</span><span class="o">-</span><span class="kc">pi</span><span class="p">))</span>
+
+<span class="c1"># renaming `D` to  `residualDeviance` =&gt;</span>
+residualDeviance <span class="o">&lt;-</span> <span class="m">-2</span> <span class="o">*</span> <span class="kp">sum</span><span class="p">(</span>ll<span class="p">(</span>y<span class="o">=</span>actual<span class="p">,</span> <span class="kc">pi</span><span class="o">=</span>fitted<span class="p">))</span>
+nullDeviance     <span class="o">&lt;-</span> <span class="m">-2</span> <span class="o">*</span> <span class="kp">sum</span><span class="p">(</span>ll<span class="p">(</span>y<span class="o">=</span>actual<span class="p">,</span> <span class="kc">pi</span><span class="o">=</span>ravg<span class="p">))</span>
+devianceDiff     <span class="o">&lt;-</span> nullDeviance <span class="o">-</span> residualDeviance
+
+<span class="c1"># get degrees of freedom =&gt;</span>
+rd_df <span class="o">&lt;-</span> <span class="kp">length</span><span class="p">(</span>actual<span class="p">)</span> <span class="o">-</span> <span class="kp">length</span><span class="p">(</span>pkfit<span class="o">$</span>coefficients<span class="p">)</span>
+dd_df <span class="o">&lt;-</span> <span class="kp">length</span><span class="p">(</span>actual<span class="p">)</span> <span class="o">-</span> <span class="m">1</span>
+df    <span class="o">&lt;-</span> rd_df <span class="o">-</span> nd_df <span class="c1"># 2</span>
+
+<span class="c1"># pass devianceDiff and df to  pchisq function =&gt;</span>
+p_val <span class="o">&lt;-</span> pchisq<span class="p">(</span>devianceDiff<span class="p">,</span> df<span class="o">=</span>df<span class="p">,</span> lower.tail<span class="o">=</span><span class="kc">FALSE</span><span class="p">)</span>
+
+<span class="kp">print</span><span class="p">(</span>p_val<span class="p">)</span>
+<span class="c1"># returns 4.889108e-53</span>
+</pre></div>
+
+
+<p>Such a small p-value indicates either <code>DISTANCE</code> or <code>WIND</code> (or both) are highly significant: Further analysis can be carried out to determine the source of deviance&nbsp;reduction. </p>
+<h3>Deviance&nbsp;Residuals</h3>
+<p>The <em>deviance residuals</em> are analogous to the residuals of a linear regression model. In linear regression, the residuals are the differences between the true outcome and the predicted output, whereas the <em>deviance residuals</em> are related to the log-likelihoods of having observed the true outcome, given the predicted probability of that outcome <a href="#Footnotes:">2</a>. The <em>deviance residuals</em> are obtained by taking the square root of the <span class="math">\(i^{th}\)</span> term of the deviance, with the sign selected to be the sign of <span class="math">\((actual - fitted)\)</span>:</p>
+<div class="math">$$
+d_{i} = sign(y_{i} - \hat{y}_{i}) \sqrt{2\Big(y_{i}Ln\Big(\frac{y_{i}}{\hat{y}_{i}}\Big) + (1 - y_{i})Ln\Big(\frac{1-y_{i}}{1-\hat{y}_{i}}\Big)\Big)}
+$$</div>
+<p>We can take advantage of a simplification to the <em>deviance residuals</em> expression the same way we did with residual deviance: Multiply the sign of the difference between actual and fitted values by the square root of <span class="math">\(-2\)</span> times the log-likelihood of all data points, then return the quantile summary to compare with the <em>pkfit</em>&#8216;s&nbsp;quantiles:</p>
+<div class="highlight"><pre><span></span><span class="c1"># recall that pkfit resulted from calling glm on `PlacekickerData.csv`</span>
+<span class="c1"># with model specification GOOD ~ DISTANCE + WIND =&gt;</span>
+fitted <span class="o">&lt;-</span> <span class="kp">unname</span><span class="p">(</span>pkfit<span class="o">$</span>fitted.values<span class="p">)</span>
+actual <span class="o">&lt;-</span> df<span class="o">$</span>GOOD
+
+<span class="c1"># function to compute the log-likelihood</span>
+<span class="c1"># y  =&gt; actual values (1/0)</span>
+<span class="c1"># pi =&gt; fitted probabilities</span>
+ll <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>y<span class="p">,</span> <span class="kc">pi</span><span class="p">)</span> <span class="kr">return</span><span class="p">(</span>y<span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="kc">pi</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="m">1</span><span class="o">-</span>y<span class="p">)</span><span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="m">1</span><span class="o">-</span><span class="kc">pi</span><span class="p">))</span>
+
+<span class="c1"># deviance residuals definition =&gt;</span>
+devianceResiduals <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>y<span class="p">,</span> <span class="kc">pi</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kr">return</span><span class="p">(</span><span class="kp">sign</span><span class="p">(</span>y<span class="o">-</span><span class="kc">pi</span><span class="p">)</span><span class="o">*</span><span class="kp">sqrt</span><span class="p">(</span><span class="m">-2</span><span class="o">*</span>ll<span class="p">(</span>y<span class="p">,</span> <span class="kc">pi</span><span class="p">)))</span>
+<span class="p">}</span>
+
+
+devRes <span class="o">&lt;-</span> devianceResiduals<span class="p">(</span>y<span class="o">=</span>actual<span class="p">,</span> <span class="kc">pi</span><span class="o">=</span>fitted<span class="p">)</span>
+
+<span class="c1"># call `summary` on devRes =&gt;</span>
+<span class="kp">summary</span><span class="p">(</span>devRes<span class="p">)</span>
+
+<span class="c1"># returns:</span>
+    Min. <span class="m">1</span>st Qu.  Median    Mean <span class="m">3</span>rd Qu.    Max. 
+<span class="m">-2.7660</span>  <span class="m">0.2353</span>  <span class="m">0.2353</span>  <span class="m">0.1490</span>  <span class="m">0.3706</span>  <span class="m">1.5910</span> 
+</pre></div>
+
+
+<p>For comparison, the deviance residuals for <code>pkfit</code> were:</p>
+<div class="highlight"><pre><span></span>Deviance Residuals<span class="o">:</span> 
+    Min       <span class="m">1</span>Q   Median       <span class="m">3</span>Q      Max  
+<span class="m">-2.7662</span>   <span class="m">0.2353</span>   <span class="m">0.2353</span>   <span class="m">0.3706</span>   <span class="m">1.5914</span>  
+</pre></div>
+
+
+<h3>Akaike information criterion (<span class="caps">AIC</span>)</h3>
+<p>A collection of candidate models can be compared, and the selection criteria may be to choose the model with the highest log-likelihood. However, the log-likelihood of a model will almost always increase with the addition of more variables, even if those variables are insignificant and do little to increase the model&#8217;s predictive power. 
+The <em>Akaike information criterion</em>, or <em><span class="caps">AIC</span></em>, is a penalized log-likelihood formula that charges a penalty for additional variables. It can be thought of as a measure of the relative quality of a model. When considering one or more models fit to the same dataset, <em>the preferred model is the one with the minimum <span class="caps">AIC</span> value</em>. The <span class="caps">AIC</span> formula&nbsp;is:</p>
+<div class="math">$$
+AIC = -2l + 2q,
+$$</div>
+<p>where <span class="math">\(l\)</span> is the log-likelihood of the model of interest and <span class="math">\(q\)</span> is the number of parameters including the intercept term. Thew lower the <span class="caps">AIC</span>, the better the&nbsp;model.</p>
+<div class="highlight"><pre><span></span><span class="c1"># recall that pkfit resulted from calling glm on `PlacekickerData.csv`</span>
+<span class="c1"># with model specification GOOD ~ DISTANCE + WIND =&gt;</span>
+fitted <span class="o">&lt;-</span> <span class="kp">unname</span><span class="p">(</span>pkfit<span class="o">$</span>fitted.values<span class="p">)</span>
+actual <span class="o">&lt;-</span> df<span class="o">$</span>GOOD
+
+<span class="c1"># function to compute the log-likelihood</span>
+<span class="c1"># y  =&gt; actual values (1/0)</span>
+<span class="c1"># pi =&gt; fitted probabilities</span>
+ll <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>y<span class="p">,</span> <span class="kc">pi</span><span class="p">)</span> <span class="kr">return</span><span class="p">(</span>y<span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="kc">pi</span><span class="p">)</span><span class="o">+</span><span class="p">(</span><span class="m">1</span><span class="o">-</span>y<span class="p">)</span><span class="o">*</span><span class="kp">log</span><span class="p">(</span><span class="m">1</span><span class="o">-</span><span class="kc">pi</span><span class="p">))</span>
+
+<span class="c1"># capture number of model coefficients =&gt;</span>
+nbr_coeffs <span class="o">&lt;-</span> <span class="kp">length</span><span class="p">(</span>pkfit<span class="o">$</span>coefficients<span class="p">)</span> <span class="c1"># 3</span>
+
+AIC <span class="o">&lt;-</span> <span class="m">-2</span><span class="o">*</span>ll<span class="p">(</span>y<span class="o">=</span>actual<span class="p">,</span> <span class="kc">pi</span><span class="o">=</span>fitted<span class="p">)</span> <span class="o">+</span> <span class="m">2</span><span class="o">*</span>nbr_coeffs
+
+<span class="kp">print</span><span class="p">(</span>AIC<span class="p">)</span>
+
+<span class="c1"># returns 778.5335</span>
+</pre></div>
+
+
+<p><span class="caps">AIC</span> for <em>pkfit</em> was <span class="math">\(778.53\)</span>.</p>
+<h3>Pseudo&nbsp;R-squared</h3>
+<p>The <em>pseudo R-squared</em>, or <em>Generalized R-squared</em> measures how much deviance is explained by the model. It&#8217;s range is between 0 and 1, with models having a value closer to 1 explaining more of the deviance than a model having a value closer to 0. 
+The formula for pseudo R-squared&nbsp;is:</p>
+<div class="math">$$
+R^{2}_{pseudo} = \frac {l_{min} - l}{l_{min}} = 1 - \frac {deviance_{residual}}{deviance_{null}}
+$$</div>
+<p>where <span class="math">\(l_{min}\)</span> is the log-likelihood for the intercept-only model, and <span class="math">\(l\)</span> is the log-likelihood associated with the model in question. Using our null and residual deviances from&nbsp;earlier:</p>
+<div class="highlight"><pre><span></span>nullDeviance     <span class="o">&lt;-</span> pkfit<span class="o">$</span>null.deviance <span class="c1"># 1013.426</span>
+residualDeviance <span class="o">&lt;-</span> pkfit<span class="o">$</span>deviance      <span class="c1"># 772.5335</span>
+pseudoRSquared   <span class="o">&lt;-</span> <span class="m">1</span> <span class="o">-</span> <span class="p">(</span>residualDeviance<span class="o">/</span>nullDeviance<span class="p">)</span>
+
+<span class="kp">print</span><span class="p">(</span>pseudoRSquared<span class="p">)</span>
+
+<span class="c1"># returns 0.2377013</span>
+</pre></div>
+
+
+<p>Our <code>GOOD ~ DISTANCE + WIND</code> model only explains ~24% of the deviance, which means that we haven&#8217;t yet identified all the factors that predict whether or not a placekick is made. We should now go back and test the quality of the other explanatory variables, and check if another combination of explanatory variables has similiar goodness of fit characteristics but with a better pseudo&nbsp;R-squared.  </p>
+<h3>Conclusion</h3>
+<p>In this post, we walked through some of the methods used to assess goodness of fit and significance of explanatory variables for a Logistic Regression model, and demonstrated how to calculate many of the important summary statistics output by R&#8217;s <code>glm</code> function. We also discusses some of the simplifications that can be made in calculating deviance and deviance residuals when modeling a dataset with a dichotomous response. In future posts, I plan to cover model assessment techniques for other members of the exponential family. Until then, happy&nbsp;coding!</p>
+<h3>Footnotes:</h3>
+<ol>
+<li>Bilder, Christopher, Thomas M. Loughin (2015). <em>Analysis of Categorical Data in R</em>. Taylor <span class="amp">&amp;</span> Francis Group, New&nbsp;York    </li>
+<li>Mount, John, Nina Zumel (2014). <em>Practical Data Science in R</em>. Manning Publications, New&nbsp;York     </li>
+</ol>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

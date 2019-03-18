@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Online Mean and Variance Update without Full Recalculation - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/online-mean-and-variance-update-without-full-recalculation.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Statistical Modeling,Python" />
+        <meta name="description" content="Updating sample mean and variance to account for new observations without full recalculation" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Online Mean and Variance Update without Full Recalculation"/>
+        <meta property="og:url" content="https://jtrive84.github.io/online-mean-and-variance-update-without-full-recalculation.html"/>
+        <meta property="og:description" content="Updating sample mean and variance to account for new observations without full recalculation"/>
+        <meta property="article:published_time" content="2018-12-15" />
+            <meta property="article:section" content="Statistical Modeling" />
+            <meta property="article:tag" content="Statistical Modeling" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/statistical-modeling.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Statistical Modeling ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/online-mean-and-variance-update-without-full-recalculation.html"
+                       rel="bookmark"
+                       title="Permalink to Online Mean and Variance Update without Full Recalculation">
+                        Online Mean and Variance Update without Full&nbsp;Recalculation
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-12-15T00:00:00-06:00"> 2018-12-15</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical Modeling</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/statistical-modeling.html">Statistical Modeling</a>
+        /
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>Imagine you are responsible for maintaining the mean and variance of a dataset 
+that is frequently updated (new observations can be added every minute or 
+less). For small-to-moderately sized datasets, you might not give much thought 
+to the method used for the recalculation. However, with datasets consisting of 
+hundreds of millions or billions of observations, full recomputation of the 
+mean and variance at each refresh may require significant computational 
+resources that may not be&nbsp;available.       </p>
+<p>Fortunately it isn&#8217;t necessary to perform a full recalculation of mean and 
+variance when accounting for new observations. Recall that for a sequence of 
+<span class="math">\(n\)</span> observations <span class="math">\(x_{1}, \cdots x_{n}\)</span>,the sample mean <span class="math">\(\mu_{n}\)</span> and variance 
+<span class="math">\(\sigma_{n}^{2}\)</span> are given&nbsp;by:</p>
+<div class="math">$$
+\begin{align*} 
+       \mu_{n} &amp;= \sum_{i=1}^{n} x_{i} \\
+\sigma_{n}^{2} &amp;= \frac{1}{n-1}\sum_{i=1}^{n} (x_{i} - \mu_{n})^{2}
+\end{align*}
+$$</div>
+<p>A new observation <span class="math">\(x_{n+1}\)</span> becomes available. To calculate the updated mean 
+(<span class="math">\(\mu_{n+1}\)</span>) and variance (<span class="math">\(\sigma_{n+1}^{2}\)</span>) in light of this new 
+observation without requiring full recalculation, we can use the&nbsp;following:</p>
+<div class="math">$$
+\begin{align*} 
+\mu_{n+1} &amp;= \frac{1}{n+1}(n\mu_{n} + x_{n+1}) \\
+\sigma_{n+1}^{2} &amp;= \frac{n}{n+1}\sigma_{n}^{2} + \frac{1}{n}(x_{n+1} - \mu_{n+1})^{2}
+\end{align*}
+$$</div>
+<h2>Demonstration</h2>
+<p>Consider the following&nbsp;values:</p>
+<div class="math">$$
+1154\hspace{2mm}717\hspace{2mm}958\hspace{2mm}1476\hspace{2mm}889\hspace{2mm}1414\hspace{2mm}1364\hspace{2mm}1047
+$$</div>
+<p>The mean and variance for the&nbsp;observations:</p>
+<div class="math">$$
+\begin{align*} 
+       \mu_{8} &amp;\approx 1127.38 \\
+\sigma_{8}^{2} &amp;\approx 65096.48
+\end{align*}
+$$</div>
+<p>A new value, <span class="math">\(1251\)</span> becomes available. Full recalculation of mean and variance&nbsp;yields:</p>
+<div class="math">$$
+\begin{align*} 
+       \mu_{8} &amp;\approx \mathbf{1141.11} \\
+\sigma_{8}^{2} &amp;\approx \mathbf{59372.99}
+\end{align*}
+$$</div>
+<p>The mean and variance calculated using online update results&nbsp;in:</p>
+<div class="math">$$
+\begin{align*} 
+\mu_{9} &amp;= \frac{1}{9}(8(1127.38) + 1251) \approx \mathbf{1141.11} \\
+\sigma_{9}^{2} &amp;= \frac{8}{9} (65096.48) + \frac{1}{8}(1251 - 1141.11)^{2} \approx \mathbf{59372.99},
+\end{align*}
+$$</div>
+<p>which confirms agreement between the two&nbsp;approaches. </p>
+<p>Note that the variance returned using the online update formula is the 
+<em>population</em> variance. In order to return the updated unbiased <em>sample</em> 
+variance, we need to multiply the variance returned by the online update 
+formula by 
+<span class="math">\((n+1)/n\)</span>, where <span class="math">\(n\)</span> represents the length of the original array excluding 
+the new observation. Thus, the updated sample variance after accounting for 
+the new value&nbsp;is:</p>
+<div class="math">$$
+\begin{align*} 
+s_{n+1}^{2} &amp;= \frac{n+1}{n}\big(\frac{n}{n+1}\sigma_{n}^{2} + \frac{1}{n}(x_{n+1} - \mu_{n+1})^{2}\big) \\
+s_{9}^{2}   &amp;= \frac{9}{8}(59372.99) \approx 66794.61
+\end{align*}
+$$</div>
+<h2>Implementation</h2>
+<p>A straightforward implementation in Python to handle online mean and variance 
+updates, incorporating Bessel&#8217;s correction to return the unbiased sample&nbsp;variance:</p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="k">def</span> <span class="nf">new_mu</span><span class="p">(</span><span class="n">mu_init</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">new_obs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return updated mean in light of new observation without</span>
+<span class="sd">    full recalculation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span><span class="p">((</span><span class="n">n</span> <span class="o">*</span> <span class="n">mu_init</span> <span class="o">+</span> <span class="n">new_obs</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+
+
+<span class="k">def</span> <span class="nf">new_var</span><span class="p">(</span><span class="n">mu_init</span><span class="p">,</span> <span class="n">var_init</span><span class="p">,</span> <span class="n">mu_new</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">new_obs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return updated variance in light of new observation without</span>
+<span class="sd">    full recalculation. Includes Bessel&#39;s correction to return</span>
+<span class="sd">    unbiased sample variance. </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span><span class="p">(((</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">n</span><span class="p">)</span> <span class="o">*</span> <span class="p">(((</span><span class="n">n</span> <span class="o">*</span> <span class="n">var_init</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="p">(((</span><span class="n">new_obs</span> <span class="o">-</span> <span class="n">mu_new</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span><span class="n">n</span> <span class="p">)))</span>
+
+
+
+
+<span class="n">a0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1154</span><span class="p">,</span>  <span class="mi">717</span><span class="p">,</span>  <span class="mi">958</span><span class="p">,</span> <span class="mi">1476</span><span class="p">,</span>  <span class="mi">889</span><span class="p">,</span> <span class="mi">1414</span><span class="p">,</span> <span class="mi">1364</span><span class="p">,</span> <span class="mi">1047</span><span class="p">])</span>
+
+<span class="n">a1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1154</span><span class="p">,</span>  <span class="mi">717</span><span class="p">,</span>  <span class="mi">958</span><span class="p">,</span> <span class="mi">1476</span><span class="p">,</span>  <span class="mi">889</span><span class="p">,</span> <span class="mi">1414</span><span class="p">,</span> <span class="mi">1364</span><span class="p">,</span> <span class="mi">1047</span><span class="p">,</span> <span class="mi">1251</span><span class="p">])</span>
+
+
+<span class="c1"># Original mean and variance.</span>
+<span class="n">mu0</span> <span class="o">=</span> <span class="n">a0</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="c1"># 1127.38</span>
+<span class="n">var0</span> <span class="o">=</span> <span class="n">a0</span><span class="o">.</span><span class="n">var</span><span class="p">()</span> <span class="c1"># 65096.48</span>
+
+
+<span class="c1"># Full recalculation mean and variance.</span>
+<span class="n">mu1</span> <span class="o">=</span> <span class="n">a1</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="c1"># 1141.11</span>
+<span class="n">var1</span> <span class="o">=</span> <span class="n">a1</span><span class="o">.</span><span class="n">var</span><span class="p">()</span> <span class="c1"># 59372.99</span>
+
+
+<span class="c1"># Online update of mean and variance with variance bias correction.</span>
+<span class="n">mu1_ol</span>  <span class="o">=</span> <span class="n">new_mu</span><span class="p">(</span><span class="n">mu0</span><span class="p">,</span> <span class="n">a0</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="mi">1251</span><span class="p">)</span>                 <span class="c1"># 1141.11</span>
+<span class="n">var1_ol</span> <span class="o">=</span> <span class="n">new_var</span><span class="p">(</span><span class="n">mu0</span><span class="p">,</span> <span class="n">var0</span><span class="p">,</span> <span class="n">mu1_ol</span><span class="p">,</span> <span class="n">a0</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="mi">1251</span><span class="p">)</span>  <span class="c1"># 66794.61</span>
+</pre></div>
+
+
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

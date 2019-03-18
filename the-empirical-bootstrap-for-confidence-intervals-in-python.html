@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>The Empirical Bootstrap for Confidence Intervals in Python - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/the-empirical-bootstrap-for-confidence-intervals-in-python.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python" />
+        <meta name="description" content="Computing non-parametric bootstrap confidence intervals with Python" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="The Empirical Bootstrap for Confidence Intervals in Python"/>
+        <meta property="og:url" content="https://jtrive84.github.io/the-empirical-bootstrap-for-confidence-intervals-in-python.html"/>
+        <meta property="og:description" content="Computing non-parametric bootstrap confidence intervals with Python"/>
+        <meta property="article:published_time" content="2017-11-05" />
+            <meta property="article:section" content="Statistical Modeling" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/statistical-modeling.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Statistical Modeling ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/the-empirical-bootstrap-for-confidence-intervals-in-python.html"
+                       rel="bookmark"
+                       title="Permalink to The Empirical Bootstrap for Confidence Intervals in Python">
+                        The Empirical Bootstrap for Confidence Intervals in&nbsp;Python
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-11-05T00:00:00-05:00"> 2017-11-05</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical Modeling</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p><br>
+Bootstrapping is a resampling method used to estimate the variability of statistical 
+parameters from a dataset which is repeatedly sampled with replacement. As the name 
+implies, the empirical bootstrap makes no assumptions regarding the distribution of 
+the sample, and only requires it be a good approximation of the underlying population 
+distribution. Although for most problems it is impossible to know a statistic&#8217;s true 
+confidence interval, the bootstrap method is asymptotically more accurate than the 
+standard intervals obtained using sample variance and assumptions of normality.  <br>
+<br>
+In <a href="http://matthieuchemin-research.mcgill.ca/ECON742/paper/efron.pdf"><em>Bootstrap Methods for Standard Errors, Confidence Intervals and other Measures of Statistical Accuracy</em></a>, Efron and Tibshirani present four methods for constructing approximate confidence intervals for a statistic of interest. The method described here is analagous to the second approach, the <em>bootstrap percentile method</em>.   <br>
+<br> 
+If the original sample of size <span class="math">\(n\)</span> is represented as    <br>
+<br>
+</p>
+<div class="math">$$
+x_{1}, x_{2}, \cdots, x_{n},
+$$</div>
+<p>
+<br>
+then a <em>bootstrap sample</em> of size <span class="math">\(n\)</span> is given by  <br>
+<br>
+</p>
+<div class="math">$$
+x_{1}^{*}, x_{2}^{*}, \cdots, x_{n}^{*}
+$$</div>
+<p>
+<br>
+where <span class="math">\(x_{1}^{*}, x_{2}^{*}, \cdots, x_{n}^{*}\)</span> is a resample with replacement from the original&nbsp;dataset.        </p>
+<p>Bootstrapping allows estimation of the sampling distribution of almost any statistic, including the mean, standard deviation, median or any other percentiles of interest.      <br>
+<br>
+Carrying out the following steps results in computing the empirical bootstrap 90% confidence interval for the mean of an arbitrary sample:   <br>
+<br>
+1.  Compute the sample mean of the dataset, denoted as <span class="math">\(\bar{x}\)</span>.      <br>
+<br> <br>
+2.  Sample the initial dataset with replacement (the size of the resample should be the same as the initial dataset).       <br>
+<br><br>
+3.  Compute the statistic of interest based on the resampling. For this example, the resampled sample mean is denoted as <span class="math">\(\bar{x}_{i}^{*}\)</span>.          <br>
+<br>
+4.  Repeat steps 2-3 many times, preserving <span class="math">\(\bar{x}_{i}^{*}\)</span> from each iteration for later use.                     <br>
+<br></p>
+<p>After the data has been resampled, the resulting array of <span class="math">\(\bar{x}_{i}^{*}\)</span><span class="quo">&#8216;</span>s are to be ranked in ascending order. Assume that in our example we generated 1000 samples with replacement. To obtain the 90% bootstrap confidence interval from our ranked collection of resampled sample means, extract the 50th and 950th elements from the collection, <span class="math">\(\bar{x}_{50}^{*}\)</span> and <span class="math">\(\bar{x}_{950}^{*}\)</span>, which correspond to the 5th and 95th percentiles of the distribution of sample means. More generally, for a sample size <span class="math">\(n\)</span> and a confidence interval <span class="math">\(\alpha\)</span>, the position in the ordered collection of resampled means corresponding to the bounds of the empirical bootstrap confidence interval are given by
+<br>
+</p>
+<div class="math">$$
+[n(1-\alpha)/2, n(1+\alpha)/2]
+$$</div>
+<p>
+<br>
+For our example, plugging in <span class="math">\(n=1000\)</span> and <span class="math">\(\alpha=.9\)</span> yields <span class="math">\([1000*(1-.9)/2, 1000*(1+.9)/2]=[50, 950]\)</span>, as indicated above. 
+<br></p>
+<h2>Implementation</h2>
+<p>What follows is a closure written in Python that encapsulates the logic described above: First, the dataset along with the desired number of bootstrap samples to run are passed to the <code>bootstrap</code> function. <code>bootstrap</code> returns a function which can then be passed a confidence interval which returns a tuple containing the upper and lower bounds for the interval specified (for example, specifying <code>.90</code> returns the 5th and 95th percentiles). Note that the functionality of <code>bootstrap</code> is similiar conceptually to scipy&#8217;s
+<a href="https://docs.scipy.org/doc/scipy0.19.1/reference/generated/scipy.interpolate.interp1d.html"><code>interpolate.interp1d</code></a> function:     <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="k">def</span> <span class="nf">bootstrap</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate `n` bootstrap samples, evaluating `func`</span>
+<span class="sd">    at each resampling. `bootstrap` returns a function,</span>
+<span class="sd">    which can be called to obtain confidence intervals</span>
+<span class="sd">    of interest.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">simulations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+    <span class="n">sample_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">xbar_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">itersample</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">sample_size</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="n">simulations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="n">itersample</span><span class="p">))</span>
+    <span class="n">simulations</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">ci</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return 2-sided symmetric confidence interval specified</span>
+<span class="sd">        by p.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">u_pval</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">p</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span>
+        <span class="n">l_pval</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">u_pval</span><span class="p">)</span>
+        <span class="n">l_indx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n</span><span class="o">*</span><span class="n">l_pval</span><span class="p">))</span>
+        <span class="n">u_indx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n</span><span class="o">*</span><span class="n">u_pval</span><span class="p">))</span>
+        <span class="k">return</span><span class="p">(</span><span class="n">simulations</span><span class="p">[</span><span class="n">l_indx</span><span class="p">],</span><span class="n">simulations</span><span class="p">[</span><span class="n">u_indx</span><span class="p">])</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">ci</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+To demomstrate the functionality of <code>bootstrap</code>, we calculate the 90%, 95%, 99% <span class="amp">&amp;</span> 99.5% bootstrap confidence intervals for the mean based on the following sample:  <br>
+<br>
+</p>
+<div class="math">$$
+10.3, 10.6, 11.7, 14.0, 14.2, 15.0, 16.8, 18.2, 21.3, 21.0 
+$$</div>
+<p>
+<br>       </p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="mf">10.3</span><span class="p">,</span> <span class="mf">10.6</span><span class="p">,</span> <span class="mf">11.7</span><span class="p">,</span> <span class="mf">14.0</span><span class="p">,</span> <span class="mf">14.2</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">,</span> <span class="mf">16.8</span><span class="p">,</span> <span class="mf">18.2</span><span class="p">,</span> <span class="mf">21.3</span><span class="p">,</span> <span class="mf">21.0</span><span class="p">]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">boot</span> <span class="o">=</span> <span class="n">bootstrap</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">cintervals</span> <span class="o">=</span> <span class="p">[</span><span class="n">boot</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="o">.</span><span class="mi">90</span><span class="p">,</span> <span class="o">.</span><span class="mi">95</span><span class="p">,</span> <span class="o">.</span><span class="mi">99</span><span class="p">,</span> <span class="o">.</span><span class="mi">995</span><span class="p">)]</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="n">cintervals</span><span class="p">)</span>
+
+<span class="p">[(</span><span class="mf">13.41</span><span class="p">,</span> <span class="mf">17.36</span><span class="p">),</span>
+ <span class="p">(</span><span class="mf">13.02</span><span class="p">,</span> <span class="mf">17.73</span><span class="p">),</span>
+ <span class="p">(</span><span class="mf">12.47</span><span class="p">,</span> <span class="mf">18.45</span><span class="p">),</span>
+ <span class="p">(</span><span class="mf">12.22</span><span class="p">,</span> <span class="mf">18.66</span><span class="p">)]</span>
+</pre></div>
+
+
+<p><br>
+Notice that unlike confidence intervals obtained from a normal or t-distribution, the bootstrapped confidence interval is not symmetric about the mean, which provides an indication of the degree of skewness of the population in question.    <br>
+<br>
+To gain insight into the shape of the distirbution of bootstrapped sample means, we can plot a histogram of the observations centered on the initial sample mean. Using matplotlib and seaborn, this is readily accomplished in just a few lines of code: <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Generate a histogram of the distribution of sample means for </span>
+<span class="sd">5000 bootstrap resamplings.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="kn">as</span> <span class="nn">sns</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">style</span><span class="o">=</span><span class="s2">&quot;darkgrid&quot;</span><span class="p">)</span>
+
+<span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="mf">10.3</span><span class="p">,</span> <span class="mf">10.6</span><span class="p">,</span> <span class="mf">11.7</span><span class="p">,</span> <span class="mf">14.0</span><span class="p">,</span> <span class="mf">14.2</span><span class="p">,</span> <span class="mf">15.0</span><span class="p">,</span> <span class="mf">16.8</span><span class="p">,</span> <span class="mf">18.2</span><span class="p">,</span> <span class="mf">21.3</span><span class="p">,</span> <span class="mf">21.0</span><span class="p">]</span>
+<span class="n">xbar_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+
+<span class="c1"># generate 5000 resampled sample means  =&gt;</span>
+<span class="n">means</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">v</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">),</span><span class="n">replace</span><span class="o">=</span><span class="bp">True</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5000</span><span class="p">)]</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">distplot</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">kde</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">hist_kws</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;b&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=.</span><span class="mi">675</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Initial Sample Mean: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">xbar_init</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;Distribution of Sample Mean&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">xbar_init</span><span class="p">)</span> <span class="c1"># vertical line at xbar_init</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+
+<p><br>
+Resulting in:
+<br>
+<br>
+<p align="center"> 
+<img alt="bootstrap" src="/images/bootstrap.png">
+</p> <br>
+<br>
+It should come as no suprise that the distribution of the sample mean tends toward normality as the number of observations increases (see <a href="https://en.wikipedia.org/wiki/Central_limit_theorem">Central Limit Theorem</a> for more information).    <br>
+<br>
+In terms of bootstrap sophistication, the <em>percentile method</em> ranks low. Other variations, such as the Bias-Corrected and Accelerated method return meaningful results even when the distribution in question exhibits significantly deviation from normality. But the core approach remains the same. <br>
+<br>  <br>
+As mentioned earlier, bootstrap confidence intervals can be obtained for just about any statistic of interest. In a regression setting, resampling with replacement from the residuals can be used to estimate the standard error of model coefficients. In a future post, we&#8217;ll demonstrate estimating the standard error for both standard linear and generalized linear model coefficients. Until then, happy&nbsp;coding!      </p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

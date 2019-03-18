@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Introduction to data.table’s Special Symbols - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/introduction-to-datatables-special-symbols.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="R,Statistical Modeling" />
+        <meta name="description" content="Working with data.table’s special symbols" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Introduction to data.table’s Special Symbols"/>
+        <meta property="og:url" content="https://jtrive84.github.io/introduction-to-datatables-special-symbols.html"/>
+        <meta property="og:description" content="Working with data.table’s special symbols"/>
+        <meta property="article:published_time" content="2017-12-30" />
+            <meta property="article:section" content="R" />
+            <meta property="article:tag" content="R" />
+            <meta property="article:tag" content="Statistical Modeling" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/r.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out R ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/introduction-to-datatables-special-symbols.html"
+                       rel="bookmark"
+                       title="Permalink to Introduction to data.table’s Special Symbols">
+                        Introduction to data.table&#8217;s Special&nbsp;Symbols
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-12-30T00:00:00-06:00"> 2017-12-30</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/r.html">R</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/r.html">R</a>
+        /
+	<a href="https://jtrive84.github.io/tag/statistical-modeling.html">Statistical Modeling</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>The <a href="https://cran.r-project.org/web/packages/data.table/data.table.pdf">data.table</a> library is an R package that 
+provides an enhanced version of R&#8217;s in-built data.frame. There are many available resources that introduce data.table&#8217;s 
+syntax and provide examples of typical usage scenarios. In this post, we&#8217;ll cover an aspect of data.table that doesn&#8217;t 
+seem to get as much coverage: data.table&#8217;s <em>special symbols</em>. <br>
+Before proceeding, we should highlight data.table&#8217;s general syntactical form, that when understood, can be used to translate 
+data.table expressions of arbitrary complexity into 3 steps: <br>
+<br>  </p>
+<h2><code>DT[i, j, by]</code></h2>
+<p><br>
+Which translates to:  <br>
+<br>
+<em>&#8220;Take <strong><code>DT</code></strong>, subset rows using <strong><code>i</code></strong>, then calculate <strong><code>j</code></strong> grouped by <strong><code>by</code></strong>&#8220;</em>      <br>
+<br>
+The following annotated diagram is included as part of data.table&#8217;s&nbsp;documentation:</p>
+<div class="highlight"><pre><span></span>DT[ i, j, by ] # + extra arguments
+    |  |  |
+    |  |   -------&gt; grouped by what?
+    |   -------&gt; what to do?
+     ---&gt; on which rows?
+</pre></div>
+
+
+<p><br> 
+For those familiar with <span class="caps">SQL</span>, the three expressions that describe the general form can be thought of as components 
+of a  <span class="caps">SQL</span> query: &#8220;<span class="caps">SELECT</span> from <strong><code>j</code></strong>, <span class="caps">WHERE</span> <strong><code>i</code></strong>, <span class="caps">GROUP</span> <span class="caps">BY</span> <strong><code>by</code></strong>&#8220;. Although the <span class="caps">SQL</span> analog of the original 
+interpretation may not hold for every possible data.table operation, it remains a valid proxy for many scenarios 
+encountered in practice.        <br>
+Although this applies to data.table in general, a thorough understanding of the general form will be especially 
+useful when exploring ways to leverage special symbols in your own code. The examples that follow serve 
+only as an introduction: The usefulness and applicable range of data.table&#8217;s special symbols are in no way 
+limited to what&#8217;s included here - we&#8217;re just getting started!       <br>
+<br>
+The data.table special symbols are defined as&nbsp;follows:  </p>
+<p><br>    <br>
+  * <strong>.N</strong> is an integer, length 1, containing the number of rows in the group. This may be useful when the column 
+names are not known in advance and for convenience generally. When grouping by <code>i</code>, .N is the number of rows in x 
+matched to, for each row of <code>i</code>, regardless of whether nomatch is <code>NA</code> or 0. It is renamed to N (no dot) in the 
+result (otherwise a column called &#8220;.N&#8221; could conflict with the .N variable, see <span class="caps">FAQ</span> 4.6 for more details and example), 
+unless it is explicity named; e.g., <code>DT[,list(total=.N),by=a]</code>.         <br>
+<br>
+  * <strong>.<span class="caps">SD</span></strong> is a data.table containing the Subset of x&#8217;s Data for each group, excluding any columns used in <code>by</code> (or <code>keyby</code>).    <br>
+<br>
+  * <strong>.<span class="caps">BY</span></strong> is a list containing a length 1 vector for each item in <code>by</code>. This can be useful when <code>by</code> is not known in 
+advance. The <code>by</code> variables are also available to <code>j</code> directly by name; useful for example for titles of graphs if <code>j</code> is a 
+plot command, or to branch with <code>if()</code> depending on the value of a group variable.         <br>
+<br>
+  * <strong>.I</strong> is an integer vector equal to <code>seq_len(nrow(x))</code>. While grouping, it holds for each item in the group, it&#8217;s row 
+location in x. This is useful to subset in <code>j</code>; e.g. <code>DT[, .I[which.max(somecol)], by=grp]</code>.       <br>
+<br>
+  * <strong>.<span class="caps">GRP</span></strong> is an integer, length 1, containing a simple group counter. 1 for the 1st group, 2 for the 2nd, etc.     <br>
+<br>
+  * <strong>.<span class="caps">EACHI</span></strong> when i is a data.table, <code>DT[i,j,by=.EACHI]</code> evaluates <code>j</code> for the groups of <span class="caps">DT</span> that each row in <code>i</code> joins to. 
+We call this <em>grouping by each i</em>. 
+<br></p>
+<h3><strong><code>.N</code></strong></h3>
+<p>The special symbol <code>.N</code> can be used to return the last row or number of rows of a data.table. Referring to the R sample 
+dataset <code>CO2</code>, what follows are a few examples using <code>.N</code>:
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+
+DT <span class="o">=</span> CO2<span class="p">;</span> setDT<span class="p">(</span>DT<span class="p">)</span>
+
+<span class="o">&gt;</span> <span class="kp">head</span><span class="p">(</span>DT<span class="p">)</span>
+   Plant   Type  Treatment conc uptake
+<span class="m">1</span><span class="o">:</span>   Qn1 Quebec nonchilled   <span class="m">95</span>   <span class="m">16.0</span>
+<span class="m">2</span><span class="o">:</span>   Qn1 Quebec nonchilled  <span class="m">175</span>   <span class="m">30.4</span>
+<span class="m">3</span><span class="o">:</span>   Qn1 Quebec nonchilled  <span class="m">250</span>   <span class="m">34.8</span>
+<span class="m">4</span><span class="o">:</span>   Qn1 Quebec nonchilled  <span class="m">350</span>   <span class="m">37.2</span>
+<span class="m">5</span><span class="o">:</span>   Qn1 Quebec nonchilled  <span class="m">500</span>   <span class="m">35.3</span>
+<span class="m">6</span><span class="o">:</span>   Qn1 Quebec nonchilled  <span class="m">675</span>   <span class="m">39.2</span>
+
+
+<span class="c1"># Return last record of CO2 dataset =&gt;</span>
+<span class="o">&gt;</span> DT<span class="p">[</span><span class="m">.</span>N<span class="p">]</span>
+   Plant        Type Treatment conc uptake
+<span class="m">1</span><span class="o">:</span>   Mc3 Mississippi   chilled <span class="m">1000</span>   <span class="m">19.9</span>
+
+
+<span class="c1"># Return the second-to-last record of CO2 dataset =&gt;</span>
+<span class="o">&gt;</span> DT<span class="p">[</span><span class="m">.</span>N<span class="m">-1</span><span class="p">]</span>
+   Plant        Type Treatment conc uptake
+<span class="m">1</span><span class="o">:</span>   Mc3 Mississippi   chilled  <span class="m">675</span>   <span class="m">18.9</span>
+
+
+<span class="c1"># Return the number of records in CO2 dataset =&gt;</span>
+<span class="o">&gt;</span> DT<span class="p">[,</span><span class="m">.</span>N<span class="p">]</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="m">84</span>
+
+
+<span class="c1"># Return the number of records for each unique value of `Treatment` =&gt;</span>
+<span class="o">&gt;</span> DT<span class="p">[,</span> <span class="m">.</span>N<span class="p">,</span> by<span class="o">=</span>Treatment<span class="p">]</span>
+    Treatment  N
+<span class="m">1</span><span class="o">:</span> nonchilled <span class="m">42</span>
+<span class="m">2</span><span class="o">:</span>    chilled <span class="m">42</span>
+
+
+<span class="c1"># Return the number of records for each unique combination of</span>
+<span class="c1"># `Treatment` &amp; `Plant` =&gt;</span>
+<span class="o">&gt;</span> DT<span class="p">[,</span> <span class="m">.</span>N<span class="p">,</span> keyby<span class="o">=</span><span class="s">&quot;Treatment,Plant&quot;</span><span class="p">]</span>
+
+     Treatment Plant N
+ <span class="m">1</span><span class="o">:</span> nonchilled   Qn1 <span class="m">7</span>
+ <span class="m">2</span><span class="o">:</span> nonchilled   Qn2 <span class="m">7</span>
+ <span class="m">3</span><span class="o">:</span> nonchilled   Qn3 <span class="m">7</span>
+ <span class="m">4</span><span class="o">:</span> nonchilled   Mn3 <span class="m">7</span>
+ <span class="m">5</span><span class="o">:</span> nonchilled   Mn2 <span class="m">7</span>
+ <span class="m">6</span><span class="o">:</span> nonchilled   Mn1 <span class="m">7</span>
+ <span class="m">7</span><span class="o">:</span>    chilled   Qc1 <span class="m">7</span>
+ <span class="m">8</span><span class="o">:</span>    chilled   Qc3 <span class="m">7</span>
+ <span class="m">9</span><span class="o">:</span>    chilled   Qc2 <span class="m">7</span>
+<span class="m">10</span><span class="o">:</span>    chilled   Mc2 <span class="m">7</span>
+<span class="m">11</span><span class="o">:</span>    chilled   Mc3 <span class="m">7</span>
+<span class="m">12</span><span class="o">:</span>    chilled   Mc1 <span class="m">7</span>
+</pre></div>
+
+
+<p><br>
+<code>.N</code> can be used to enumerate records, creating a row counter field: 
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="p">(</span>DT<span class="p">[,</span>CNTR<span class="o">:=</span><span class="m">1</span><span class="o">:</span><span class="m">.</span>N<span class="p">])</span>
+
+    Plant        Type  Treatment conc uptake CNTR
+ <span class="m">1</span><span class="o">:</span>   Qn1      Quebec nonchilled   <span class="m">95</span>   <span class="m">16.0</span>    <span class="m">1</span>
+ <span class="m">2</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">175</span>   <span class="m">30.4</span>    <span class="m">2</span>
+ <span class="m">3</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">250</span>   <span class="m">34.8</span>    <span class="m">3</span>
+ <span class="m">4</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">350</span>   <span class="m">37.2</span>    <span class="m">4</span>
+ <span class="m">5</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">500</span>   <span class="m">35.3</span>    <span class="m">5</span>
+                          <span class="m">.</span>
+                          <span class="m">.</span>
+                          <span class="m">.</span>
+<span class="m">79</span><span class="o">:</span>   Mc3 Mississippi    chilled  <span class="m">175</span>   <span class="m">18.0</span>   <span class="m">79</span>
+<span class="m">80</span><span class="o">:</span>   Mc3 Mississippi    chilled  <span class="m">250</span>   <span class="m">17.9</span>   <span class="m">80</span>
+<span class="m">81</span><span class="o">:</span>   Mc3 Mississippi    chilled  <span class="m">350</span>   <span class="m">17.9</span>   <span class="m">81</span>
+<span class="m">82</span><span class="o">:</span>   Mc3 Mississippi    chilled  <span class="m">500</span>   <span class="m">17.9</span>   <span class="m">82</span>
+<span class="m">83</span><span class="o">:</span>   Mc3 Mississippi    chilled  <span class="m">675</span>   <span class="m">18.9</span>   <span class="m">83</span>
+<span class="m">84</span><span class="o">:</span>   Mc3 Mississippi    chilled <span class="m">1000</span>   <span class="m">19.9</span>   <span class="m">84</span>
+</pre></div>
+
+
+<p><br>
+Similiarly, enumeration can be applied by group:
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="p">(</span>DT<span class="p">[,</span>CNTR<span class="o">:=</span><span class="m">1</span><span class="o">:</span><span class="m">.</span>N<span class="p">,</span> by<span class="o">=</span>Plant<span class="p">])</span>
+
+    Plant        Type  Treatment conc uptake CNTR
+ <span class="m">1</span><span class="o">:</span>   Qn1      Quebec nonchilled   <span class="m">95</span>   <span class="m">16.0</span>    <span class="m">1</span>
+ <span class="m">2</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">175</span>   <span class="m">30.4</span>    <span class="m">2</span>
+ <span class="m">3</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">250</span>   <span class="m">34.8</span>    <span class="m">3</span>
+ <span class="m">4</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">350</span>   <span class="m">37.2</span>    <span class="m">4</span>
+ <span class="m">5</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">500</span>   <span class="m">35.3</span>    <span class="m">5</span>
+ <span class="m">6</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">675</span>   <span class="m">39.2</span>    <span class="m">6</span>
+ <span class="m">7</span><span class="o">:</span>   Qn1      Quebec nonchilled <span class="m">1000</span>   <span class="m">39.7</span>    <span class="m">7</span>
+ <span class="m">8</span><span class="o">:</span>   Qn2      Quebec nonchilled   <span class="m">95</span>   <span class="m">13.6</span>    <span class="m">1</span>
+ <span class="m">9</span><span class="o">:</span>   Qn2      Quebec nonchilled  <span class="m">175</span>   <span class="m">27.3</span>    <span class="m">2</span>
+<span class="m">10</span><span class="o">:</span>   Qn2      Quebec nonchilled  <span class="m">250</span>   <span class="m">37.1</span>    <span class="m">3</span>
+<span class="m">11</span><span class="o">:</span>   Qn2      Quebec nonchilled  <span class="m">350</span>   <span class="m">41.8</span>    <span class="m">4</span>
+<span class="m">12</span><span class="o">:</span>   Qn2      Quebec nonchilled  <span class="m">500</span>   <span class="m">40.6</span>    <span class="m">5</span>
+<span class="m">13</span><span class="o">:</span>   Qn2      Quebec nonchilled  <span class="m">675</span>   <span class="m">41.4</span>    <span class="m">6</span>
+<span class="m">14</span><span class="o">:</span>   Qn2      Quebec nonchilled <span class="m">1000</span>   <span class="m">44.3</span>    <span class="m">7</span>
+                      <span class="m">.</span>
+                      <span class="m">.</span>
+                      <span class="m">.</span>
+</pre></div>
+
+
+<p><br></p>
+<h3><strong><code>.SD</code></strong></h3>
+<p><code>.SD</code> (<em>Subset of x&#8217;s Data</em>) contains all columns of the data.table except the grouping columns 
+by default. Referring again to the <code>CO2</code> dataset, we can use <code>.SD</code> to print the contents of a 
+data.table:
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+
+DT <span class="o">=</span> CO2<span class="p">;</span> setDT<span class="p">(</span>DT<span class="p">)</span>
+
+<span class="o">&gt;</span> DT<span class="p">[,</span><span class="m">.</span>SD<span class="p">]</span>
+
+    Plant        Type  Treatment conc uptake
+ <span class="m">1</span><span class="o">:</span>   Qn1      Quebec nonchilled   <span class="m">95</span>   <span class="m">16.0</span>
+ <span class="m">2</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">175</span>   <span class="m">30.4</span>
+ <span class="m">3</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">250</span>   <span class="m">34.8</span>
+ <span class="m">4</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">350</span>   <span class="m">37.2</span>
+                    <span class="m">.</span>
+                    <span class="m">.</span>
+                    <span class="m">.</span>
+<span class="m">83</span><span class="o">:</span>   Mc3 Mississippi    chilled  <span class="m">675</span>   <span class="m">18.9</span>
+<span class="m">84</span><span class="o">:</span>   Mc3 Mississippi    chilled <span class="m">1000</span>   <span class="m">19.9</span>
+</pre></div>
+
+
+<p><br>
+Although uncommon, <code>.SD</code> can be used for subsetting columns. Next, we retrieve <code>Treatment</code> and <code>conc</code> from 
+the <code>CO2</code> dataset using three approaches, then demonstrating each method returns an identical subset:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># Using .SD to retrieve &quot;Treatment&quot; &amp; &quot;conc&quot; =&gt;</span>
+<span class="o">&gt;</span> DT1 <span class="o">=</span> DT<span class="p">[,</span> <span class="m">.</span>SD<span class="p">,</span> <span class="m">.</span>SDcols<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;Treatment&quot;</span><span class="p">,</span> <span class="s">&quot;conc&quot;</span><span class="p">)]</span>
+
+<span class="o">&gt;</span> <span class="kp">head</span><span class="p">(</span>DT1<span class="p">)</span>
+Treatment conc
+<span class="m">1</span><span class="o">:</span> nonchilled   <span class="m">95</span>
+<span class="m">2</span><span class="o">:</span> nonchilled  <span class="m">175</span>
+<span class="m">3</span><span class="o">:</span> nonchilled  <span class="m">250</span>
+<span class="m">4</span><span class="o">:</span> nonchilled  <span class="m">350</span>
+<span class="m">5</span><span class="o">:</span> nonchilled  <span class="m">500</span>
+<span class="m">6</span><span class="o">:</span> nonchilled  <span class="m">675</span>
+
+
+<span class="c1"># Can also be accomplished using the following. Note that</span>
+<span class="c1"># `.(...)` is shorthand for `list(...)` =&gt; </span>
+<span class="o">&gt;</span> DT2 <span class="o">=</span> DT<span class="p">[,</span> <span class="m">.</span><span class="p">(</span>Treatment<span class="p">,</span> conc<span class="p">)]</span>
+
+<span class="c1"># If column names are available only as a character vector,</span>
+<span class="c1"># i.e., c(&quot;Treatment&quot;, &quot;conc&quot;) include `with=FALSE` =&gt;</span>
+<span class="o">&gt;</span> DT3 <span class="o">=</span> DT<span class="p">[,</span> <span class="kt">c</span><span class="p">(</span><span class="s">&quot;Treatment&quot;</span><span class="p">,</span> <span class="s">&quot;conc&quot;</span><span class="p">),</span> with<span class="o">=</span><span class="kc">FALSE</span><span class="p">]</span>
+
+<span class="c1"># Test for equality amongst DT1, DT2 &amp; DT3 =&gt;</span>
+<span class="o">&gt;</span> <span class="kp">identical</span><span class="p">(</span>DT1<span class="p">,</span> DT3<span class="p">);</span> <span class="kp">identical</span><span class="p">(</span>DT2<span class="p">,</span> DT3<span class="p">);</span> <span class="kp">identical</span><span class="p">(</span>DT1<span class="p">,</span> DT2<span class="p">)</span>
+
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="kc">TRUE</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="kc">TRUE</span>
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="kc">TRUE</span>
+</pre></div>
+
+
+<p><br>
+We can retrieve the first 3 rows for all fields partitioned by <code>Plant</code>:
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="p">(</span>DT1 <span class="o">=</span> DT<span class="p">[,</span><span class="m">.</span>SD<span class="p">[</span><span class="m">1</span><span class="o">:</span><span class="m">3</span><span class="p">],</span> by<span class="o">=</span>Plant<span class="p">])</span>
+
+    Plant        Type  Treatment conc uptake
+ <span class="m">1</span><span class="o">:</span>   Qn1      Quebec nonchilled   <span class="m">95</span>   <span class="m">16.0</span>
+ <span class="m">2</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">175</span>   <span class="m">30.4</span>
+ <span class="m">3</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">250</span>   <span class="m">34.8</span>
+ <span class="m">4</span><span class="o">:</span>   Qn2      Quebec nonchilled   <span class="m">95</span>   <span class="m">13.6</span>
+ <span class="m">5</span><span class="o">:</span>   Qn2      Quebec nonchilled  <span class="m">175</span>   <span class="m">27.3</span>
+ <span class="m">6</span><span class="o">:</span>   Qn2      Quebec nonchilled  <span class="m">250</span>   <span class="m">37.1</span>
+ <span class="m">7</span><span class="o">:</span>   Qn3      Quebec nonchilled   <span class="m">95</span>   <span class="m">16.2</span>
+ <span class="m">8</span><span class="o">:</span>   Qn3      Quebec nonchilled  <span class="m">175</span>   <span class="m">32.4</span>
+ <span class="m">9</span><span class="o">:</span>   Qn3      Quebec nonchilled  <span class="m">250</span>   <span class="m">40.3</span>
+                      <span class="m">.</span>
+                      <span class="m">.</span>
+                      <span class="m">.</span>
+<span class="m">28</span><span class="o">:</span>   Mc1 Mississippi    chilled   <span class="m">95</span>   <span class="m">10.5</span>
+<span class="m">29</span><span class="o">:</span>   Mc1 Mississippi    chilled  <span class="m">175</span>   <span class="m">14.9</span>
+<span class="m">30</span><span class="o">:</span>   Mc1 Mississippi    chilled  <span class="m">250</span>   <span class="m">18.1</span>
+<span class="m">31</span><span class="o">:</span>   Mc2 Mississippi    chilled   <span class="m">95</span>    <span class="m">7.7</span>
+<span class="m">32</span><span class="o">:</span>   Mc2 Mississippi    chilled  <span class="m">175</span>   <span class="m">11.4</span>
+<span class="m">33</span><span class="o">:</span>   Mc2 Mississippi    chilled  <span class="m">250</span>   <span class="m">12.3</span>
+<span class="m">34</span><span class="o">:</span>   Mc3 Mississippi    chilled   <span class="m">95</span>   <span class="m">10.6</span>
+<span class="m">35</span><span class="o">:</span>   Mc3 Mississippi    chilled  <span class="m">175</span>   <span class="m">18.0</span>
+<span class="m">36</span><span class="o">:</span>   Mc3 Mississippi    chilled  <span class="m">250</span>   <span class="m">17.9</span>    
+</pre></div>
+
+
+<p><br>
+It is possible to retrieve the 1st, 2nd, second-to-last and last records for each unique value 
+present in <code>Type</code>:
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DT<span class="p">[,</span> <span class="m">.</span>SD<span class="p">[</span><span class="kt">c</span><span class="p">(</span><span class="m">1</span><span class="p">,</span> <span class="m">2</span><span class="p">,</span> <span class="m">.</span>N<span class="m">-1</span><span class="p">,</span> <span class="m">.</span>N<span class="p">)],</span> by<span class="o">=</span>Type<span class="p">]</span>
+
+          Type Plant  Treatment conc uptake
+<span class="m">1</span><span class="o">:</span>      Quebec   Qn1 nonchilled   <span class="m">95</span>   <span class="m">16.0</span>
+<span class="m">2</span><span class="o">:</span>      Quebec   Qn1 nonchilled  <span class="m">175</span>   <span class="m">30.4</span>
+<span class="m">3</span><span class="o">:</span>      Quebec   Qc3    chilled  <span class="m">675</span>   <span class="m">39.6</span>
+<span class="m">4</span><span class="o">:</span>      Quebec   Qc3    chilled <span class="m">1000</span>   <span class="m">41.4</span>
+<span class="m">5</span><span class="o">:</span> Mississippi   Mn1 nonchilled   <span class="m">95</span>   <span class="m">10.6</span>
+<span class="m">6</span><span class="o">:</span> Mississippi   Mn1 nonchilled  <span class="m">175</span>   <span class="m">19.2</span>
+<span class="m">7</span><span class="o">:</span> Mississippi   Mc3    chilled  <span class="m">675</span>   <span class="m">18.9</span>
+<span class="m">8</span><span class="o">:</span> Mississippi   Mc3    chilled <span class="m">1000</span>   <span class="m">19.9</span>
+</pre></div>
+
+
+<p><br>
+<code>.SD</code> can be used in conjunction with <code>.SDcols</code> to convert fields with a factor datatype to character 
+type. <code>.SDcols</code> is frequently used with <code>.SD</code> to specify a subset of the columns of <code>.SD</code> to be used in 
+<code>j</code>. If <code>.SDcols</code> is present, it&#8217;s generally bound to a vector of fieldnames, and the operation in <code>j</code> 
+will be applied only to the fields associated with the names specified in <code>.SDcols</code>:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># First, list original field datatypes =&gt;</span>
+<span class="o">&gt;</span> <span class="kp">lapply</span><span class="p">(</span>DT<span class="p">,</span> <span class="kp">class</span><span class="p">)</span>
+
+<span class="o">$</span>Plant
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;ordered&quot;</span> <span class="s">&quot;factor&quot;</span> 
+
+<span class="o">$</span>Type
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;factor&quot;</span>
+
+<span class="o">$</span>Treatment
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;factor&quot;</span>
+
+<span class="o">$</span>conc
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;numeric&quot;</span>
+
+<span class="o">$</span>uptake
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;numeric&quot;</span>
+
+
+<span class="c1"># Convert fields with factor datatype (`Plant`, `Type` &amp; `Treatment`) </span>
+<span class="c1"># to character datatype. Isolate factor fieldnames =&gt;</span>
+<span class="o">&gt;</span> factorFieldnames <span class="o">=</span> <span class="kp">names</span><span class="p">(</span><span class="kp">Filter</span><span class="p">(</span><span class="kp">is.factor</span><span class="p">,</span> DT<span class="p">))</span>
+
+
+<span class="c1"># Convert factor datatypes to character datatypes =&gt;</span>
+<span class="o">&gt;</span> DT<span class="p">[,(</span>factorFieldnames<span class="p">)</span><span class="o">:=</span><span class="kp">lapply</span><span class="p">(</span><span class="m">.</span>SD<span class="p">,</span> <span class="kp">as.character</span><span class="p">),</span> <span class="m">.</span>SDcols<span class="o">=</span>factorFieldnames<span class="p">]</span>
+
+
+<span class="c1"># Verify datatypes have been successfully coerced =&gt;</span>
+<span class="o">&gt;</span> <span class="kp">lapply</span><span class="p">(</span>DT<span class="p">,</span> <span class="kp">class</span><span class="p">)</span>
+
+<span class="o">$</span>Plant
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;character&quot;</span>
+
+<span class="o">$</span>Type
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;character&quot;</span>
+
+<span class="o">$</span>Treatment
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;character&quot;</span>
+
+<span class="o">$</span>conc
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;numeric&quot;</span>
+
+<span class="o">$</span>uptake
+<span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="s">&quot;numeric&quot;</span>
+</pre></div>
+
+
+<p><br>
+Two things to note: First, because we used the assignment by reference operator, <code>:=</code>, to recast 
+datatypes, it is not necessary to re-assign the result of the type-coercion back to <span class="caps">DT</span>. This is because 
+when using <code>:=</code>, operations are performed <em>in-place</em> and by reference, therefore the result of a 
+particular action are visible immediately in <code>DT</code>. Second, since <code>factorFieldnames</code> is enclosed by 
+parentheses preceeding <code>:=</code>, the result is assigned to the columns specified in <code>factorFieldnames</code>. 
+If parentheses we left out, a new field named <code>factorFieldnames</code> would be added to <code>DT</code>, which is not 
+the desired&nbsp;behavior.  </p>
+<p><br>
+<code>.SD</code> can be used to calculate the average of any fields of interest overall or by group:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># Calculate the overall average of `conc` &amp; `uptake` =&gt;</span>
+<span class="o">&gt;</span> <span class="p">(</span>avgDT1 <span class="o">=</span> DT<span class="p">[,</span> <span class="kp">lapply</span><span class="p">(</span><span class="m">.</span>SD<span class="p">,</span> <span class="kp">mean</span><span class="p">),</span> <span class="m">.</span>SDcols<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;conc&quot;</span><span class="p">,</span> <span class="s">&quot;uptake&quot;</span><span class="p">)])</span>
+
+   conc  uptake
+<span class="m">1</span><span class="o">:</span>  <span class="m">435</span> <span class="m">27.2131</span>
+
+
+<span class="c1"># Calculate the average of `conc` &amp; `uptake` by `Plant` =&gt;</span>
+<span class="o">&gt;</span> <span class="p">(</span>avgDT2 <span class="o">=</span> DT<span class="p">[,</span> <span class="kp">lapply</span><span class="p">(</span><span class="m">.</span>SD<span class="p">,</span> <span class="kp">mean</span><span class="p">),</span> <span class="m">.</span>SDcols<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;conc&quot;</span><span class="p">,</span> <span class="s">&quot;uptake&quot;</span><span class="p">),</span> by<span class="o">=</span>Plant<span class="p">])</span>
+
+    Plant conc   uptake
+ <span class="m">1</span><span class="o">:</span>   Qn1  <span class="m">435</span> <span class="m">33.22857</span>
+ <span class="m">2</span><span class="o">:</span>   Qn2  <span class="m">435</span> <span class="m">35.15714</span>
+ <span class="m">3</span><span class="o">:</span>   Qn3  <span class="m">435</span> <span class="m">37.61429</span>
+ <span class="m">4</span><span class="o">:</span>   Qc1  <span class="m">435</span> <span class="m">29.97143</span>
+ <span class="m">5</span><span class="o">:</span>   Qc2  <span class="m">435</span> <span class="m">32.70000</span>
+ <span class="m">6</span><span class="o">:</span>   Qc3  <span class="m">435</span> <span class="m">32.58571</span>
+ <span class="m">7</span><span class="o">:</span>   Mn1  <span class="m">435</span> <span class="m">26.40000</span>
+ <span class="m">8</span><span class="o">:</span>   Mn2  <span class="m">435</span> <span class="m">27.34286</span>
+ <span class="m">9</span><span class="o">:</span>   Mn3  <span class="m">435</span> <span class="m">24.11429</span>
+<span class="m">10</span><span class="o">:</span>   Mc1  <span class="m">435</span> <span class="m">18.00000</span>
+<span class="m">11</span><span class="o">:</span>   Mc2  <span class="m">435</span> <span class="m">12.14286</span>
+<span class="m">12</span><span class="o">:</span>   Mc3  <span class="m">435</span> <span class="m">17.30000</span>
+</pre></div>
+
+
+<p><br>
+One final example using <code>.SD</code>: As mentioned earlier in the post, <code>.SDcols</code> is used to specify 
+the columns of the data.table that <code>.SD</code> will operate on. Alternatively, we can use <code>.SDcols</code> 
+to <em>exclude</em> fields from the operation performed by <code>.SD</code>. Referring to the example in which we 
+calculated the average of <code>conc</code> <span class="amp">&amp;</span> <code>uptake</code> in the <code>CO2</code> dataset, we can alternatively specify 
+the fields <code>.SD</code> <em>should not</em> average over. Here&#8217;s an alternative approach that results in excluding 
+<code>Plant</code>, <code>Type</code> and <code>Treatment</code> from the average cacluation:
+<br></p>
+<div class="highlight"><pre><span></span>DT <span class="o">=</span> CO2<span class="p">;</span> setDT<span class="p">(</span>DT<span class="p">)</span>
+
+<span class="c1"># Calculate the average of `conc` &amp; `uptake` by excluding</span>
+<span class="c1"># `Plant`, `Type` &amp; `Treatment` =&gt;</span>
+<span class="o">&gt;</span> <span class="p">(</span>avgDT <span class="o">=</span> DT<span class="p">[,</span> <span class="kp">lapply</span><span class="p">(</span><span class="m">.</span>SD<span class="p">,</span> <span class="kp">mean</span><span class="p">),</span> <span class="m">.</span>SDcols<span class="o">=!</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;Plant&quot;</span><span class="p">,</span><span class="s">&quot;Type&quot;</span><span class="p">,</span><span class="s">&quot;Treatment&quot;</span><span class="p">)]))</span>
+
+   conc  uptake
+<span class="m">1</span><span class="o">:</span>  <span class="m">435</span> <span class="m">27.2131</span>
+</pre></div>
+
+
+<p><br>
+Clearly in this example it is not advantageous to specify the fields <em>not</em> included in the average 
+(the need to specify 3 excluded fieldnames as opposed to 2 included fieldnames), but situations do arise 
+in which this functionality turns out to be very convenient.    <br>
+<br></p>
+<h3><strong><code>.BY</code></strong></h3>
+<p><code>.BY</code> is a list containing a length 1 vector for each item in <code>by</code>. There are few examples in which 
+the <code>.BY</code> special symbol is used, so we&#8217;ll reproduce the example included in the data.table vignette:
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+
+<span class="o">&gt;</span> DT <span class="o">=</span> data.table<span class="p">(</span>
+           x<span class="o">=</span><span class="kp">rep</span><span class="p">(</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;b&quot;</span><span class="p">,</span><span class="s">&quot;a&quot;</span><span class="p">,</span><span class="s">&quot;c&quot;</span><span class="p">),</span>each<span class="o">=</span><span class="m">3</span><span class="p">),</span> 
+           v<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="m">1</span><span class="p">,</span><span class="m">1</span><span class="p">,</span><span class="m">1</span><span class="p">,</span><span class="m">2</span><span class="p">,</span><span class="m">2</span><span class="p">,</span><span class="m">1</span><span class="p">,</span><span class="m">1</span><span class="p">,</span><span class="m">2</span><span class="p">,</span><span class="m">2</span><span class="p">),</span> 
+           y<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="m">1</span><span class="p">,</span><span class="m">3</span><span class="p">,</span><span class="m">6</span><span class="p">),</span> 
+           a<span class="o">=</span><span class="m">1</span><span class="o">:</span><span class="m">9</span><span class="p">,</span> 
+           b<span class="o">=</span><span class="m">9</span><span class="o">:</span><span class="m">1</span>
+           <span class="p">)</span>
+
+<span class="o">&gt;</span> <span class="kp">head</span><span class="p">(</span>DT<span class="p">)</span>
+
+   x v y a b
+<span class="m">1</span><span class="o">:</span> b <span class="m">1</span> <span class="m">1</span> <span class="m">1</span> <span class="m">9</span>
+<span class="m">2</span><span class="o">:</span> b <span class="m">1</span> <span class="m">3</span> <span class="m">2</span> <span class="m">8</span>
+<span class="m">3</span><span class="o">:</span> b <span class="m">1</span> <span class="m">6</span> <span class="m">3</span> <span class="m">7</span>
+<span class="m">4</span><span class="o">:</span> a <span class="m">2</span> <span class="m">1</span> <span class="m">4</span> <span class="m">6</span>
+<span class="m">5</span><span class="o">:</span> a <span class="m">2</span> <span class="m">3</span> <span class="m">5</span> <span class="m">5</span>
+<span class="m">6</span><span class="o">:</span> a <span class="m">1</span> <span class="m">6</span> <span class="m">6</span> <span class="m">4</span>
+
+
+<span class="o">&gt;</span> X <span class="o">=</span> data.table<span class="p">(</span>
+          x<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;c&quot;</span><span class="p">,</span><span class="s">&quot;b&quot;</span><span class="p">),</span> 
+          v<span class="o">=</span><span class="m">8</span><span class="o">:</span><span class="m">7</span><span class="p">,</span> 
+          foo<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="m">4</span><span class="p">,</span><span class="m">2</span><span class="p">)</span>
+          <span class="p">)</span>
+
+<span class="o">&gt;</span> <span class="kp">head</span><span class="p">(</span>X<span class="p">)</span>
+
+   x v foo
+<span class="m">1</span><span class="o">:</span> <span class="kt">c</span> <span class="m">8</span>   <span class="m">4</span>
+<span class="m">2</span><span class="o">:</span> b <span class="m">7</span>   <span class="m">2</span>
+
+
+<span class="c1"># Join within each group =&gt;</span>
+<span class="o">&gt;</span> X<span class="p">[,</span> DT<span class="p">[</span><span class="m">.</span>BY<span class="p">,</span> y<span class="p">,</span> on<span class="o">=</span><span class="s">&quot;x&quot;</span><span class="p">],</span> by<span class="o">=</span>x<span class="p">]</span>
+
+   x V1
+<span class="m">1</span><span class="o">:</span> <span class="kt">c</span>  <span class="m">1</span>
+<span class="m">2</span><span class="o">:</span> <span class="kt">c</span>  <span class="m">3</span>
+<span class="m">3</span><span class="o">:</span> <span class="kt">c</span>  <span class="m">6</span>
+<span class="m">4</span><span class="o">:</span> b  <span class="m">1</span>
+<span class="m">5</span><span class="o">:</span> b  <span class="m">3</span>
+<span class="m">6</span><span class="o">:</span> b  <span class="m">6</span>
+</pre></div>
+
+
+<p><br></p>
+<h3><strong><code>.I</code></strong></h3>
+<p><code>.I</code> is an integer vector equal to seq_len(nrow(x)). But we can instead use <code>.I</code> to return a vector 
+containing the row indicies of the records in a data.table that meet the condition specified in <code>i</code>. 
+In the next example, we demonstrate how to return the row indicies from <code>CO2</code> having <code>conc&gt;500</code> using <code>.I</code>:
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+
+DT <span class="o">=</span> CO2<span class="p">;</span> setDT<span class="p">(</span>DT<span class="p">)</span>
+
+<span class="c1"># Return row indicies in which conc &gt; 500 =&gt;</span>
+<span class="o">&gt;</span> DT<span class="p">[,</span><span class="m">.</span><span class="kp">I</span><span class="p">[</span>conc<span class="o">&gt;</span><span class="m">500</span><span class="p">]]</span>
+
+<span class="p">[</span><span class="m">1</span><span class="p">]</span>  <span class="m">6</span>  <span class="m">7</span> <span class="m">13</span> <span class="m">14</span> <span class="m">20</span> <span class="m">21</span> <span class="m">27</span> <span class="m">28</span> <span class="m">34</span> <span class="m">35</span> <span class="m">41</span> <span class="m">42</span> <span class="m">48</span> <span class="m">49</span> <span class="m">55</span> <span class="m">56</span> <span class="m">62</span> <span class="m">63</span> <span class="m">69</span> <span class="m">70</span> <span class="m">76</span> <span class="m">77</span> <span class="m">83</span> <span class="m">84</span>
+</pre></div>
+
+
+<p><br>
+Using <code>.I</code> after the condition specified in <code>i</code> returns a vector of length equal to the number of 
+records meeting the <code>i</code><span class="quo">&#8216;</span>s criteria:
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DT<span class="p">[</span>conc<span class="o">&gt;</span><span class="m">500</span><span class="p">,</span> <span class="m">.</span><span class="kp">I</span><span class="p">]</span>
+
+<span class="p">[</span><span class="m">1</span><span class="p">]</span>  <span class="m">1</span>  <span class="m">2</span>  <span class="m">3</span>  <span class="m">4</span>  <span class="m">5</span>  <span class="m">6</span>  <span class="m">7</span>  <span class="m">8</span>  <span class="m">9</span> <span class="m">10</span> <span class="m">11</span> <span class="m">12</span> <span class="m">13</span> <span class="m">14</span> <span class="m">15</span> <span class="m">16</span> <span class="m">17</span> <span class="m">18</span> <span class="m">19</span> <span class="m">20</span> <span class="m">21</span> <span class="m">22</span> <span class="m">23</span> <span class="m">24</span>
+</pre></div>
+
+
+<p><br>
+Note that use of <code>.I</code> may have been supplanted in favor of data.table&#8217;s <code>which</code> parameter. Instead 
+of using <code>.I</code>, we can use <code>which=TRUE</code> to return the row indicies of records meeting the condition 
+specified in <code>i</code>:
+<br></p>
+<div class="highlight"><pre><span></span><span class="c1"># Using `which=TRUE` instead of `.I` =&gt;</span>
+<span class="o">&gt;</span> DT<span class="p">[</span>conc<span class="o">&gt;</span><span class="m">500</span><span class="p">,</span> which<span class="o">=</span><span class="kc">TRUE</span><span class="p">]</span>
+
+<span class="p">[</span><span class="m">1</span><span class="p">]</span>  <span class="m">6</span>  <span class="m">7</span> <span class="m">13</span> <span class="m">14</span> <span class="m">20</span> <span class="m">21</span> <span class="m">27</span> <span class="m">28</span> <span class="m">34</span> <span class="m">35</span> <span class="m">41</span> <span class="m">42</span> <span class="m">48</span> <span class="m">49</span> <span class="m">55</span> <span class="m">56</span> <span class="m">62</span> <span class="m">63</span> <span class="m">69</span> <span class="m">70</span> <span class="m">76</span> <span class="m">77</span> <span class="m">83</span> <span class="m">84</span>
+</pre></div>
+
+
+<p><br>
+We obtain the same result as using <code>DT[,.I[conc&gt;500]]</code>, but <code>DT[conc&gt;500, which=TRUE]</code> is, in my opinion, 
+preferable based on the improved readability.
+<br></p>
+<h3><strong><code>.GRP</code></strong></h3>
+<p><code>.GRP</code> is an integer, length 1, containing a simple group counter. If used without assignment to a new 
+field, will return an enumerated data.table containing the unique combination of fields specified in 
+<code>by</code>. If we specify the key of the <code>CO2</code> dataset as <code>"Plant", "Type", "Treatment"</code>, we can return the 
+unique combinations of these fields by referencing the data.table&#8217;s key in the <code>by</code> clause: <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+
+DT <span class="o">=</span> CO2<span class="p">;</span> setDT<span class="p">(</span>DT<span class="p">)</span>
+
+<span class="c1"># Set key on DT =&gt;</span>
+<span class="o">&gt;</span> setkeyv<span class="p">(</span>DT<span class="p">,</span> <span class="kt">c</span><span class="p">(</span><span class="s">&quot;Plant&quot;</span><span class="p">,</span> <span class="s">&quot;Type&quot;</span><span class="p">,</span> <span class="s">&quot;Treatment&quot;</span><span class="p">))</span>
+
+<span class="c1"># Return enumerated data.table listing unique </span>
+<span class="c1"># combinations of fields specified in `by` =&gt;</span>
+<span class="o">&gt;</span> DT<span class="p">[,</span> <span class="m">.</span>GRP<span class="p">,</span> by<span class="o">=</span>key<span class="p">(</span>DT<span class="p">)])</span>
+
+    Plant        Type  Treatment GRP
+ <span class="m">1</span><span class="o">:</span>   Qn1      Quebec nonchilled   <span class="m">1</span>
+ <span class="m">2</span><span class="o">:</span>   Qn2      Quebec nonchilled   <span class="m">2</span>
+ <span class="m">3</span><span class="o">:</span>   Qn3      Quebec nonchilled   <span class="m">3</span>
+ <span class="m">4</span><span class="o">:</span>   Qc1      Quebec    chilled   <span class="m">4</span>
+ <span class="m">5</span><span class="o">:</span>   Qc3      Quebec    chilled   <span class="m">5</span>
+ <span class="m">6</span><span class="o">:</span>   Qc2      Quebec    chilled   <span class="m">6</span>
+ <span class="m">7</span><span class="o">:</span>   Mn3 Mississippi nonchilled   <span class="m">7</span>
+ <span class="m">8</span><span class="o">:</span>   Mn2 Mississippi nonchilled   <span class="m">8</span>
+ <span class="m">9</span><span class="o">:</span>   Mn1 Mississippi nonchilled   <span class="m">9</span>
+<span class="m">10</span><span class="o">:</span>   Mc2 Mississippi    chilled  <span class="m">10</span>
+<span class="m">11</span><span class="o">:</span>   Mc3 Mississippi    chilled  <span class="m">11</span>
+<span class="m">12</span><span class="o">:</span>   Mc1 Mississippi    chilled  <span class="m">12</span>
+</pre></div>
+
+
+<p><br>
+Notice that fields not specified in <code>by</code> are omitted from the output.  <br>
+We can also use <code>.GRP</code> to indicate which unique group a record belongs to for each record in the 
+parent data.table. We use the <code>:=</code> operator to define a new column (by reference) indicating 
+each record&#8217;s associated group:
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> <span class="p">(</span>DT<span class="p">[,</span>GROUP_ID<span class="o">:=</span><span class="m">.</span>GRP<span class="p">,</span> by<span class="o">=</span>key<span class="p">(</span>DT<span class="p">)])</span>
+
+    Plant        Type  Treatment conc uptake GROUP_ID
+ <span class="m">1</span><span class="o">:</span>   Qn1      Quebec nonchilled   <span class="m">95</span>   <span class="m">16.0</span>        <span class="m">1</span>
+ <span class="m">2</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">175</span>   <span class="m">30.4</span>        <span class="m">1</span>
+ <span class="m">3</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">250</span>   <span class="m">34.8</span>        <span class="m">1</span>
+ <span class="m">4</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">350</span>   <span class="m">37.2</span>        <span class="m">1</span>
+ <span class="m">5</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">500</span>   <span class="m">35.3</span>        <span class="m">1</span>
+ <span class="m">6</span><span class="o">:</span>   Qn1      Quebec nonchilled  <span class="m">675</span>   <span class="m">39.2</span>        <span class="m">1</span>
+ <span class="m">7</span><span class="o">:</span>   Qn1      Quebec nonchilled <span class="m">1000</span>   <span class="m">39.7</span>        <span class="m">1</span>
+ <span class="m">8</span><span class="o">:</span>   Qn2      Quebec nonchilled   <span class="m">95</span>   <span class="m">13.6</span>        <span class="m">2</span>
+ <span class="m">9</span><span class="o">:</span>   Qn2      Quebec nonchilled  <span class="m">175</span>   <span class="m">27.3</span>        <span class="m">2</span>
+<span class="m">10</span><span class="o">:</span>   Qn2      Quebec nonchilled  <span class="m">250</span>   <span class="m">37.1</span>        <span class="m">2</span>
+                          <span class="m">.</span>
+                          <span class="m">.</span>
+                          <span class="m">.</span>
+<span class="m">79</span><span class="o">:</span>   Mc1 Mississippi    chilled  <span class="m">175</span>   <span class="m">14.9</span>       <span class="m">12</span>
+<span class="m">80</span><span class="o">:</span>   Mc1 Mississippi    chilled  <span class="m">250</span>   <span class="m">18.1</span>       <span class="m">12</span>
+<span class="m">81</span><span class="o">:</span>   Mc1 Mississippi    chilled  <span class="m">350</span>   <span class="m">18.9</span>       <span class="m">12</span>
+<span class="m">82</span><span class="o">:</span>   Mc1 Mississippi    chilled  <span class="m">500</span>   <span class="m">19.5</span>       <span class="m">12</span>
+<span class="m">83</span><span class="o">:</span>   Mc1 Mississippi    chilled  <span class="m">675</span>   <span class="m">22.2</span>       <span class="m">12</span>
+<span class="m">84</span><span class="o">:</span>   Mc1 Mississippi    chilled <span class="m">1000</span>   <span class="m">21.9</span>       <span class="m">12</span>
+</pre></div>
+
+
+<p><br></p>
+<h3><strong><code>.EACHI</code></strong></h3>
+<p><code>.EACHI</code> is not documented along with the other special symbols, but it is mentioned in the <code>Arguments</code> section 
+of the data.table <a href="https://cran.r-project.org/web/packages/data.table/data.table.pdf">vignette</a>. What follows is the 
+description for <code>.EACHI</code> found there:    <br>
+<br>
+<em>When <code>i</code> is a list (or data.frame or data.table), <code>DT[i, j, by=.EACHI]</code>
+evaluates <code>j</code> for the groups in <span class="caps">DT</span> that each row in <code>i</code> joins to. That is, you can
+join (in <code>i</code>) and aggregate (in <code>j</code>) simultaneously. We call this grouping by each <code>i</code>.</em>  <br>
+<br>
+A <a href="https://stackoverflow.com/questions/27004002/eachi-in-data-table">question on stackoverflow</a> requested additional 
+information on how to properly use <code>.EACHI</code>, and one of data.table&#8217;s authors provided an excellent response with clear 
+examples and straightforward use cases. As with <code>.BY</code>, we proceed by referring to examples from data.table&#8217;s documentation:
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">library</span><span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+
+<span class="o">&gt;</span> <span class="p">(</span>DT <span class="o">=</span> data.table<span class="p">(</span>x<span class="o">=</span><span class="kp">rep</span><span class="p">(</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;b&quot;</span><span class="p">,</span><span class="s">&quot;a&quot;</span><span class="p">,</span><span class="s">&quot;c&quot;</span><span class="p">),</span>each<span class="o">=</span><span class="m">3</span><span class="p">),</span> y<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="m">1</span><span class="p">,</span><span class="m">3</span><span class="p">,</span><span class="m">6</span><span class="p">),</span> v<span class="o">=</span><span class="m">1</span><span class="o">:</span><span class="m">9</span><span class="p">))</span>
+
+   x y v
+<span class="m">1</span><span class="o">:</span> b <span class="m">1</span> <span class="m">1</span>
+<span class="m">2</span><span class="o">:</span> b <span class="m">3</span> <span class="m">2</span>
+<span class="m">3</span><span class="o">:</span> b <span class="m">6</span> <span class="m">3</span>
+<span class="m">4</span><span class="o">:</span> a <span class="m">1</span> <span class="m">4</span>
+<span class="m">5</span><span class="o">:</span> a <span class="m">3</span> <span class="m">5</span>
+<span class="m">6</span><span class="o">:</span> a <span class="m">6</span> <span class="m">6</span>
+<span class="m">7</span><span class="o">:</span> <span class="kt">c</span> <span class="m">1</span> <span class="m">7</span>
+<span class="m">8</span><span class="o">:</span> <span class="kt">c</span> <span class="m">3</span> <span class="m">8</span>
+<span class="m">9</span><span class="o">:</span> <span class="kt">c</span> <span class="m">6</span> <span class="m">9</span>
+
+<span class="o">&gt;</span> <span class="p">(</span>X <span class="o">=</span> data.table<span class="p">(</span>x<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;c&quot;</span><span class="p">,</span><span class="s">&quot;b&quot;</span><span class="p">),</span> v<span class="o">=</span><span class="m">8</span><span class="o">:</span><span class="m">7</span><span class="p">,</span> foo<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="m">4</span><span class="p">,</span><span class="m">2</span><span class="p">)))</span>
+
+   x v foo
+<span class="m">1</span><span class="o">:</span> <span class="kt">c</span> <span class="m">8</span>   <span class="m">4</span>
+<span class="m">2</span><span class="o">:</span> b <span class="m">7</span>   <span class="m">2</span>
+
+
+<span class="c1"># join and eval j for each row in i</span>
+<span class="o">&gt;</span> <span class="p">(</span>DT1 <span class="o">=</span> DT<span class="p">[</span>X<span class="p">,</span> <span class="kp">sum</span><span class="p">(</span>v<span class="p">),</span> by<span class="o">=</span><span class="m">.</span>EACHI<span class="p">,</span> on<span class="o">=</span><span class="s">&quot;x&quot;</span><span class="p">])</span>
+
+   x V1
+<span class="m">1</span><span class="o">:</span> <span class="kt">c</span> <span class="m">24</span>
+<span class="m">2</span><span class="o">:</span> b  <span class="m">6</span>
+</pre></div>
+
+
+<p><br>
+First, an inner join on the field <code>x</code> with <code>DT</code> and <code>X</code> is performed. Then calculate the sum of <code>v</code> from 
+<code>DT</code> <em>for each</em> <code>x</code> in <code>X</code>. <code>X</code> has two unique values in <code>x</code>: <code>c</code> <span class="amp">&amp;</span> <code>b</code>. Referencing <code>DT</code>, when  <code>x=="c"</code>, 
+<code>sum(v) = 24</code>. When <code>x=="b"</code>, <code>sum(v) = 6</code>, which matches the result using <code>.EACHI</code> above. <br>
+We can remove a value or range of values from inclusion of the <code>j</code> operation by specifying those values to 
+exclude:
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;</span> DT <span class="o">=</span> data.table<span class="p">(</span>x<span class="o">=</span><span class="kp">rep</span><span class="p">(</span><span class="kt">c</span><span class="p">(</span><span class="s">&quot;b&quot;</span><span class="p">,</span><span class="s">&quot;a&quot;</span><span class="p">,</span><span class="s">&quot;c&quot;</span><span class="p">),</span>each<span class="o">=</span><span class="m">3</span><span class="p">),</span> y<span class="o">=</span><span class="kt">c</span><span class="p">(</span><span class="m">1</span><span class="p">,</span><span class="m">3</span><span class="p">,</span><span class="m">6</span><span class="p">),</span> v<span class="o">=</span><span class="m">1</span><span class="o">:</span><span class="m">9</span><span class="p">)</span>
+
+<span class="o">&gt;</span> setkey<span class="p">(</span>DT<span class="p">,</span> x<span class="p">)</span>
+<span class="o">&gt;</span> <span class="p">(</span>DT1 <span class="o">=</span> DT<span class="p">[</span><span class="o">!</span><span class="s">&quot;a&quot;</span><span class="p">,</span> <span class="kp">sum</span><span class="p">(</span>v<span class="p">),</span> by<span class="o">=</span><span class="m">.</span>EACHI<span class="p">])</span>
+   x V1
+<span class="m">1</span><span class="o">:</span> b  <span class="m">6</span>
+<span class="m">2</span><span class="o">:</span> <span class="kt">c</span> <span class="m">24</span>
+</pre></div>
+
+
+<p><br>
+For each unique key value (records in <code>x</code>) that isn&#8217;t <code>"a"</code>, calculate the sum of column <code>v</code>. 
+<br></p>
+<h2>Conclusion</h2>
+<p>This post has been a quick introduction to data.table&#8217;s special symbols. Once sufficiently grokked, 
+using data.table&#8217;s special symbols will simplify your data.table expressions, allowing complex 
+operations to be expressed in a very natural way. Until next time, happy&nbsp;coding!</p>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

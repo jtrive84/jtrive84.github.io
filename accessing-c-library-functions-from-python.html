@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Accessing C Library Functions from Python - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/accessing-c-library-functions-from-python.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python" />
+        <meta name="description" content="Using the ctypes library to wrap compiled C code for use in Python" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Accessing C Library Functions from Python"/>
+        <meta property="og:url" content="https://jtrive84.github.io/accessing-c-library-functions-from-python.html"/>
+        <meta property="og:description" content="Using the ctypes library to wrap compiled C code for use in Python"/>
+        <meta property="article:published_time" content="2017-12-16" />
+            <meta property="article:section" content="Python" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Python ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/accessing-c-library-functions-from-python.html"
+                       rel="bookmark"
+                       title="Permalink to Accessing C Library Functions from Python">
+                        Accessing C Library Functions from&nbsp;Python
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-12-16T00:00:00-06:00"> 2017-12-16</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/python.html">Python</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>(Note: All source files referenced in what follows can be obtained <a href="https://github.com/jtrive84/ctypescdf">here</a>)
+<br></p>
+<p><a href="https://docs.python.org/3/library/ctypes.html">ctypes</a> is part of the Python 
+Standard Library which provides C compatible data types and allows calling 
+functions in shared libraries. It can be used to wrap libraries written in 
+compiled languages in pure Python.       <br>
+<br>
+In this post, we&#8217;ll demonstrate how to call functions written in C from Python 
+using <code>ctypes</code>. We&#8217;ll call functions that take as input an array of normal 
+variates with specified mean and variance, and computes the normal <span class="caps">CDF</span> for 
+each input array element. The sample code also demonstrates how to link to the 
+C math library during compilation, from which we&#8217;ll leverage the error 
+function, <span class="math">\(erf\)</span>, which can be used to compute the normal <span class="caps">CDF</span>. Note that if 
+following along on Windows, it is assumed that all development targets 
+Python3, and a relatively recent version of gcc is available (either 
+distributed along with Cygwin or&nbsp;MinGW).     </p>
+<p><br></p>
+<h2>Normal Cumulative Distribution&nbsp;Function</h2>
+<h3>Background</h3>
+<p>Our goal is to be able to call a C-implemented normal cumulative distribution 
+function (<span class="caps">CDF</span>) from Python, which take as input a value <span class="math">\(x\)</span>, mean <span class="math">\(\mu\)</span> and 
+standard deviation <span class="math">\(\sigma\)</span>, and returns the corresponding <span class="caps">CDF</span> of <span class="math">\(x\)</span> (which 
+ranges from 0 to 1), and a second function that populates an array of 
+evaluated normal quantiles for a given input&nbsp;array.       </p>
+<p>The standard C math library doesn&#8217;t expose functionality to calcuate the 
+normal <span class="caps">CDF</span> directly, however, it does expose both the error function <span class="math">\(erf\)</span> and 
+the complementary error function, <span class="math">\(erfc\)</span>. <span class="math">\(erf\)</span> is given by <br>
+<br>
+</p>
+<div class="math">$$
+erf(x) = \frac{2}{\sqrt{\pi}}\int_{0}^{x}  e^{-t^{2}}dt,
+$$</div>
+<p>
+<br>
+and <span class="math">\(erfc\)</span> is the complement of <span class="math">\(erf\)</span>:
+<br>
+</p>
+<div class="math">$$
+erfc(x) = 1 - erf(x).
+$$</div>
+<p><br>
+<br> <br>
+Recall that the normal probability density function (<span class="caps">PDF</span>) is given by    <br>
+<br>    <br>
+</p>
+<div class="math">$$
+f(x| \mu,\sigma) = \frac{1}{\sqrt{2 \pi \sigma^{2}}} e^{-\frac{(x-\mu)^{2}}{2\sigma^{2}}}.
+$$</div>
+<p>
+<br>      <br>
+Given the similiarity between <span class="math">\(erf\)</span> and the normal <span class="caps">PDF</span>, it&#8217;s possible to use 
+<span class="math">\(erf\)</span>/<span class="math">\(erfc\)</span> to calculate any normal quantiles of interest.          <br>
+<br>
+Let <span class="math">\(\Phi(x)\)</span> represent the normal <span class="caps">CDF</span> evaluated at <span class="math">\(x\)</span>. <span class="math">\(\Phi(x)\)</span> can be 
+obtained using the following identity:         <br>
+<br>  <br>
+</p>
+<div class="math">$$       
+\begin{align*}
+\Phi(x)&amp;=\frac{1}{\sqrt{2 \pi}}\int_{-\infty}^{x} e^{\frac{-t^{2}}{2}}dt \\
+&amp;=\frac{1}{2}\Big[1 + erf \Big(\frac{x}{\sqrt{2}}\Big)\Big] \\
+&amp;=\frac{1}{2}\Big[erfc\Big(-\frac{x}{\sqrt{2}}\Big)\Big].
+\end{align*}
+$$</div>
+<p>
+<br>
+Note that when <code>x</code> is large, <span class="math">\(erfc\)</span> should be used in place of <span class="math">\(erf\)</span>[1]. <br>
+<br>
+We&#8217;ll leverage <span class="math">\(erf\)</span>/<span class="math">\(erfc\)</span> from the standard C math library along with the 
+identities above to create a function that computes normal quantiles for a 
+given sequence of normal variates.             <br>
+<br>
+One final point: The identity relating the normal <span class="caps">CDF</span> and <span class="math">\(erf\)</span>/<span class="math">\(erfc\)</span> returns 
+quantiles from the standard normal distribution, which has zero mean and unit 
+variance (<span class="math">\(\mu=0\)</span>, <span class="math">\(\sigma^{2}=1\)</span>). To transform a normal distribution with 
+arbitrary mean and variance into standard form, we use the familiar
+transformation:                     <br>
+<br>
+</p>
+<div class="math">$$
+z = \frac{x - \mu}{\sigma}.
+$$</div>
+<p>
+<br>
+We can then evaluate <span class="math">\(z\)</span> to obtain the corresponding normal quantile. We&#8217;ll 
+use this point in our implementation as well.        <br>
+<br></p>
+<h3>C&nbsp;Implementation</h3>
+<p>The actual implementation of our normal <span class="caps">CDF</span> computator will consist of a 
+single <code>.c</code> file <em>norm.c</em>. What follows are the contents of <em>norm.c</em>:            </p>
+<div class="highlight"><pre><span></span><span class="cm">/*</span>
+<span class="cm">Determine the Normal CDF of x given mean `mu`</span>
+<span class="cm">and standard deviation `sigma`.</span>
+
+<span class="cm">    `x`     =&gt; value for which the normal CDF will be determined</span>
+<span class="cm">    `mu`    =&gt; mean of the corresponding normal distribution</span>
+<span class="cm">    `sigma` =&gt; standard deviation of the corresponding normal distribution</span>
+<span class="cm">*/</span>
+<span class="cp">#include</span> <span class="cpf">&lt;math.h&gt;</span><span class="cp"></span>
+
+
+<span class="kt">double</span> <span class="nf">norm_cdf</span><span class="p">(</span><span class="kt">double</span> <span class="n">x</span><span class="p">,</span> <span class="kt">double</span> <span class="n">mu</span><span class="p">,</span> <span class="kt">double</span> <span class="n">sigma</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">double</span> <span class="n">cdf</span><span class="p">;</span>  <span class="c1">// variable to hold result</span>
+    <span class="kt">double</span> <span class="n">z</span><span class="p">;</span>    <span class="c1">// transformation to standard normal</span>
+    <span class="k">const</span> <span class="kt">double</span> <span class="n">SQRT_2</span> <span class="o">=</span> <span class="mf">1.4142135623730951</span><span class="p">;</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">mu</span><span class="p">)</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">;</span>
+
+    <span class="c1">// if x &gt; 3, call erfc; otherwise call erf </span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span>
+        <span class="n">cdf</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">*</span> <span class="n">erfc</span><span class="p">(</span><span class="o">-</span> <span class="n">z</span> <span class="o">/</span> <span class="n">SQRT_2</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="k">else</span> <span class="p">{</span>
+        <span class="n">cdf</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">+</span> <span class="mf">.5</span> <span class="o">*</span> <span class="n">erf</span><span class="p">(</span><span class="n">z</span> <span class="o">/</span> <span class="n">SQRT_2</span><span class="p">);</span>    
+    <span class="p">}</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">cdf</span><span class="p">);</span>
+<span class="p">}</span>
+
+
+<span class="cm">/*</span>
+<span class="cm">For a given array of arbitrary normal variates, calculate </span>
+<span class="cm">the corresponding quantiles using `norm_cdf`.</span>
+
+<span class="cm">    `mu`           =&gt; mean of the corresponding normal distribution</span>
+<span class="cm">    `sigma`        =&gt; standard deviation of the corresponding normal distribution</span>
+<span class="cm">    `n`            =&gt; the length of input_array/output_array</span>
+<span class="cm">    `input_array`  =&gt; array of inputs (doubles)</span>
+<span class="cm">    `output_array` =&gt; array of computed normal CDFs</span>
+<span class="cm">*/</span>
+<span class="kt">void</span> <span class="nf">cdf_array</span><span class="p">(</span><span class="kt">double</span> <span class="n">mu</span><span class="p">,</span> <span class="kt">double</span> <span class="n">sigma</span><span class="p">,</span> <span class="kt">int</span> <span class="n">n</span><span class="p">,</span> 
+                 <span class="kt">double</span><span class="o">*</span> <span class="n">input_array</span><span class="p">,</span> <span class="kt">double</span><span class="o">*</span> <span class="n">output_array</span><span class="p">)</span>
+<span class="p">{</span>
+    <span class="kt">int</span> <span class="n">i</span><span class="p">;</span>
+
+    <span class="c1">// For each element of input_array, call norm</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">n</span><span class="p">;</span> <span class="n">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+
+        <span class="n">output_array</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">norm_cdf</span><span class="p">(</span><span class="n">input_array</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">);</span>
+
+    <span class="p">}</span>    
+<span class="p">}</span>
+</pre></div>
+
+
+<p><br>         </p>
+<p>In the next section, we demonstrate how to compile <em>norm.c</em> into a shared 
+library which can then be called from Python via <code>ctypes</code>. 
+<br></p>
+<h3>Compilation</h3>
+<p>(Note: Calls to gcc refer to the gcc distributed with Cygwin.)       <br>
+<br>
+Our ultimate goal is to create a shared library that contains the C functions 
+<code>norm_cdf</code> and <code>cdf_array</code> which can be accessed using <code>ctypes</code> and called 
+from within a Python session. The first step  is to compile <em>norm.c</em> into an 
+object file. For gcc, the <code>-c</code> flag is used to compile a source file into an 
+object&nbsp;file:            </p>
+<div class="highlight"><pre><span></span>$ gcc -Wall -fPIC -lm -c norm.c    
+</pre></div>
+
+
+<p><br></p>
+<p>We do not need to include the <code>-o</code> flag to specify the name of the output file 
+in the command above, since compiling with <code>-c</code> automatically creates an 
+object file with the same name as our source file, but with an <code>.o</code> extension.         </p>
+<p>The <code>-lm</code> flag precludes us from having to include the full path and name of 
+the C math library, <em>/cygdrive/c/cygwin64/lib/libm.a</em>. Upon completion, the 
+object file <em>norm.o</em> will be output to the same directory in which <em>norm.c</em>&nbsp;resides.               </p>
+<p>In the next step we create the shared library. Linux shared libraries have 
+<code>.so</code> extensions, and since we&#8217;re using Cygwin, our library will also have an 
+<code>.so</code> extension. The following command creates <em>norm.so</em> in the same directory 
+as <em>norm.c</em> and <em>norm.o</em>:               </p>
+<div class="highlight"><pre><span></span>$ gcc -shared -o norm.so norm.o  
+</pre></div>
+
+
+<p><br>   </p>
+<p>A brief aside: If we had a collection of files that we wanted to compile into 
+a single shared library, we&#8217;d list them on the command line one after the 
+other. If instead of <em>norm.o</em> we had <em>norm1.o</em>, <em>norm2.o</em> and <em>norm3.o</em>, the 
+command would&nbsp;become:          </p>
+<div class="highlight"><pre><span></span>$ gcc -shared -o norm.so norm1.o norm2.o norm3.o
+</pre></div>
+
+
+<p><br></p>
+<p>This would also produce a single <em>norm.so</em> file in the working directory, same 
+as our original command specification referencing a single object&nbsp;file.              </p>
+<p>In the final step, we&#8217;ll leverage ctypes to make our C-compiled functions 
+<code>norm_cdf</code> and <code>cdf_array</code> available within&nbsp;Python.             </p>
+<h3>Calling C Functions from&nbsp;Python</h3>
+<p>Prior to calling our C functions from Python, we need to specify the parameter 
+and return types of <code>norm_cdf</code> and <code>cdf_array</code>. In addition, we need to coerce 
+any Python datatypes that are passed to the library functions into 
+C-compatible datatypes. This is demonstrated below, with each section 
+commented to make it easier to follow along. This is a Python file, which 
+we&#8217;ll identify as <em>norm_main.py</em>:               </p>
+<div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">norm_main.py</span>
+
+<span class="sd">Calls 2 functions from the compiled C library `norm.so`.</span>
+<span class="sd">The function prototypes are:</span>
+
+<span class="sd">    [+] double norm(double x, double mu, double sigma)</span>
+
+<span class="sd">    [+] void cdf_array(double mu, double sigma, int n,</span>
+<span class="sd">                     double* input_array, double* output_array)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">ctypes</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">norm</span>
+
+<span class="c1"># Suppress scientific notation.</span>
+<span class="n">np</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">suppress</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+
+<span class="c1"># Provide full path to shared library.</span>
+<span class="n">LIB_PATH</span> <span class="o">=</span> <span class="s2">&quot;norm.so&quot;</span>
+
+
+<span class="c1"># Bind reference to shared library `norm.so`.</span>
+<span class="n">normlib</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">cdll</span><span class="o">.</span><span class="n">LoadLibrary</span><span class="p">(</span><span class="n">LIB_PATH</span><span class="p">)</span>
+
+
+<span class="c1"># Specify argument datatypes for norm_cdf and cdf_array.</span>
+<span class="n">normlib</span><span class="o">.</span><span class="n">norm_cdf</span><span class="o">.</span><span class="n">argtypes</span>  <span class="o">=</span> <span class="p">[</span>
+    <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span>
+    <span class="p">]</span>
+<span class="n">normlib</span><span class="o">.</span><span class="n">cdf_array</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">,</span>
+    <span class="n">ctypes</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">),</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">POINTER</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">)</span>
+    <span class="p">]</span>
+
+
+<span class="c1"># Specify return datatypes for norm_cdf and cdf_array (cdf_array declared as void).</span>
+<span class="n">normlib</span><span class="o">.</span><span class="n">norm_cdf</span><span class="o">.</span><span class="n">restype</span>  <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span>
+<span class="n">normlib</span><span class="o">.</span><span class="n">cdf_array</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+<span class="c1"># Use scipy.stats to generate 10 standard normal random variates. This will </span>
+<span class="c1"># be `input_arr`. We also initialize `output_arr` to all zeros, and set the </span>
+<span class="c1"># random seed in numpy for reproducibility.</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">516</span><span class="p">)</span>
+<span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mi">10</span>
+<span class="n">input_arr</span>    <span class="o">=</span> <span class="n">norm</span><span class="o">.</span><span class="n">rvs</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+<span class="n">output_arr</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float_</span><span class="p">)</span>
+
+
+<span class="c1"># Initialize ctypes-compatible versions of mu, sigma, n, input_arr and output_arr.</span>
+<span class="n">ct_mu</span>         <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+<span class="n">ct_sigma</span>      <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">(</span><span class="n">sigma</span><span class="p">)</span>
+<span class="n">ct_n</span>          <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+<span class="n">ct_input_arr</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">input_arr</span><span class="p">)</span>
+<span class="n">ct_output_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">as_ctypes</span><span class="p">(</span><span class="n">output_arr</span><span class="p">)</span>
+
+
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Normal variates w/ mean {} and standard deviation {}:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">sigma</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="n">input_arr</span><span class="p">)</span>
+
+
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Output_arr before passing to cdf_array:</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">output_arr</span><span class="p">)</span>
+
+<span class="c1"># Call `normlib.cdf_array` from C library.</span>
+<span class="n">normlib</span><span class="o">.</span><span class="n">cdf_array</span><span class="p">(</span><span class="n">ct_mu</span><span class="p">,</span> <span class="n">ct_sigma</span><span class="p">,</span> <span class="n">ct_n</span><span class="p">,</span> <span class="n">ct_input_arr</span><span class="p">,</span> <span class="n">ct_output_arr</span><span class="p">)</span>
+
+
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Output_arr after passing to cdf_array:</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">output_arr</span><span class="p">)</span>
+
+
+<span class="c1"># Compare results returned by cdf_array to scipy&#39;s norm.cdf.</span>
+<span class="n">spcdfs</span> <span class="o">=</span> <span class="n">norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">input_arr</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="n">mu</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">scipy-evaluated CDFs:</span><span class="se">\n\t</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">spcdfs</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br></p>
+<p>To summarize, we read in <code>norm.so</code>, specify the parameter and return datatypes 
+for the library functions, then call <code>cdf_array</code>. In the last few lines, we 
+compare the output of <code>cdf_array</code> with <code>norm.cdf</code> from <code>scipy.stats</code>, and find 
+the results to be&nbsp;identical.             </p>
+<p>Note that we are not copying data, but simply passing the pointers to the data 
+from Python to C. In C, the data pointed to is operated on, which means we do 
+not need to pass any data back[3]. This explains why <code>cdf_array</code><span class="quo">&#8216;</span>s return type 
+is specified as <code>void</code>.                      </p>
+<p>Also note that calculating normal CDFs for a sequence of normal variates can 
+be accomplished much more efficiently using the <code>scipy.stats</code> <span class="caps">API</span>. This 
+particular example was chosen to demonstrate non-trival ctypes extensibility, 
+but the example itself should be considered a discourse on the method, and not 
+necessarily a preferred or optimal approach for computing normal&nbsp;CDFs.                       </p>
+<p>The following terminal capture verifies that CDFs calculated with <code>cdf_array</code> 
+and scipy are the same:              <br>
+<br>
+<p align="center"> 
+<img alt="norm_main1" src="/images/norm_main1.png">
+</p> <br>
+<br>
+Finally, we compare CDFs for normal variates generated from a non-standard 
+normal distribution. The only change we need to make in <em>norm_main.py</em> is to 
+update <code>mu</code> and <code>sigma</code>. Setting <code>mu=2.5</code> and <code>sigma=5</code> yields:       <br>
+<br>
+<p align="center"> 
+<img alt="norm_main2" src="/images/norm_main2.png">
+</p> <br>
+<br>
+Again verifying that the calcuated CDFs are&nbsp;identical.     </p>
+<h2>Conclusion</h2>
+<p><code>ctypes</code> exposes a great deal of functionality, and it&#8217;s also used in other 
+standard library modules (for example, <code>multiprocessing</code>). Having a good 
+understanding of how <code>ctypes</code> works will improve your understanding of Python, 
+and knowing how to natively interface with foreign function libraries in your 
+language of choice is always a plus. Until next time, happy&nbsp;coding!         </p>
+<h3>Footnotes:</h3>
+<p>[1]. https://www.ibm.com/support/knowledgecenter/ssw_ibm_i_72/rtref/sc415607.pdf, pg. 2:90-91
+[2]. https://tfetimes.com/wp-content/uploads/2015/09/An_Introduction_to_GCC-Brian_Gough.pdf, pg. 11
+[3].&nbsp;http://www.ifnamemain.com/posts/2013/Dec/10/c_structs_python/</p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

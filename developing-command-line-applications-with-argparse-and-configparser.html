@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Developing Command Line Applications with argparse and configparser - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/developing-command-line-applications-with-argparse-and-configparser.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Python" />
+        <meta name="description" content="Using configparser and argparse to develop command line applications in Python" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Developing Command Line Applications with argparse and configparser"/>
+        <meta property="og:url" content="https://jtrive84.github.io/developing-command-line-applications-with-argparse-and-configparser.html"/>
+        <meta property="og:description" content="Using configparser and argparse to develop command line applications in Python"/>
+        <meta property="article:published_time" content="2018-10-15" />
+            <meta property="article:section" content="Python" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/python.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Python ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/developing-command-line-applications-with-argparse-and-configparser.html"
+                       rel="bookmark"
+                       title="Permalink to Developing Command Line Applications with argparse and configparser">
+                        Developing Command Line Applications with argparse and&nbsp;configparser
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2018-10-15T00:00:00-05:00"> 2018-10-15</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/python.html">Python</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>In this post, I&#8217;ll demonstrate an approach to command line application 
+development that minimizes errors, provides ready access to configurable 
+parameters and is straightforward to implement. As Python was originally 
+created to serve as an improved scripting language and environment, in-built 
+support for command line application development is top-notch. In particular, 
+<code>argparse</code> simplifies the implementation of command line options, arguments
+and sub-commands, and <code>configparser</code> makes it possible to specify program 
+inputs in a file independent of the companion script. The examples that follow 
+were written and tested on Linux targeting the Python3&nbsp;interpreter.        </p>
+<h2>Application&nbsp;Description</h2>
+<p>The application, <em>cmdapp.py</em>, filters and subsets the Linux dictionary file, 
+usually found at <em>/usr/share/dict/words</em> or <em>/var/lib/dict/words</em>. A copy of 
+this file (with all words containing digits removed) can be obtained <a href="https://gist.github.com/jtrive84/fbfb21a6d2a34930c76f3d33091b140c">here</a>.     </p>
+<p><em>cmdapp.py</em> can accept command line options which result in subsetting the 
+word list, and after filtering has been applied, the remaining subset of words 
+can be (optionally) written to file. What follows is the full list of 
+available command line&nbsp;options:   </p>
+<p><code>--words-file</code>              <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The file system location of words&nbsp;file     </p>
+<p><code>--output-directory</code>      <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory of exported file (if&nbsp;applicable)     </p>
+<p><code>--output-filename</code>        <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Name of exported file (if&nbsp;applicable)     </p>
+<p><code>--export</code>                 <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Should matching words be written to file&nbsp;(False)?     </p>
+<p><code>--startswith=PATTERN</code>    <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only return words starting with <span class="caps">PATTERN</span>     </p>
+<p><code>--endswith=PATTERN</code>      <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only return words ending with <span class="caps">PATTERN</span>   </p>
+<p><code>--contains=PATTERN</code>     <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Only return words containing specified <span class="caps">PATTERN</span>    </p>
+<p><code>--suppress</code>              <br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Should matching words be suppressed&nbsp;(False)?       </p>
+<p>Implementing these options with argparse is straightforward (Python&#8217;s 
+documentation contains a high-level overview of argparse and sample use cases. 
+It can be found <a href="https://docs.python.org/3/howto/argparse.html">here</a>. We 
+initialize an instance of the <code>ArgumentParser</code> class, and then proceed as&nbsp;follows:        </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">argparse</span>
+
+<span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+
+<span class="c1"># Specify command line arguments.</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--words-file&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Absolute filepath of words(.txt) file&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--output-directory&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Directory of exported file, if applicable&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--output-filename&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of exported file, if applicable (matches.txt)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;matches.txt&quot;</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--export&quot;</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Should matching words be written to file (False)?&quot;</span><span class="p">,</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--startswith&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only return words starting with specified char(s)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--endswith&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only return words ending with specified char(s)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--contains&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only return words containing specified char(s)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--suppress&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Should matching words be suppressed (False)?&quot;</span><span class="p">,</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;-v&quot;</span><span class="p">,</span> <span class="s2">&quot;--verbose&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Should additional runtime details be displayed (False)?&quot;</span><span class="p">,</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+    <span class="p">)</span>
+
+<span class="c1"># Parse command line arguments.</span>
+<span class="n">argvs</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+<span class="c1"># Bind reference to specified options.</span>
+<span class="n">argvs_words_file</span>       <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">words_file</span>
+<span class="n">argvs_output_directory</span> <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">output_directory</span>
+<span class="n">argvs_output_filename</span>  <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">output_filename</span>
+<span class="n">argvs_suppress</span>         <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">suppress</span>
+<span class="n">argvs_export</span>           <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">export</span>
+<span class="n">argvs_startswith</span>       <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">startswith</span>
+<span class="n">argvs_endswith</span>         <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">endswith</span>
+<span class="n">argvs_contains</span>         <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">contains</span>
+
+<span class="c1"># Optionally view specified command line options and associated values.</span>
+<span class="k">print</span><span class="p">(</span><span class="n">argvs</span><span class="o">.</span><span class="n">_get_kwargs</span><span class="p">())</span>
+</pre></div>
+
+
+<p><br>
+<code>add_argument</code><span class="quo">&#8216;</span>s <code>action</code> parameter can be set to &#8220;store_true&#8221; or 
+&#8220;store_false&#8221;. If set to &#8220;store_true&#8221;, the presence of the flag evaluates to 
+True. If set to &#8220;store_false&#8221;, the presence of the flag evaluates to False. 
+In the preceding example, the options <code>--suppress</code> and <code>--export</code> are logical 
+indicators with <code>action</code> set to&nbsp;&#8220;store_true&#8221;.       </p>
+<p>All other options, <code>--words-file</code>, <code>--output-directory</code>, <code>--output-filename</code>, 
+<code>--startswith</code>, <code>--endswith</code> and <code>--contains</code>, when specified require a string 
+of text to follow the option (note that by default, argparse interprets all 
+specified values as strings. If an option should be interpreted as something 
+other than a string, specify the datatype using <code>add_argument</code><span class="quo">&#8216;</span>s <code>type</code> 
+parameter). The string can follow the command line option separated by a&nbsp;space:       </p>
+<div class="highlight"><pre><span></span>$ python3 cmdapp.py --export --startswith <span class="s2">&quot;a&quot;</span> --endswith <span class="s2">&quot;e&quot;</span> --contains <span class="s2">&quot;p&quot;</span>
+</pre></div>
+
+
+<p>Or separated by an equal&nbsp;sign:</p>
+<div class="highlight"><pre><span></span>$ python3 cmdapp.py --export --startswith<span class="o">=</span><span class="s2">&quot;a&quot;</span> --endswith<span class="o">=</span><span class="s2">&quot;e&quot;</span> --contains<span class="o">=</span><span class="s2">&quot;p&quot;</span>
+</pre></div>
+
+
+<p>When developing command line applications, a popular convention has command 
+line flags overriding default values, with defaults obtained from environment 
+variables or configuration files. configparser helps to facilitate the latter. 
+We create a configuration file that consists of sections, each containing 
+key-value pairs. The pairs are read into <em>cmdapp.py</em> and are set as the 
+defaults for each modifiable option. The configuration file, <em>defaults.cfg</em>, 
+contains the&nbsp;following:        </p>
+<div class="highlight"><pre><span></span><span class="k">[SETTINGS]</span>
+<span class="na">WORDS_FILE</span><span class="o">=</span><span class="s">E:/Temp/dictionary.txt</span>
+<span class="na">OUTPUT_DIRECTORY</span><span class="o">=</span><span class="s">E:/Temp</span>
+<span class="na">OUTPUT_FILENAME</span><span class="o">=</span><span class="s">matches.txt</span>
+
+<span class="k">[PARAMETERS]</span>
+<span class="na">SUPPRESS</span><span class="o">=</span><span class="s">N</span>
+<span class="na">EXPORT</span><span class="o">=</span><span class="s">N</span>
+<span class="na">STARTSWITH</span><span class="o">=</span>
+<span class="na">ENDSWITH</span><span class="o">=</span>
+<span class="na">CONTAINS</span><span class="o">=</span>
+</pre></div>
+
+
+<p>When specifying character strings in a configuration file, it is not necessary 
+to surround the content in quotes. Key-value pairs can be separated by <code>=</code> or 
+<code>:</code>. We next demonstrate how to read <em>defaults.cfg</em> into <em>cmdapp.py</em> and 
+extract the content using an instance the <code>ConfigParser</code> class:     </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">configparser</span>
+
+<span class="c1"># Provide absolute path to defaults.cfg.</span>
+<span class="n">DEFAULTS</span> <span class="o">=</span> <span class="s2">&quot;defaults.cfg&quot;</span>
+
+<span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+
+<span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">DEFAULTS</span><span class="p">)</span>
+
+<span class="n">def_words_file</span>       <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;SETTINGS&quot;</span><span class="p">][</span><span class="s2">&quot;WORDS_FILE&quot;</span><span class="p">]</span>
+<span class="n">def_output_directory</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;SETTINGS&quot;</span><span class="p">][</span><span class="s2">&quot;OUTPUT_DIRECTORY&quot;</span><span class="p">]</span>
+<span class="n">def_output_filename</span>  <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;SETTINGS&quot;</span><span class="p">][</span><span class="s2">&quot;OUTPUT_FILENAME&quot;</span><span class="p">]</span>
+<span class="n">def_suppress</span>         <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;SUPPRESS&quot;</span><span class="p">]</span>
+<span class="n">def_export</span>           <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;EXPORT&quot;</span><span class="p">]</span>
+<span class="n">def_startswith</span>       <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;STARTSWITH&quot;</span><span class="p">]</span>
+<span class="n">def_endswith</span>         <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;ENDSWITH&quot;</span><span class="p">]</span>
+<span class="n">def_contains</span>         <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;CONTAINS&quot;</span><span class="p">]</span>
+</pre></div>
+
+
+<p><br>
+The next step is to determine the final parameter values for each option. We 
+have the <code>def_</code>-prefixed values read from <em>defaults.cfg</em> and the 
+<code>argvs_</code>-prefixed values containing command line overrides. We set the 
+<code>final_</code>-prefixed variables to the command line overrides (if specified), 
+otherwise fall back to the key-value pairs specified in <em>defaults.cfg</em>:     </p>
+<div class="highlight"><pre><span></span><span class="c1"># Bind reference to final parameter values.</span>
+<span class="n">final_output_directory</span> <span class="o">=</span> <span class="n">argvs_output_directory</span> <span class="k">if</span> <span class="n">argvs_output_directory</span> <span class="k">else</span> <span class="n">def_output_directory</span>
+<span class="n">final_output_filename</span>  <span class="o">=</span> <span class="n">argvs_output_filename</span> <span class="k">if</span> <span class="n">argvs_output_filename</span> <span class="k">else</span> <span class="n">def_output_filename</span>
+<span class="n">def_suppress_ind</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">def_suppress</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">==</span><span class="s2">&quot;Y&quot;</span> <span class="k">else</span> <span class="bp">False</span>
+<span class="n">final_suppress</span>   <span class="o">=</span> <span class="n">argvs_suppress</span> <span class="k">if</span> <span class="n">argvs_suppress</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">def_suppress_ind</span>
+<span class="n">def_export_ind</span>   <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">def_export</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">==</span><span class="s2">&quot;Y&quot;</span> <span class="k">else</span> <span class="bp">False</span>
+<span class="n">final_export</span>     <span class="o">=</span> <span class="n">argvs_export</span> <span class="k">if</span> <span class="n">argvs_export</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">def_export_ind</span>
+
+<span class="c1"># Determine patterns to match against, if applicable.</span>
+<span class="k">if</span> <span class="n">argvs_startswith</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">final_startswith</span> <span class="o">=</span> <span class="n">argvs_startswith</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">final_startswith</span> <span class="o">=</span> <span class="n">def_startswith</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">def_startswith</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">else</span> <span class="bp">None</span>
+<span class="k">if</span> <span class="n">argvs_endswith</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">final_endswith</span> <span class="o">=</span> <span class="n">argvs_endswith</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">final_endswith</span> <span class="o">=</span> <span class="n">def_endswith</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">def_endswith</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">else</span> <span class="bp">None</span>
+<span class="k">if</span> <span class="n">argvs_contains</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">final_contains</span> <span class="o">=</span> <span class="n">argvs_contains</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">final_contains</span> <span class="o">=</span> <span class="n">def_contains</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">def_contains</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">else</span> <span class="bp">None</span>
+</pre></div>
+
+
+<p><br>
+We now present the full implementation of <em>cmdapp.py</em>:     </p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">configparser</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+
+
+<span class="c1"># Provide absolute path to defaults.cfg.</span>
+<span class="n">DEFAULTS</span> <span class="o">=</span> <span class="s2">&quot;defaults.cfg&quot;</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+
+<span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">configparser</span><span class="o">.</span><span class="n">ConfigParser</span><span class="p">()</span>
+
+<span class="c1"># Specify command line arguments.</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--words-file&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Absolute filepath of words(.txt) file&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--output-directory&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Directory of exported file, if applicable&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--output-filename&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Name of exported file, if applicable (matches.txt)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--export&quot;</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Should matching words be written to file (False)?&quot;</span><span class="p">,</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--startswith&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only return words starting with specified char(s)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--endswith&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only return words ending with specified char(s)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--contains&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only return words containing specified char(s)&quot;</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="bp">None</span>
+    <span class="p">)</span>
+<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+    <span class="s2">&quot;--suppress&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Should matching words be suppressed (False)?&quot;</span><span class="p">,</span>
+    <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span>
+    <span class="p">)</span>
+
+
+<span class="c1"># Parse command line arguments.</span>
+<span class="n">argvs</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+<span class="c1"># Read in `settings.cfg` to obtain default configuration values.</span>
+<span class="n">config</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">DEFAULTS</span><span class="p">)</span>
+<span class="n">def_words_file</span>       <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;SETTINGS&quot;</span><span class="p">][</span><span class="s2">&quot;WORDS_FILE&quot;</span><span class="p">]</span>
+<span class="n">def_output_directory</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;SETTINGS&quot;</span><span class="p">][</span><span class="s2">&quot;OUTPUT_DIRECTORY&quot;</span><span class="p">]</span>
+<span class="n">def_output_filename</span>  <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;SETTINGS&quot;</span><span class="p">][</span><span class="s2">&quot;OUTPUT_FILENAME&quot;</span><span class="p">]</span>
+<span class="n">def_suppress</span>         <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;SUPPRESS&quot;</span><span class="p">]</span>
+<span class="n">def_export</span>           <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;EXPORT&quot;</span><span class="p">]</span>
+<span class="n">def_startswith</span>       <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;STARTSWITH&quot;</span><span class="p">]</span>
+<span class="n">def_endswith</span>         <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;ENDSWITH&quot;</span><span class="p">]</span>
+<span class="n">def_contains</span>         <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;PARAMETERS&quot;</span><span class="p">][</span><span class="s2">&quot;CONTAINS&quot;</span><span class="p">]</span>
+
+<span class="c1"># Parse parameter overrides specified as command line arguments.</span>
+<span class="n">argvs_words_file</span>       <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">words_file</span>
+<span class="n">argvs_output_directory</span> <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">output_directory</span>
+<span class="n">argvs_output_filename</span>  <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">output_filename</span>
+<span class="n">argvs_suppress</span>         <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">suppress</span>
+<span class="n">argvs_export</span>           <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">export</span>
+<span class="n">argvs_startswith</span>       <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">startswith</span>
+<span class="n">argvs_endswith</span>         <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">endswith</span>
+<span class="n">argvs_contains</span>         <span class="o">=</span> <span class="n">argvs</span><span class="o">.</span><span class="n">contains</span>
+<span class="n">final_words_file</span>       <span class="o">=</span> <span class="n">argvs_words_file</span> <span class="k">if</span> <span class="n">argvs_words_file</span> <span class="k">else</span> <span class="n">def_words_file</span>
+
+<span class="c1"># Verify existence of final_words_file.</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">final_words_file</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="n">FileNotFoundError</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;File not found: {final_words_file}&quot;</span><span class="p">)</span>
+
+<span class="c1"># Bind reference to final parameter values.</span>
+<span class="n">final_output_directory</span> <span class="o">=</span> <span class="n">argvs_output_directory</span> <span class="k">if</span> <span class="n">argvs_output_directory</span> <span class="k">else</span> <span class="n">def_output_directory</span>
+<span class="n">final_output_filename</span>  <span class="o">=</span> <span class="n">argvs_output_filename</span> <span class="k">if</span> <span class="n">argvs_output_filename</span> <span class="k">else</span> <span class="n">def_output_filename</span>
+<span class="n">def_suppress_ind</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">def_suppress</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">==</span><span class="s2">&quot;Y&quot;</span> <span class="k">else</span> <span class="bp">False</span>
+<span class="n">final_suppress</span>   <span class="o">=</span> <span class="n">argvs_suppress</span> <span class="k">if</span> <span class="n">argvs_suppress</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">def_suppress_ind</span>
+<span class="n">def_export_ind</span>   <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">def_export</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">==</span><span class="s2">&quot;Y&quot;</span> <span class="k">else</span> <span class="bp">False</span>
+<span class="n">final_export</span>     <span class="o">=</span> <span class="n">argvs_export</span> <span class="k">if</span> <span class="n">argvs_export</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">def_export_ind</span>
+
+<span class="c1"># Determine patterns to match against, if applicable.</span>
+<span class="k">if</span> <span class="n">argvs_startswith</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">final_startswith</span> <span class="o">=</span> <span class="n">argvs_startswith</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">final_startswith</span> <span class="o">=</span> <span class="n">def_startswith</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">def_startswith</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">else</span> <span class="bp">None</span>
+<span class="k">if</span> <span class="n">argvs_endswith</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">final_endswith</span> <span class="o">=</span> <span class="n">argvs_endswith</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">final_endswith</span> <span class="o">=</span> <span class="n">def_endswith</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">def_endswith</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">else</span> <span class="bp">None</span>
+<span class="k">if</span> <span class="n">argvs_contains</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">final_contains</span> <span class="o">=</span> <span class="n">argvs_contains</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">final_contains</span> <span class="o">=</span> <span class="n">def_contains</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">def_contains</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span> <span class="k">else</span> <span class="bp">None</span>
+
+<span class="c1"># Begin processing words list.</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">final_words_file</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">ll_init</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="c1"># Remove whitespace from words and convert to lowercase.</span>
+<span class="n">ll</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ll_init</span><span class="p">]</span>
+<span class="n">len_words_init</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span>
+
+<span class="c1"># Filter ll by final_startswith.</span>
+<span class="k">if</span> <span class="n">final_startswith</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">ll</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">w</span><span class="p">:</span> <span class="n">w</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">final_startswith</span><span class="p">),</span> <span class="n">ll</span><span class="p">)</span>
+
+<span class="c1"># Filter ll by final_endswith.</span>
+<span class="k">if</span> <span class="n">final_endswith</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">ll</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">w</span><span class="p">:</span> <span class="n">w</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">final_endswith</span><span class="p">),</span> <span class="n">ll</span><span class="p">)</span>
+
+<span class="c1"># Filter ll by final_contains.</span>
+<span class="k">if</span> <span class="n">final_contains</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">ll</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">w</span><span class="p">:</span> <span class="n">final_contains</span> <span class="ow">in</span> <span class="n">w</span><span class="p">,</span> <span class="n">ll</span><span class="p">)</span>
+
+<span class="n">ll_final</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ll</span><span class="p">)</span>
+<span class="n">len_words_final</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ll_final</span><span class="p">)</span>
+<span class="n">pct_retained</span>    <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="p">(</span><span class="n">len_words_final</span><span class="o">/</span><span class="n">len_words_init</span><span class="p">),</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="ow">not</span> <span class="n">final_suppress</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Number of words in total : {len_words_init}&quot;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Number of words in subset: {len_words_final}&quot;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;Percent of words retained: {pct_retained}%&quot;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">disp_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">ll_final</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">disp_list</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;{i[0]}. {i[1]}&quot;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+<span class="c1"># Construct filepath if `--export` present in sys.argv.</span>
+<span class="k">if</span> <span class="n">final_export</span><span class="p">:</span>
+    <span class="c1"># Check for trailing slash with final_output_directory.</span>
+    <span class="k">if</span> <span class="n">final_output_directory</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">):</span>
+        <span class="n">final_output_directory</span> <span class="o">=</span> <span class="n">final_output_directory</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">final_output_directory</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">):</span>
+        <span class="n">final_output_directory</span> <span class="o">=</span> <span class="n">final_output_directory</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">export_fullpath</span> <span class="o">=</span> \
+        <span class="n">final_output_directory</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span> <span class="o">+</span> <span class="n">final_output_filename</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">export_fullpath</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fw</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ll_final</span><span class="p">:</span> <span class="n">fw</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="s2">&quot;{i}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p><br>
+Another useful feature of argparse is the automatic creation of help menus. To 
+demonstrate, we run <em>cmdapp.py</em> with the <code>--help</code> flag. Recall that we didn&#8217;t 
+include any logic to produce a command line help&nbsp;menu:       </p>
+<div class="highlight"><pre><span></span>$ python3 --help
+usage: cmdapp.py <span class="o">[</span>-h<span class="o">]</span> <span class="o">[</span>--words-file WORDS_FILE<span class="o">]</span>
+             <span class="o">[</span>--output-directory OUTPUT_DIRECTORY<span class="o">]</span>
+             <span class="o">[</span>--output-filename OUTPUT_FILENAME<span class="o">]</span> <span class="o">[</span>--export<span class="o">]</span>
+             <span class="o">[</span>--startswith STARTSWITH<span class="o">]</span> <span class="o">[</span>--endswith ENDSWITH<span class="o">]</span>
+             <span class="o">[</span>--contains CONTAINS<span class="o">]</span> <span class="o">[</span>--display<span class="o">]</span> <span class="o">[</span>-v<span class="o">]</span>
+
+optional arguments:
+  -h, --help            show this <span class="nb">help</span> message and <span class="nb">exit</span>
+  --words-file WORDS_FILE
+                        Absolute filepath of words<span class="o">(</span>.txt<span class="o">)</span> file
+  --output-directory OUTPUT_DIRECTORY
+                        Directory of exported file, <span class="k">if</span> applicable
+  --output-filename OUTPUT_FILENAME
+                        Name of exported file, <span class="k">if</span> applicable <span class="o">(</span>matches.txt<span class="o">)</span>
+  --export              Should matching words be written to file <span class="o">(</span>False<span class="o">)</span>?
+  --startswith STARTSWITH
+                        Only <span class="k">return</span> words starting with specified char<span class="o">(</span>s<span class="o">)</span>
+  --endswith ENDSWITH   Only <span class="k">return</span> words ending with specified char<span class="o">(</span>s<span class="o">)</span>
+  --contains CONTAINS   Only <span class="k">return</span> words containing specified char<span class="o">(</span>s<span class="o">)</span>
+  --suppress            Should matching words be suppressed <span class="o">(</span>False<span class="o">)</span>?
+</pre></div>
+
+
+<p>Pretty slick! As long as you provide useful details pertaining to your
+application&#8217;s functionality and configurable parameters, <code>argparse</code>
+will generate a nicely formatted help menu that can benefit your&nbsp;users.</p>
+<p>Let&#8217;s demonstrate <em>cmdapp.py</em> in action: Match all words in the
+dictionary file beginning with &#8220;s&#8221;, ending with &#8220;r&#8221; and containing&nbsp;&#8220;u&#8221;:     </p>
+<div class="highlight"><pre><span></span>$ python3 cmdapp.py --startswith<span class="o">=</span><span class="s2">&quot;s&quot;</span> --endswith<span class="o">=</span><span class="s2">&quot;r&quot;</span> --contains<span class="o">=</span><span class="s2">&quot;u&quot;</span>
+Number of words in total : <span class="m">4319</span>
+Number of words in subset: <span class="m">15</span>
+Percent of words retained: <span class="m">0</span>.35%
+
+<span class="m">1</span>. santour
+<span class="m">2</span>. sauncier
+<span class="m">3</span>. secutor
+<span class="m">4</span>. sejour
+<span class="m">5</span>. semicircular
+<span class="m">6</span>. sinistrocular
+<span class="m">7</span>. souder
+<span class="m">8</span>. spitefuller
+<span class="m">9</span>. squidder
+<span class="m">10</span>. strummer
+<span class="m">11</span>. stubborner
+<span class="m">12</span>. suffixer
+<span class="m">13</span>. sunbather
+<span class="m">14</span>. superoposterior
+<span class="m">15</span>. sur
+</pre></div>
+
+
+<p><br>
+If we include the <code>--output-directory</code> option, the results will be written 
+to a file named <em>matches.txt</em> in that directory. Also, inclusion of 
+<code>--suppress</code> prevents matches from being written to&nbsp;stdout:     </p>
+<div class="highlight"><pre><span></span>$ python3 cmdapp.py --startswith<span class="o">=</span><span class="s2">&quot;s&quot;</span> --endswith<span class="o">=</span><span class="s2">&quot;r&quot;</span> --contains<span class="o">=</span><span class="s2">&quot;u&quot;</span> --export --output-directory<span class="o">=</span><span class="s2">&quot;E:/Temp&quot;</span> --suppress
+</pre></div>
+
+
+<h2>Conclusion</h2>
+<p>At least part of what makes Python great is the collection of really useful, 
+practical and straightforward-to-implement utilities that make up the standard 
+library. In this post, we demonstrated two of those utilities that you&#8217;ll find 
+yourself going back to time and time again. I encourage you to check out the 
+documentation for
+<a href="https://docs.python.org/3/library/argparse.html#module-argparse">argparse</a> 
+and
+<a href="https://docs.python.org/3/library/configparser.html#module-configparser">configparser</a>,
+as they expose a good amount of fucntionality we didn&#8217;t cover here.   <br>
+<br>
+Until next time, happy&nbsp;coding!</p>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Estimating Regression Coefficients with Batch Gradient Descent - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/estimating-regression-coefficients-with-batch-gradient-descent.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Statistical_Modeling,Python" />
+        <meta name="description" content="A walk-thru and demonstration of the batch gradient descent algorithm in Python" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Estimating Regression Coefficients with Batch Gradient Descent"/>
+        <meta property="og:url" content="https://jtrive84.github.io/estimating-regression-coefficients-with-batch-gradient-descent.html"/>
+        <meta property="og:description" content="A walk-thru and demonstration of the batch gradient descent algorithm in Python"/>
+        <meta property="article:published_time" content="2017-06-06" />
+            <meta property="article:section" content="Statistical Modeling" />
+            <meta property="article:tag" content="Statistical_Modeling" />
+            <meta property="article:tag" content="Python" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/statistical-modeling.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Statistical Modeling ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/estimating-regression-coefficients-with-batch-gradient-descent.html"
+                       rel="bookmark"
+                       title="Permalink to Estimating Regression Coefficients with Batch Gradient Descent">
+                        Estimating Regression Coefficients with Batch Gradient&nbsp;Descent
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-06-06T00:00:00-05:00"> 2017-06-06</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical Modeling</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/statistical_modeling.html">Statistical_Modeling</a>
+        /
+	<a href="https://jtrive84.github.io/tag/python.html">Python</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>In an earlier <a href="https://jtrive84.github.io/estimating-logistic-regression-coefficents-from-scratch-python-version.html">post</a>, we covered methods used for determining parameter estimates for a Logistic Regression model. We explored an implementation of the Fisher Scoring algorithm, which, when used in concert with an exponential family distribution and its associated canonical link, yields identical results as Newton-Raphson. We then compared coefficient estimates produced by scikit-learn&#8217;s <em>linear_model.LogisticRegression</em> classifier, and after accounting regularization, were shown to be equal.   <br>
+However, the dataset from which the coefficient estimates were derived had few explanatory variables. As the number of features in a dataset increases, the amount of time required to carry out a single step of the iteration will grow in proportion to a 3rd-degree polynomial. Recall that the Normal Equations associated with Generalized Linear Models are the same as the Normal Equations with the addition of a weighting term, which varies at each iteration. For Generalized Linear Models, model coefficients are obtained using
+<br>
+</p>
+<div class="math">$$
+\hat{\beta} = (X^{T}WX)^{-1}X^{T}y
+$$</div>
+<p>
+<br>
+where <span class="math">\(X\)</span> is the design matrix, <span class="math">\(y\)</span> the response vector, and <span class="math">\((X^{T}WX)^{-1}\)</span> the <em>Information Matrix</em> (which is used for statistical inference). Notice that the coefficient estimate requires inverting an n-by-n matrix at each iteration (where <span class="math">\(n\)</span> is the number of observations), which has <span class="math">\(O(n^{3})\)</span> complexity (see <a href="https://en.wikipedia.org/wiki/Computational_complexity_of_mathematical_operations#Matrix_algebra">here</a> for information regarding the complexity of common matrix operations). For datasets with many thousands of features, the Fisher/Newton-Raphson methods become prohibitively slow.  <br>
+The method of gradient descent is also an iterative solver, but is far more scalable than Newton-Raphson. When using gradient descent, the learning rate, generally represented by <span class="math">\(\alpha\)</span>, must be set not so large as to overshoot the optimum, but large enough so that the algorithm doesn&#8217;t take prohibitively long to locate it. The learning rate can be set to an optimal value using grid search, but for this post, we&#8217;ll assume that the selected learning rate is sufficient for the examples demonstrated. 
+<br></p>
+<h2>Gradient Descent&nbsp;Algorithm</h2>
+<p>The objective of gradient descent is to minimize a cost function, <span class="math">\(W(\theta)\)</span>, by taking steps in proportion to the <em>negative</em> of the direction of the greatest rate of increase, since moving in the same direction as the gradient would result in identifying a local maximum. Let  <br>
+<br>
+</p>
+<div class="math">$$
+W(\theta) = \frac{1}{n}\sum_{i=1}^{n}(f(x_{i})-y_{i})^{2},
+$$</div>
+<p>
+<br>
+where <span class="math">\(n\)</span> is the number of observations, <span class="math">\(y\)</span> is the <span class="math">\(nx1\)</span> response vector and when the model of interest is linear, <span class="math">\(f(x) = \theta_{0} + x_{1}\theta_{1} + \cdots + x_{p-1}\theta_{p-1}\)</span>. In matrix form, <span class="math">\(f(x) = X\theta\)</span>, where <span class="math">\(X\)</span> is an <span class="math">\(nxp\)</span> matrix (with <span class="math">\(p\)</span> representing the number of model parameters including the intercept) and <span class="math">\(theta\)</span> a <span class="math">\(px1\)</span> vector, the product of which yields an <span class="math">\(n\)</span>-length column vector. The expression for <span class="math">\(W(\theta)\)</span> is the <a href="https://en.wikipedia.org/wiki/Mean_squared_error#Predictor"><em>Mean-Squared Error</em></a>.   </p>
+<p>The update expression in matrix form can be written as
+<br>
+</p>
+<div class="math">$$
+\theta^{(i+1)} = \theta^{(i)} - \alpha \nabla{W(\theta)},
+$$</div>
+<p>
+<br>
+where \nabla{W(\theta)} represents the <em>gradient</em> of <span class="math">\(W(\theta)\)</span>, which is the multivariate generalization of the derivative. <span class="math">\(\nabla{W(\theta)}\)</span> is given by
+<br></p>
+<div class="math">$$
+\nabla{W(\theta)} = \frac{2}{n}\sum_{i=1}^{n}(f(x_{i})-y_{i})x_{i},
+$$</div>
+<p>
+<br>
+which is nothing more than the chain rule applied to <span class="math">\(W(\theta)\)</span>. The final update expression becomes       <br>
+<br>
+</p>
+<div class="math">$$
+\theta^{(i+1)} = \theta^{(i)} - \alpha \frac{2}{n}\sum_{i=1}^{n}(f(x_{i})-y_{i})x_{i},
+$$</div>
+<p>
+<br>
+where <span class="math">\(\alpha\)</span> represents the learning rate which controls the step size at each reevaluation. As mentioned previously, great care must go into selecting an appropriate learning rate for the model of interest. It is not uncommon for the difference between a learning rate that leads to convergence and a learning rate resulting in divergence to be as little as .01, where <span class="math">\(\alpha=.02\)</span> results in locating the optimum, but <span class="math">\(\alpha=.03\)</span> does not.        <br>
+<br>
+Also note that at each iteration, calculation occurs for all <span class="math">\(n\)</span> explanatory variables. The gradient descent algorithm described here is known as <em>batch gradient descent</em>, since the entire batch of data is reevaluated at each step. This can be inefficient for very large datasets, so if the dataset&#8217;s record count is exceedingly large, alternative implementations such as stochastic gradient descent will exhibit superior runtime performance over batch gardient descent (for this post we assume all datasets are reasonably sized, such that evaluation at each update is not computationally prohibitive).
+<br>
+Unless there&#8217;s a compelling reason to commence iteration elsewhere, <span class="math">\(\theta_{0}\)</span>, the <span class="math">\(p\)</span> length column vector of model parameter coefficients the algorithm is attempting to estimate, will be initialized to 0, <span class="math">\(\theta^{T} = [0, 0, \cdots, 0]\)</span>. This is akin to using a non-informative prior. 
+<br></p>
+<h3>Evaluation and Convergence&nbsp;Diagnostics</h3>
+<p>One method used to determine if the algorithm is on the &#8216;right track&#8217; is to evaluate <span class="math">\(W(\theta)\)</span> at each iteration.<br>
+<span class="math">\(W(\theta)\)</span> should decrease at each successive update, so if <span class="math">\(W(\theta)\)</span> is increasing, something has gone awry and the learning rate, <span class="math">\(\alpha\)</span> should be reevaluated. <br>
+<br>
+In our implementation of batch gradient descent, we incorporate two mechanisms that serve as stopping criteria (at least one of which will always be triggered). The first terminates iteration in the event of a learning rate overspecification resulting in divergence. The second evaluates the absolute difference between <span class="math">\(\theta_{k+1}\)</span> and <span class="math">\(\theta_{k}\)</span>: If <span class="math">\(|\theta_{k+1}-\theta_{k}|\)</span> is less than <span class="math">\(\epsilon\)</span> for <span class="math">\([\theta_{0}, \theta_{1}, \cdots, \theta_{p-1}]\)</span>, then cease iteration; otherwise proceed to the next evaluation.   <br>
+<br>
+In what follows, we demonstrate how to go about obtaining linear regression coefficient estimates using the gradient descent algorithm. We can compare the coefficient estimates returned by the gradient descent algorithm to those obtained from the Normal Equations, <span class="math">\(\hat{\beta} = (X^{T}X)^{-1}X^{T}y\)</span>.
+<br></p>
+<h2>Implementation</h2>
+<p>To demonstrate, we estimate model parameters for the Boston Housing Datset using number of rooms (<code>rm</code>) to predict median home price (<code>medv</code>). The dataset can be obtained <a href="https://gist.github.com/jtrive84/0be5ef694d2c5de3acdb5c82512ce361">here</a>.<br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Gradient Descent Algorithm </span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+
+<span class="k">def</span> <span class="nf">gradient_descent</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">max_iters</span><span class="p">,</span> <span class="n">learning_rate</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determine regression coefficient estimates via gradient descent.</span>
+<span class="sd">    The coefficient vector will start with all values initialized to 0.</span>
+
+<span class="sd">    Function Parameters:</span>
+<span class="sd">        `X`             =&gt; nxp design matrix</span>
+<span class="sd">        `y`             =&gt; nx1 response vector</span>
+<span class="sd">        `max_iters`     =&gt; maximum number of gradient evaluations</span>
+<span class="sd">        `learning_rate` =&gt; rate of convergence</span>
+<span class="sd">        `epsilon`       =&gt; threshold below which iteration ceases</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        `cntr`          =&gt; number of iterations carried out</span>
+<span class="sd">        &#39;coeffs`        =&gt; regression coefficient estimates</span>
+<span class="sd">        `learning_rate` =&gt; pass-thru of input parameter</span>
+<span class="sd">        `epsilon`       =&gt; pass-thru of input parameter</span>
+<span class="sd">        `max_iters`     =&gt; pass-thru of input parameter</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Coerce X &amp; y to matrix types (make y n-by-1) =&gt;</span>
+    <span class="n">Xm</span><span class="p">,</span> <span class="n">ym</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">X</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="c1"># Initialize initial coefficient vector to 0 =&gt;</span>
+    <span class="n">b_init</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">Xm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># Initialize counter and coefficient =&gt;</span>
+    <span class="n">cntr</span>  <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coeff</span> <span class="o">=</span> <span class="n">learning_rate</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="n">Xm</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">while</span> <span class="n">cntr</span> <span class="o">&lt;</span> <span class="n">max_iters</span><span class="p">:</span>
+        <span class="c1"># Evaluate b using b_init =&gt;</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">b_init</span> <span class="o">-</span> <span class="n">coeff</span> <span class="o">*</span> <span class="p">(</span><span class="n">Xm</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="p">(</span><span class="n">Xm</span> <span class="o">*</span> <span class="n">b_init</span><span class="p">)</span> <span class="o">-</span> <span class="n">ym</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">b_init</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="n">epsilon</span><span class="p">):</span> <span class="k">break</span>
+        <span class="n">b_init</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="n">cntr</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">return</span><span class="p">({</span><span class="s1">&#39;cntr&#39;</span>         <span class="p">:</span><span class="n">cntr</span><span class="p">,</span>
+            <span class="s1">&#39;coeffs&#39;</span>       <span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">b</span><span class="p">),</span>
+            <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span><span class="n">learning_rate</span><span class="p">,</span>
+            <span class="s1">&#39;epsilon&#39;</span>      <span class="p">:</span><span class="n">epsilon</span><span class="p">,</span>
+            <span class="s1">&#39;max_iters&#39;</span>    <span class="p">:</span><span class="n">max_iters</span><span class="p">})</span>
+</pre></div>
+
+
+<p><br>
+As described in the docstring, the formal parameters to <code>gradient_descent</code> are:
+<br>
+<em> <code>X</code> is the n-by-p design matrix.<br>
+<br>
+</em> <code>y</code> n-by-1 response vector.<br>
+<br>
+<em> <code>max_iters</code> is the maximum number of gradient evaluations. <br>
+<br>
+</em> <code>learning_rate</code> sets the rate of convergence.  <br>
+<br>
+<em> <code>epsilon</code> is the threshold below which iteration ceases. <br>
+<br>
+The function returns a dict, which contains <code>max_iters</code>, <code>learning_rate</code> and <code>epsilon</code> as pass-thru parameters, in addition to:
+<br>
+</em> <code>cntr</code> - The number of iterations/evaluations performed/carried out   <br>
+<br>
+* <code>coeffs</code> - A numpy array which contains the estimated model coefficients     <br>
+<br></p>
+<p>To begin, read the Boston Housing dataset into a pandas DataFrame, and  pass the requisite arguments to <code>gradient_descent</code>. 
+<code>X</code> and <code>y</code> will be obtained from the dataset. Set <code>max_iters=50000</code>, <code>learning_rate=.02</code> and <code>epsilon=.00001</code>:   <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+
+<span class="c1"># Read-in Housing dataset and extract `rm` for X and `medv` as y =&gt;</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;Boston.csv&quot;</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[[</span><span class="s1">&#39;rm&#39;</span><span class="p">]]</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;medv&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+<span class="c1"># Insert intercept term =&gt;</span>
+<span class="n">X</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;INTERCEPT&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># Call `gradient_descent` to estimate regression parameters =&gt;</span>
+<span class="n">theta_hat</span> <span class="o">=</span> <span class="n">gradient_descent</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">max_iters</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span><span class="n">learning_rate</span><span class="o">=.</span><span class="mo">02</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=.</span><span class="mo">00001</span><span class="p">)</span>                            
+</pre></div>
+
+
+<p><br>
+Printing the contents of <code>theta_hat</code> yields:       <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="n">theta_hat</span><span class="p">)</span>
+<span class="p">{</span><span class="s1">&#39;cntr&#39;</span><span class="p">:</span> <span class="mi">15456</span><span class="p">,</span>
+ <span class="s1">&#39;coeffs&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">34.64984206</span><span class="p">,</span>   <span class="mf">9.09884246</span><span class="p">]),</span>
+ <span class="s1">&#39;epsilon&#39;</span><span class="p">:</span> <span class="mf">1e-05</span><span class="p">,</span>
+ <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="mf">0.02</span><span class="p">,</span>
+ <span class="s1">&#39;max_iters&#39;</span><span class="p">:</span> <span class="mi">50000</span><span class="p">}</span>
+</pre></div>
+
+
+<p><br>
+To determine the accuracy of the estimated coefficients returned by <code>gradient_descent</code>, we turn to the Normal Equations. Recall that a Linear Regression model can be represented using matrix notation as <br>
+<br>
+</p>
+<div class="math">$$
+\hat{\beta} = (X^{T}X)^{-1}X^{T}y,
+$$</div>
+<p>
+<br>
+where <span class="math">\(X\)</span> is the design matrix and <span class="math">\(y\)</span> the response vector. Calculating <span class="math">\(\hat{\beta}\)</span> is straightforward using numpy:
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Determining regression coefficients via the Normal Equations</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="c1"># Read-in Housing dataset and extract `rm` for X and `medv` as y =&gt;</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;Boston.csv&quot;</span><span class="p">)</span>
+<span class="n">X</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[[</span><span class="s1">&#39;rm&#39;</span><span class="p">]]</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;medv&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+<span class="n">X</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;INTERCEPT&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="n">Xm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+<span class="n">ym</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matrix</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+<span class="c1"># Determine coefficients =&gt;</span>
+<span class="n">beta_hat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">((</span><span class="n">Xm</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">Xm</span><span class="p">)</span><span class="o">.</span><span class="n">I</span> <span class="o">*</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span>
+
+<span class="c1"># Printing beta_hat from Python interpreter =&gt;</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="n">beta_hat</span><span class="p">)</span>
+<span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">34.67062078</span><span class="p">,</span>   <span class="mf">9.10210898</span><span class="p">])</span>
+</pre></div>
+
+
+<p><br>
+We see that out initial estimates ([-34.64984206,   9.09884246]) are pretty close to the parameter estimates obtained directly. However, by reducing <code>epsilon</code>, we can get closer to the directly-calculated solution:      <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Demonstration of gradient descent coefficient estimates </span>
+<span class="sd">converging to the solution obtained from the direct method</span>
+<span class="sd">by epsilon reduction =&gt;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">benchmark</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">((</span><span class="n">Xm</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">Xm</span><span class="p">)</span><span class="o">.</span><span class="n">I</span> <span class="o">*</span> <span class="n">X</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span>   <span class="c1"># array([-34.67062078,   9.10210898])</span>
+
+<span class="c1"># epsilon=.00001</span>
+<span class="n">beta_init</span> <span class="o">=</span> <span class="n">gradient_descent</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
+                             <span class="n">max_iters</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span>    
+                             <span class="n">learning_rate</span><span class="o">=.</span><span class="mo">02</span><span class="p">,</span> 
+                             <span class="n">epsilon</span><span class="o">=.</span><span class="mo">00001</span><span class="p">)</span>    <span class="c1"># array([-34.64984206,   9.09884246])</span>
+
+<span class="c1"># epsilon=.000001</span>
+<span class="n">beta_init</span> <span class="o">=</span> <span class="n">gradient_descent</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
+                             <span class="n">max_iters</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span>    
+                             <span class="n">learning_rate</span><span class="o">=.</span><span class="mo">02</span><span class="p">,</span> 
+                             <span class="n">epsilon</span><span class="o">=.</span><span class="mo">000001</span><span class="p">)</span>   <span class="c1"># array([-34.66854342,   9.10178241])</span>
+
+<span class="c1"># epsilon=.0000001</span>
+<span class="n">beta_init</span> <span class="o">=</span> <span class="n">gradient_descent</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
+                             <span class="n">max_iters</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span>    
+                             <span class="n">learning_rate</span><span class="o">=.</span><span class="mo">02</span><span class="p">,</span> 
+                             <span class="n">epsilon</span><span class="o">=.</span><span class="mo">0000001</span><span class="p">)</span>  <span class="c1"># array([-34.67041299,   9.10207632])</span>
+
+<span class="c1"># epsilon=.00000001</span>
+<span class="n">beta_init</span> <span class="o">=</span> <span class="n">gradient_descent</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
+                             <span class="n">model_func</span><span class="o">=</span><span class="n">f1</span><span class="p">,</span> 
+                             <span class="n">max_iters</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span>    
+                             <span class="n">learning_rate</span><span class="o">=.</span><span class="mo">02</span><span class="p">,</span> 
+                             <span class="n">epsilon</span><span class="o">=.</span><span class="mo">00000001</span><span class="p">)</span>  <span class="c1"># array([-34.6706    ,   9.10210572])</span>
+
+<span class="c1"># epsilon=.000000001</span>
+<span class="n">beta_init</span> <span class="o">=</span> <span class="n">gradient_descent</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> 
+                             <span class="n">max_iters</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span>    
+                             <span class="n">learning_rate</span><span class="o">=.</span><span class="mo">02</span><span class="p">,</span> 
+                             <span class="n">epsilon</span><span class="o">=.</span><span class="mo">000000001</span><span class="p">)</span>  <span class="c1"># array([-34.6706187 ,   9.10210865])</span>
+
+<span class="c1"># Summary =&gt;</span>
+<span class="c1"># benchmark           array([-34.67062078,   9.10210898])</span>
+<span class="c1"># epsilon=.00001      array([-34.64984206,   9.09884246])</span>
+<span class="c1"># epsilon=.000001     array([-34.66854342,   9.10178241])</span>
+<span class="c1"># epsilon=.0000001    array([-34.67041299,   9.10207632])</span>
+<span class="c1"># epsilon=.00000001   array([-34.6706    ,   9.10210572])</span>
+<span class="c1"># epsilon=.000000001  array([-34.6706187 ,   9.10210865])</span>
+</pre></div>
+
+
+<p><br>
+For this example, the coefficient estimates were especially sensitive to the learning rate. With all inputs specified as before, increasing the <code>learning_rate</code> from .02 to .025 results in divergence:       <br>
+<br></p>
+<div class="highlight"><pre><span></span><span class="o">&gt;&gt;&gt;</span> <span class="n">theta_hat</span> <span class="o">=</span> <span class="n">gradient_descent</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">model_func</span><span class="o">=</span><span class="n">f1</span><span class="p">,</span> <span class="n">max_iters</span><span class="o">=</span><span class="mi">50000</span><span class="p">,</span> 
+                                 <span class="n">learning_rate</span><span class="o">=.</span><span class="mo">025</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=.</span><span class="mo">00001</span><span class="p">)</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="k">print</span><span class="p">(</span><span class="n">theta_hat</span><span class="p">)</span>
+<span class="p">{</span><span class="s1">&#39;cntr&#39;</span><span class="p">:</span> <span class="mi">50000</span><span class="p">,</span>
+ <span class="s1">&#39;coeffs&#39;</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span> <span class="n">nan</span><span class="p">,</span>  <span class="n">nan</span><span class="p">]),</span>
+ <span class="s1">&#39;epsilon&#39;</span><span class="p">:</span> <span class="mf">1e-05</span><span class="p">,</span>
+ <span class="s1">&#39;learning_rate&#39;</span><span class="p">:</span> <span class="mf">0.025</span><span class="p">,</span>
+ <span class="s1">&#39;max_iters&#39;</span><span class="p">:</span> <span class="mi">50000</span><span class="p">}</span>
+</pre></div>
+
+
+<p><br> 
+<code>learning_rate</code> and <code>epsilon</code> aren&#8217;t your typical &#8216;set-and-forget&#8217; function parameters. Determine which values of <code>learning_rate</code> results in divergence, and scale back from there.   <br>
+<br></p>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var align = "center",
+        indent = "0em",
+        linebreak = "false";
+
+    if (false) {
+        align = (screen.width < 768) ? "left" : align;
+        indent = (screen.width < 768) ? "0em" : indent;
+        linebreak = (screen.width < 768) ? 'true' : linebreak;
+    }
+
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: '"+ align +"'," +
+        "    displayIndent: '"+ indent +"'," +
+        "    showMathMenu: true," +
+        "    messageStyle: 'normal'," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['\\\\(','\\\\)'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'inherit ! important'} }," +
+        "        linebreaks: { automatic: "+ linebreak +", width: '90% container' }," +
+        "    }, " +
+        "}); " +
+        "if ('default' !== 'default') {" +
+            "MathJax.Hub.Register.StartupHook('HTML-CSS Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax['HTML-CSS'].FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+            "MathJax.Hub.Register.StartupHook('SVG Jax Ready',function () {" +
+                "var VARIANT = MathJax.OutputJax.SVG.FONTDATA.VARIANT;" +
+                "VARIANT['normal'].fonts.unshift('MathJax_default');" +
+                "VARIANT['bold'].fonts.unshift('MathJax_default-bold');" +
+                "VARIANT['italic'].fonts.unshift('MathJax_default-italic');" +
+                "VARIANT['-tex-mathit'].fonts.unshift('MathJax_default-italic');" +
+            "});" +
+        "}";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>

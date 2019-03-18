@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: http://ogp.me/ns# fb: https://www.facebook.com/2008/fbml">
+<head>
+    <title>Querying Oracle Table Data from VBA - The Pleasure of Finding Things Out</title>
+    <!-- Using the latest rendering mode for IE -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+<link rel="canonical" href="https://jtrive84.github.io/querying-oracle-table-data-from-vba.html">
+
+        <meta name="author" content="James D. Triveri" />
+        <meta name="keywords" content="Quick Tips" />
+        <meta name="description" content="Examples of querying Oracle table data from VBA" />
+
+        <meta property="og:site_name" content="The Pleasure of Finding Things Out" />
+        <meta property="og:type" content="article"/>
+        <meta property="og:title" content="Querying Oracle Table Data from VBA"/>
+        <meta property="og:url" content="https://jtrive84.github.io/querying-oracle-table-data-from-vba.html"/>
+        <meta property="og:description" content="Examples of querying Oracle table data from VBA"/>
+        <meta property="article:published_time" content="2017-01-08" />
+            <meta property="article:section" content="Quick Tips" />
+            <meta property="article:tag" content="Quick Tips" />
+            <meta property="article:author" content="James D. Triveri" />
+
+
+
+    <!-- Bootstrap -->
+        <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/bootstrap.cerulean.min.css" type="text/css"/>
+    <link href="https://jtrive84.github.io/theme/css/font-awesome.min.css" rel="stylesheet">
+
+    <link href="https://jtrive84.github.io/theme/css/pygments/github.css" rel="stylesheet">
+        <link href="https://jtrive84.github.io/theme/css/typogrify.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://jtrive84.github.io/theme/css/style.css" type="text/css"/>
+        <link href="https://jtrive84.github.io/./static/custom.css" rel="stylesheet">
+
+        <link href="https://jtrive84.github.io/feeds/all.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out ATOM Feed"/>
+
+        <link href="https://jtrive84.github.io/feeds/all.rss.xml" type="application/rss+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out RSS Feed"/>
+
+
+        <link href="https://jtrive84.github.io/feeds/quick-tips.atom.xml" type="application/atom+xml" rel="alternate"
+              title="The Pleasure of Finding Things Out Quick Tips ATOM Feed"/>
+
+</head>
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+	<div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a href="https://jtrive84.github.io/" class="navbar-brand">
+The Pleasure of Finding Things Out            </a>
+        </div>
+        <div class="collapse navbar-collapse navbar-ex1-collapse">
+            <ul class="nav navbar-nav">
+                         <li><a href="https://jtrive84.github.io/pages/about-me.html">
+                             About&nbsp;Me
+                          </a></li>
+                         <li><a href="https://jtrive84.github.io/pages/reading-list.html">
+                             Reading&nbsp;List
+                          </a></li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/linux.html">Linux</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/machine-learning.html">Machine learning</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/python.html">Python</a>
+                        </li>
+                        <li class="active">
+                            <a href="https://jtrive84.github.io/category/quick-tips.html">Quick tips</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/r.html">R</a>
+                        </li>
+                        <li >
+                            <a href="https://jtrive84.github.io/category/statistical-modeling.html">Statistical modeling</a>
+                        </li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+            </ul>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+</div> <!-- /.navbar -->
+<!-- Banner -->
+<style>
+	#banner{
+	    background-image:url("https://jtrive84.github.io//images/probdists0.png");
+	}
+</style>
+
+<div id="banner">
+	<div class="container-fluid">
+		<div class="copy">
+			<h1>The Pleasure of Finding Things Out</h1>
+		</div>
+	</div>
+</div><!-- End Banner -->
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9">
+    <section id="content">
+        <article>
+            <header class="page-header">
+                <h1>
+                    <a href="https://jtrive84.github.io/querying-oracle-table-data-from-vba.html"
+                       rel="bookmark"
+                       title="Permalink to Querying Oracle Table Data from VBA">
+                        Querying Oracle Table Data from <span class="caps">VBA</span>
+                    </a>
+                </h1>
+            </header>
+            <div class="entry-content">
+                <div class="panel">
+                    <div class="panel-body">
+<footer class="post-info">
+    <span class="label label-default">Date</span>
+    <span class="published">
+        <i class="fa fa-calendar"></i><time datetime="2017-01-08T00:00:00-06:00"> 2017-01-08</time>
+    </span>
+
+
+            <span class="label label-default">By</span>
+            <a href="https://jtrive84.github.io/author/james-d-triveri.html"><i class="fa fa-user"></i> James D. Triveri</a>
+
+        <span class="label label-default">Category</span>
+        <a href="https://jtrive84.github.io/category/quick-tips.html">Quick Tips</a>
+
+
+<span class="label label-default">Tags</span>
+	<a href="https://jtrive84.github.io/tag/quick-tips.html">Quick Tips</a>
+    
+</footer><!-- /.post-info -->                    </div>
+                </div>
+                <p>It is possible to query Oracle table data from <span class="caps">VBA</span> using 
+<a href="https://msdn.microsoft.com/en-us/library/office/ff836161.aspx">QueryTables</a>. 
+The specification for the connection string may vary from <span class="caps">RDBMS</span> to <span class="caps">RDBMS</span>, but 
+otherwise, The implementation is straightforward. For example, assume we&#8217;re 
+interested in querying and Oracle table <code>SAMPLE_TABLE</code> present in 
+<code>SAMPLE_SCHEMA</code> in <code>SAMPLE_DB</code> and authenticated by <code>password1</code> using <span class="caps">DSN</span> 
+<code>SAMPLE_SCHEMA</code>, and that we need to return all records from <code>SAMPLE_TABLE</code> 
+to worksheet <code>From_DB</code> starting in cell <code>A1</code>:           </p>
+<div class="highlight"><pre><span></span><span class="c">&#39;================================================</span>
+<span class="c">&#39; Query and retrieve Oracle table data via ODBC |</span>
+<span class="c">&#39;================================================</span>
+<span class="k">Public</span> <span class="k">Sub</span> <span class="nf">CaptureTableODBC</span><span class="p">(</span> _
+                        <span class="k">ByVal</span> <span class="n">Tablename</span> <span class="ow">As</span> <span class="kt">String</span><span class="p">,</span> _
+                        <span class="k">ByVal</span> <span class="n">Schema</span> <span class="ow">As</span> <span class="kt">String</span><span class="p">,</span> _
+                        <span class="k">ByVal</span> <span class="n">Database</span> <span class="ow">As</span> <span class="kt">String</span><span class="p">,</span> _
+                        <span class="k">ByVal</span> <span class="n">Password</span> <span class="ow">As</span> <span class="kt">String</span><span class="p">)</span>
+
+
+<span class="c">&#39; Variable declarations =&gt;</span>
+<span class="k">Dim</span> <span class="n">SQLstr</span> <span class="ow">As</span> <span class="kt">String</span>
+<span class="k">Dim</span> <span class="n">connStr</span> <span class="ow">As</span> <span class="kt">String</span>
+<span class="k">Dim</span> <span class="n">sht</span> <span class="ow">As</span> <span class="n">Worksheet</span><span class="p">:</span> <span class="k">Set</span> <span class="n">sht</span> <span class="o">=</span> <span class="n">ThisWorkbook</span><span class="p">.</span><span class="n">Worksheets</span><span class="p">(</span><span class="s">&quot;From_DB&quot;</span><span class="p">)</span>
+
+<span class="c">&#39; Clear all content in `From_DB` =&gt;</span>
+<span class="n">sht</span><span class="p">.</span><span class="n">UsedRange</span><span class="p">.</span><span class="n">Clear</span>
+
+<span class="c">&#39; Create query string =&gt;</span>
+<span class="n">Tablename</span> <span class="o">=</span> <span class="n">Application</span><span class="p">.</span><span class="n">WorksheetFunction</span><span class="p">.</span><span class="n">Trim</span><span class="p">(</span><span class="n">Tablename</span><span class="p">)</span>
+<span class="n">SQLstr</span> <span class="o">=</span> <span class="s">&quot;SELECT * FROM &quot;</span> <span class="o">&amp;</span> <span class="k">CStr</span><span class="p">(</span><span class="n">Tablename</span><span class="p">)</span>
+
+<span class="c">&#39; Compile connection string =&gt;</span>
+<span class="n">connStr</span> <span class="o">=</span> _
+    <span class="s">&quot;ODBC;DSN=&quot;</span> <span class="o">&amp;</span> <span class="n">Schema</span> <span class="o">&amp;</span> <span class="s">&quot;;UID=&quot;</span> <span class="o">&amp;</span> <span class="n">Schema</span> <span class="o">&amp;</span> <span class="s">&quot;;PWD=&quot;</span> <span class="o">&amp;</span> <span class="n">Password</span> <span class="o">&amp;</span> <span class="s">&quot;;Database=&quot;</span> <span class="o">&amp;</span> <span class="n">Database</span>
+
+<span class="k">With</span> <span class="n">sht</span><span class="p">.</span><span class="n">QueryTables</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span> _
+                <span class="n">Connection</span><span class="p">:</span><span class="o">=</span><span class="n">connStr</span><span class="p">,</span> _
+                <span class="n">Destination</span><span class="p">:</span><span class="o">=</span><span class="n">sht</span><span class="p">.</span><span class="n">Range</span><span class="p">(</span><span class="s">&quot;A1&quot;</span><span class="p">),</span> _
+                <span class="n">SQL</span><span class="p">:</span><span class="o">=</span><span class="n">SQLstr</span><span class="p">)</span>
+    <span class="p">.</span><span class="n">Refresh</span>
+<span class="k">End</span> <span class="k">With</span>
+
+<span class="c">&#39; Terminate connection =&gt;</span>
+<span class="n">connStr</span><span class="p">.</span><span class="n">Close</span>
+
+<span class="k">End</span> <span class="k">Sub</span>
+</pre></div>
+
+
+<p>The <code>QueryTables</code> method is straightforward, and works well if the macro will 
+not be utilized by anyone other than the creator. But if the intention is to 
+distribute the subprocedure for use by other analysts, this approach is less 
+than&nbsp;optimal.       </p>
+<p>When querying databases from Excel via <code>ODBC</code>, it is necessary to have a 
+<a href="https://msdn.microsoft.com/en-us/library/2x0tte0f.aspx"><span class="caps">DSN</span></a> with which to 
+associate a given Data Source. In the example above, the <code>DSN</code> was identical 
+to the name of the Schema of interest, but there is no way to ensure all 
+potential future users will follow the same <code>DSN</code> naming convention. This is 
+the source of many of the compatibility issues facing developers wishing to 
+distribute <span class="caps">VBA</span> applications that interact with an external data source using 
+<code>ODBC</code>. Fortunately, there&#8217;s an alternative, more flexible <span class="caps">API</span> that can be&nbsp;utilized.</p>
+<h2>Querying External Data Sources with ActiveX Data Objects (<span class="caps">ADO</span>)</h2>
+<p>Microsoft&#8217;s <a href="https://msdn.microsoft.com/EN-US/library/office/dn161134.aspx">ActiveX Data Objects</a> 
+(<span class="caps">ADO</span>) comprises a set of Component Object Model (<span class="caps">COM</span>) objects for accessing 
+data sources. In terms of portability, querying external data sources with <span class="caps">ADO</span> 
+is superior to <span class="caps">ODBC</span> since <span class="caps">ADO</span> permits <span class="caps">DSN</span>-less data source connections, 
+meaning as long as you can successfully authenticate to a given external data 
+source, it&#8217;s possible to retrieve datasets from Excel/<span class="caps">VBA</span> without requiring a 
+<code>DSN</code>. </p>
+<p>The following query accesses the same sample table as above, but using <span class="caps">ADO</span> 
+instead of <span class="caps">ODBC</span>. The first function, <code>CreateConnectionStr</code>, generates the 
+connection string required to connect to an Oracle database (check out 
+<a href="https://www.connectionstrings.com/as-400/">this site</a> for other <span class="caps">RDBMS</span> 
+connection&nbsp;strings):          </p>
+<div class="highlight"><pre><span></span><span class="c">&#39;================================================</span>
+<span class="c">&#39; Compile connection string for ADO usage       |</span>
+<span class="c">&#39;================================================</span>
+<span class="k">Public</span> <span class="k">Function</span> <span class="nf">CreateConnectionStr</span><span class="p">(</span> _
+                            <span class="k">ByVal</span> <span class="n">Database</span> <span class="ow">As</span> <span class="kt">String</span><span class="p">,</span> _
+                            <span class="k">ByVal</span> <span class="n">Schema</span> <span class="ow">As</span> <span class="kt">String</span><span class="p">,</span> _
+                            <span class="k">ByVal</span> <span class="n">Password</span> <span class="ow">As</span> <span class="kt">String</span><span class="p">)</span>
+
+<span class="k">Const</span> <span class="n">Provider</span> <span class="ow">As</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">&quot;OraOLEDB.Oracle&quot;</span>
+<span class="n">CreateConnectionStr</span> <span class="o">=</span> <span class="s">&quot;Provider=&quot;</span> <span class="o">&amp;</span> <span class="k">CStr</span><span class="p">(</span><span class="n">Provider</span><span class="p">)</span> <span class="o">&amp;</span> <span class="s">&quot;;&quot;</span> <span class="o">&amp;</span> _
+                      <span class="s">&quot;Data Source=&quot;</span> <span class="o">&amp;</span> <span class="k">CStr</span><span class="p">(</span><span class="n">Database</span><span class="p">)</span> <span class="o">&amp;</span> <span class="s">&quot;;&quot;</span> <span class="o">&amp;</span> _
+                      <span class="s">&quot;User Id=&quot;</span> <span class="o">&amp;</span> <span class="k">CStr</span><span class="p">(</span><span class="n">Schema</span><span class="p">)</span> <span class="o">&amp;</span> <span class="s">&quot;;&quot;</span> <span class="o">&amp;</span> _
+                      <span class="s">&quot;Password=&quot;</span> <span class="o">&amp;</span> <span class="k">CStr</span><span class="p">(</span><span class="n">Password</span><span class="p">)</span> <span class="o">&amp;</span> <span class="s">&quot;;&quot;</span>
+
+<span class="k">End</span> <span class="k">Function</span>
+
+
+<span class="c">&#39;================================================</span>
+<span class="c">&#39; Query and retrieve Oracle table data via ADO  |</span>
+<span class="c">&#39;================================================</span>
+<span class="k">Public</span> <span class="k">Sub</span> <span class="nf">CaptureTableADO</span><span class="p">(</span><span class="k">ByVal</span> <span class="n">Tablename</span> <span class="ow">As</span> <span class="kt">String</span><span class="p">)</span>
+
+<span class="c">&#39; Variable declarations =&gt;</span>
+<span class="k">Dim</span> <span class="n">SQLstr</span> <span class="ow">As</span> <span class="kt">String</span>
+<span class="k">Dim</span> <span class="n">connStr</span> <span class="ow">As</span> <span class="kt">String</span>
+<span class="k">Dim</span> <span class="n">i</span> <span class="ow">As</span> <span class="kt">Long</span>
+<span class="k">Dim</span> <span class="n">sht</span> <span class="ow">As</span> <span class="n">Worksheet</span><span class="p">:</span> <span class="k">Set</span> <span class="n">outsht</span> <span class="o">=</span> <span class="n">ThisWorkbook</span><span class="p">.</span><span class="n">Worksheets</span><span class="p">(</span><span class="s">&quot;From_DB&quot;</span><span class="p">)</span>
+<span class="k">Dim</span> <span class="n">conn</span> <span class="ow">As</span> <span class="kt">Object</span><span class="p">:</span> <span class="k">Set</span> <span class="n">conn</span> <span class="o">=</span> <span class="n">CreateObject</span><span class="p">(</span><span class="s">&quot;ADODB.Connection&quot;</span><span class="p">)</span>
+<span class="k">Dim</span> <span class="n">recordSet</span> <span class="ow">As</span> <span class="kt">Object</span><span class="p">:</span> <span class="k">Set</span> <span class="n">recordSet</span> <span class="o">=</span> <span class="n">CreateObject</span><span class="p">(</span><span class="s">&quot;ADODB.Recordset&quot;</span><span class="p">)</span>
+<span class="k">Const</span> <span class="n">Provider</span> <span class="ow">As</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">&quot;OraOLEDB.Oracle&quot;</span>
+
+
+<span class="c">&#39; Clear all content in `From_DB` =&gt;</span>
+<span class="n">sht</span><span class="p">.</span><span class="n">UsedRange</span><span class="p">.</span><span class="n">Clear</span>
+
+<span class="c">&#39; Create query string =&gt;</span>
+<span class="n">Tablename</span> <span class="o">=</span> <span class="n">Application</span><span class="p">.</span><span class="n">WorksheetFunction</span><span class="p">.</span><span class="n">Trim</span><span class="p">(</span><span class="n">Tablename</span><span class="p">)</span>
+<span class="n">SQLstr</span> <span class="o">=</span> <span class="s">&quot;SELECT * FROM &quot;</span> <span class="o">&amp;</span> <span class="k">CStr</span><span class="p">(</span><span class="n">Tablename</span><span class="p">)</span>
+
+<span class="c">&#39; Call CreateConnectionStr =&gt;</span>
+<span class="k">Set</span> <span class="n">connStr</span> <span class="o">=</span> <span class="n">CreateConnectionStr</span><span class="p">(</span><span class="s">&quot;SAMPLE_DB&quot;</span><span class="p">,</span> <span class="s">&quot;SAMPLE_SCHEMA&quot;</span><span class="p">,</span> <span class="s">&quot;password1&quot;</span><span class="p">)</span>
+
+<span class="c">&#39; Open connection =&gt;</span>
+<span class="n">conn</span><span class="p">.</span><span class="n">Open</span> <span class="n">connStr</span>
+<span class="n">recordSet</span><span class="p">.</span><span class="n">Open</span> <span class="n">SQLstr</span><span class="p">,</span> <span class="n">conn</span>
+
+
+<span class="c">&#39; Put headers in First Row =&gt;</span>
+<span class="k">For</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">To</span> <span class="n">recordSet</span><span class="p">.</span><span class="n">Fields</span><span class="p">.</span><span class="n">Count</span>
+    <span class="n">sht</span><span class="p">.</span><span class="n">Cells</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="p">).</span><span class="n">Value</span> <span class="o">=</span> <span class="n">recordSet</span><span class="p">.</span><span class="n">Fields</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">).</span><span class="n">Name</span>
+<span class="k">Next</span>
+
+<span class="c">&#39; Write dataset to `From_DB` =&gt;</span>
+<span class="n">sht</span><span class="p">.</span><span class="n">Range</span><span class="p">(</span><span class="s">&quot;A2&quot;</span><span class="p">).</span><span class="n">CopyFromRecordset</span> <span class="n">recordSet</span>
+
+
+<span class="c">&#39; Terminate connections =&gt;</span>
+<span class="n">conn</span><span class="p">.</span><span class="n">Close</span>
+<span class="k">Set</span> <span class="n">conn</span> <span class="o">=</span> <span class="k">Nothing</span>
+<span class="k">Set</span> <span class="n">recordSet</span> <span class="o">=</span> <span class="k">Nothing</span>
+
+<span class="k">End</span> <span class="k">Sub</span>
+</pre></div>
+
+
+<p>Notice that it&#8217;s necessary to manually write the dataset&#8217;s headers to the 
+first row of <code>From_DB</code>. This is a small price to pay for the kind of 
+flexibility a <span class="caps">DSN</span>-less connection&nbsp;offers.   </p>
+<p>Since <code>CaptureTableODBC</code> and <code>CaptureTableADO</code> are subprocedures requiring 
+arguments to be passed in, it is not possible to call either of these 
+subprocedures directly. An argument-less subprocedure needs to call 
+<code>CaptureTableODBC</code> or <code>CaptureTableADO</code>, passing the necessary arguments to 
+the subprocedures. For&nbsp;example:      </p>
+<div class="highlight"><pre><span></span><span class="c">&#39;=========================</span>
+<span class="c">&#39;Calling CaptureTableADO |</span>
+<span class="c">&#39;=========================</span>
+
+<span class="k">Public</span> <span class="k">Sub</span> <span class="nf">Caller</span><span class="p">()</span>
+
+<span class="k">Dim</span> <span class="n">Tablename</span> <span class="ow">As</span> <span class="kt">String</span><span class="p">:</span> <span class="n">Tablename</span> <span class="o">=</span> <span class="s">&quot;SAMPLE_TABLE&quot;</span>
+
+<span class="k">Call</span> <span class="n">CaptureTableADO</span><span class="p">(</span><span class="n">Tablename</span><span class="p">)</span>
+
+<span class="k">End</span> <span class="k">Sub</span>
+</pre></div>
+
+
+<p>Interacting with external datasets and sources is a common task among analysts 
+of all kinds. Creating portable, scalable and robust tools to interact with 
+those data sources can be greatly simplified by removing the <span class="caps">DSN</span> requirement&nbsp;altogether.</p>
+            </div>
+            <!-- /.entry-content -->
+        </article>
+    </section>
+
+        </div>
+        <div class="col-sm-3" id="sidebar">
+            <aside>
+<div id="aboutme">
+        <p>
+            <img width="100%" class="img-thumbnail" src="https://jtrive84.github.io/./images/JDTGOOG.JPG"/>
+        </p>
+</div><!-- Sidebar -->
+<section class="well well-sm">
+  <ul class="list-group list-group-flush">
+
+<!-- Sidebar/Links -->
+<li class="list-group-item">
+  <h4><i class="fa fa-external-link-square fa-lg"></i><span class="icon-label">Links</span></h4>
+  <ul class="list-group" id="links">
+    <li class="list-group-item">
+      <a href="https://docs.python.org/3/library/index.html" target="_blank">The Python Standard Library</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://scikit-learn.org/stable/" target="_blank">scikit-learn</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.scipy.org/" target="_blank">Scipy.org</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.jmlr.org/" target="_blank">Journal of Machine Learning Research</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.jstatsoft.org/index" target="_blank">Journal of Statistical Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://joss.theoj.org/" target="_blank">The Journal of Open Source Software</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.nag.com/" target="_blank">Numerical Algorithms Group</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fsf.org/" target="_blank">Free Software Foundation</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.casact.org/" target="_blank">Casualty Actuarial Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.continuum.io/" target="_blank">Continuum Analytics</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.amstat.org/" target="_blank">American Statistical Association</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.siam.org/" target="_blank">SIAM</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.ams.org/home/page" target="_blank">American Mathematical Society</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://www.ieee.org/index.html" target="_blank">IEEE</a>
+    </li>
+    <li class="list-group-item">
+      <a href="http://www.fnal.gov/" target="_blank">FermiLab</a>
+    </li>
+    <li class="list-group-item">
+      <a href="https://beyondyourplateau.com/" target="_blank">Beyond Your Plateau</a>
+    </li>
+  </ul>
+</li>
+<!-- End Sidebar/Links -->
+
+<!-- Sidebar/Images -->
+<li class="list-group-item">
+  <ul class="list-group" id="links">
+    <img width="100%" class="img-thumbnail" src="/images/sbimage.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure2.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/symmetry.gif"/>
+    <img width="100%" class="img-thumbnail" src="/images/figure1.jpg"/>
+    <img width="100%" class="img-thumbnail" src="/images/geometry.jpg"/>
+  </ul>
+</li>
+<!-- End Sidebar/Images -->
+  </ul>
+</section>
+<!-- End Sidebar -->            </aside>
+        </div>
+    </div>
+</div>
+<footer>
+   <div class="container-fluid">
+      <hr>
+      <div class="row">
+         <div class="col-xs-10">&copy; 2019 James D. Triveri
+            &middot; Powered by <a href="https://github.com/getpelican/pelican-themes/tree/master/pelican-bootstrap3" target="_blank">pelican-bootstrap3</a>,
+            <a href="http://docs.getpelican.com/" target="_blank">Pelican</a>,
+            <a href="http://getbootstrap.com" target="_blank">Bootstrap</a>         </div>
+         <div class="col-xs-2"><p class="pull-right"><i class="fa fa-arrow-up"></i> <a href="#">Back to top</a></p></div>
+      </div>
+   </div>
+</footer>
+<script src="https://jtrive84.github.io/theme/js/jquery.min.js"></script>
+
+<!-- Include all compiled plugins (below), or include individual files as needed -->
+<script src="https://jtrive84.github.io/theme/js/bootstrap.min.js"></script>
+
+<!-- Enable responsive features in IE8 with Respond.js (https://github.com/scottjehl/Respond) -->
+<script src="https://jtrive84.github.io/theme/js/respond.min.js"></script>
+
+
+    <script src="https://jtrive84.github.io/theme/js/bodypadding.js"></script>
+
+
+</body>
+</html>
