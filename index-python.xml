@@ -2266,438 +2266,6 @@ font-style: inherit;">1</span>)</span></code></pre></div>
   <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 <item>
-  <title>Using Dijkstra’s Algorithm to Find All Shortest Paths in a Graph</title>
-  <link>www.jtrive.com/posts/dijkstras-shortest-paths/index.html</link>
-  <description><![CDATA[ 
-
-
-
-
-<p>I always had trouble spelling <em>Dijkstra</em> correctly until someone pointed out “It’s just D, followed by <em>i-j-k</em>, then stra”. Once it was pointed out that <em>i-j-k</em> is represented sequentially in alphabetical order, spelling <em>Dijkstra</em> becomes trival - almost fun!</p>
-<p><em>Dijkstra’s algorithm</em> is one of the most well-known and studied graph algorithms for finding the shortest path between a set of vertices. For a specified starting node, the algorithm finds the shortest path between the source vertex and all other vertices in the graph. Dijkstra’s cannot handle graphs with negative edge weights: For graphs with negative weight edges, Floyd-Warshall or Bellman Ford can be used. But for graphs with positive edge weights, Dijkstra’s has better worst case performance than more general alternatives (O((n + m)log(n)) for Dijkstra vs.&nbsp;O(mn) for Bellman-Ford and O(n^3) for Floyd-Warshall).</p>
-<p>However, Dijkstra’s only returns a single shortest path. In many cases a single shortest path is enough. But there are plenty of applications in which knowledge of alternate minimum weight paths can be useful. If a graph has multiple shortest paths, it is necessary to add supplementary logic to identify and return all such paths. The modified routine to return all shortest paths from graph G is described below:</p>
-<ol type="1">
-<li><p>Run Dijkstra’s starting from start node <strong>a</strong>. Returns shortest path and distance to every node from vertex <strong>a</strong>.</p></li>
-<li><p>Run Dijkstra’s starting from end node <strong>f</strong>. Returns shortest path and distance to every node from vertex <strong>f</strong>.</p></li>
-<li><p>Let <code>dist_a2f</code> = A shortest path from vertex <strong>a</strong> to vertex <strong>f</strong>.</p></li>
-<li><p>For (u, v) in G.edges:</p>
-<p>Let <code>w_uv</code> = Weight of edge (u, v).</p>
-<p>Let <code>dist_a2u</code> = Distance from start vertex <strong>a</strong> to vertex u.</p>
-<p>Let <code>dist_f2v</code> = Distance from end vertex <strong>f</strong> to vertex v.</p>
-<p>If <code>dist_a2u</code> + <code>w_uv</code> + <code>dist_f2v</code> == <code>dist_a2f</code>:</p>
-<p>Then edge (u, v) is on some minimal weight path.</p></li>
-</ol>
-<p>Lets use networkx to create a graph with multiple shortest paths:</p>
-<div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
-<span id="cb1-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create network with multiple minimal weight paths.</span></span>
-<span id="cb1-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> plt</span>
-<span id="cb1-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> nx</span>
-<span id="cb1-5"></span>
-<span id="cb1-6">seed <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">518</span></span>
-<span id="cb1-7">G <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.Graph()</span>
-<span id="cb1-8"></span>
-<span id="cb1-9">G.add_edge(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"b"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>)</span>
-<span id="cb1-10">G.add_edge(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"b"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"c"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)</span>
-<span id="cb1-11">G.add_edge(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"c"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb1-12">G.add_edge(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"c"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"d"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb1-13">G.add_edge(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"d"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"e"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>)</span>
-<span id="cb1-14">G.add_edge(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"e"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"f"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)</span>
-<span id="cb1-15">G.add_edge(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"c"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"f"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb1-16">G.add_edge(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"d"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>)</span>
-<span id="cb1-17">G.add_edge(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"f"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"d"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb1-18"></span>
-<span id="cb1-19">edges <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [(u, v) <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> (u, v, d) <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> G.edges(data<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)]</span>
-<span id="cb1-20"></span>
-<span id="cb1-21">color_map <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> []</span>
-<span id="cb1-22"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> g <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> G:</span>
-<span id="cb1-23">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">if</span> g<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>:</span>
-<span id="cb1-24">        color_map.append(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"green"</span>)</span>
-<span id="cb1-25">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">elif</span> g<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"f"</span>:</span>
-<span id="cb1-26">        color_map.append(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>)</span>
-<span id="cb1-27">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">else</span>:</span>
-<span id="cb1-28">        color_map.append(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"blue"</span>)</span>
-<span id="cb1-29"></span>
-<span id="cb1-30"></span>
-<span id="cb1-31"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># edge weight labels.</span></span>
-<span id="cb1-32">edge_labels <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.get_edge_attributes(G, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"weight"</span>)</span>
-<span id="cb1-33"></span>
-<span id="cb1-34"></span>
-<span id="cb1-35">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb1-36">pos <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.spring_layout(G, seed<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>seed)</span>
-<span id="cb1-37">nx.draw_networkx_nodes(G, pos, node_size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">800</span>, node_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>color_map)</span>
-<span id="cb1-38">nx.draw_networkx_edges(G, pos, edgelist<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>edges, width<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.5</span>, edge_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"grey"</span>, style<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"solid"</span>)</span>
-<span id="cb1-39">nx.draw_networkx_labels(G, pos, font_size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">16</span>, font_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"white"</span>, font_weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bold"</span>, font_family<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"sans-serif"</span>)</span>
-<span id="cb1-40">nx.draw_networkx_edge_labels(G, pos, edge_labels, font_size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">12</span>)</span>
-<span id="cb1-41">plt.axis(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"off"</span>)</span>
-<span id="cb1-42">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<p><img src="www.jtrive.com/posts/dijkstras-shortest-paths/dijkstras-shortest-paths_files/figure-html/cell-2-output-1.png" class="img-fluid"></p>
-</div>
-</div>
-<p>G has three shortest paths of weight/distance 12:</p>
-<ul>
-<li><code>a - c - f</code></li>
-<li><code>a - b - c - f</code></li>
-<li><code>a - c - d - e - f</code></li>
-</ul>
-<p>Running <code>single_source_dijkstra</code> from networkx returns the distance to each vertex in a graph from a specified starting vertex (in our example, vertex a). <code>single_source_dijkstra</code> returns two dictionaries: The first stores distances to each vertex; the second stores the shortest path from the start node to all other vertices (<code>d2v0</code> and <code>p2v0</code> in the code below):</p>
-<div class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
-<span id="cb2-2">d2v0, p2v0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.single_source_dijkstra(G, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>)</span>
-<span id="cb2-3"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"d2v0: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>d2v0<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb2-4"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"p2v0: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>p2v0<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>d2v0: {'a': 0, 'b': 4, 'c': 6, 'd': 7, 'e': 10, 'f': 12}
-p2v0: {'a': ['a'], 'b': ['a', 'b'], 'c': ['a', 'c'], 'd': ['a', 'c', 'd'], 'f': ['a', 'c', 'f'], 'e': ['a', 'c', 'd', 'e']}</code></pre>
-</div>
-</div>
-<p><code>single_source_dijkstra</code> only returns <code>a - c - f</code>. To also identify <code>a - b - c - f</code> and <code>a - c - d - e - f</code>, we implement the steps from our pseudocode:</p>
-<div class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
-<span id="cb4-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Idenitfy all shortests paths in graph G.</span></span>
-<span id="cb4-3">all_shortest_paths <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">set</span>()</span>
-<span id="cb4-4"></span>
-<span id="cb4-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># d2v: Distance to vertex (from start node a).</span></span>
-<span id="cb4-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># p2v: Shortest path to vertext (from start node a).</span></span>
-<span id="cb4-7">d2v0, p2v0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.single_source_dijkstra(G, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>)</span>
-<span id="cb4-8">d2v1, p2v1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.single_source_dijkstra(G, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"f"</span>)</span>
-<span id="cb4-9">all_shortest_paths.add(<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">tuple</span>(p2v0[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"f"</span>]))</span>
-<span id="cb4-10"></span>
-<span id="cb4-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Iterate through all edges. Check for additional shortest paths. </span></span>
-<span id="cb4-12"></span>
-<span id="cb4-13"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Distance of a shortest path from a to f. </span></span>
-<span id="cb4-14">dist_a2f <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> d2v0[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"f"</span>]</span>
-<span id="cb4-15"></span>
-<span id="cb4-16"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> u, v, dw <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> G.edges(data<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>):</span>
-<span id="cb4-17">    </span>
-<span id="cb4-18">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get weight of current edge spanning (u, v)</span></span>
-<span id="cb4-19">    w_uv <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dw[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"weight"</span>]</span>
-<span id="cb4-20">    </span>
-<span id="cb4-21">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get distance from start vertex to u.</span></span>
-<span id="cb4-22">    dist_a2u <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> d2v0[u]</span>
-<span id="cb4-23">    </span>
-<span id="cb4-24">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get distance from end vertex to v.</span></span>
-<span id="cb4-25">    dist_f2v <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> d2v1[v]</span>
-<span id="cb4-26">    </span>
-<span id="cb4-27">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">if</span> dist_a2u <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> w_uv <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> dist_f2v <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> dist_a2f:</span>
-<span id="cb4-28">        </span>
-<span id="cb4-29">        <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Edge uv is on some minimal weight path. Append to all_shortest_paths.</span></span>
-<span id="cb4-30">        pp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">tuple</span>(p2v0[u] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> p2v1[v][::<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>])</span>
-<span id="cb4-31">        all_shortest_paths.add(pp)</span></code></pre></div>
-</div>
-<p>Shortest paths are stored in a set of ordered tuples, with each tuple representing the vertices of some path of minimum weight. Printing the contents of all_shortest_paths yields:</p>
-<div class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1">all_shortest_paths</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="4">
-<pre><code>{('a', 'b', 'c', 'f'), ('a', 'c', 'd', 'e', 'f'), ('a', 'c', 'f')}</code></pre>
-</div>
-</div>
-<p>The time complexity for two separate invocations of Dijkstra’s is 2 * O((n + m)log(n)), and O(m + n) to iterate through the adjacency list checking for intermediate edges falling on a path of minimum weight.</p>
-
-
-
- ]]></description>
-  <category>Statistical Modeling</category>
-  <category>Python</category>
-  <guid>www.jtrive.com/posts/dijkstras-shortest-paths/index.html</guid>
-  <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
   <title>Understanding the Graph Convolutional Network Propogation Model</title>
   <link>www.jtrive.com/posts/gcn-prop-model/index.html</link>
   <description><![CDATA[ 
@@ -3842,7 +3410,439 @@ font-style: inherit;">;</span></span></code></pre></div>
   <category>Machine Learning</category>
   <category>Python</category>
   <guid>www.jtrive.com/posts/gcn-prop-model/index.html</guid>
-  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+  <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Using Dijkstra’s Algorithm to Find All Shortest Paths in a Graph</title>
+  <link>www.jtrive.com/posts/dijkstras-shortest-paths/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>I always had trouble spelling <em>Dijkstra</em> correctly until someone pointed out “It’s just D, followed by <em>i-j-k</em>, then stra”. Once it was pointed out that <em>i-j-k</em> is represented sequentially in alphabetical order, spelling <em>Dijkstra</em> becomes trival - almost fun!</p>
+<p><em>Dijkstra’s algorithm</em> is one of the most well-known and studied graph algorithms for finding the shortest path between a set of vertices. For a specified starting node, the algorithm finds the shortest path between the source vertex and all other vertices in the graph. Dijkstra’s cannot handle graphs with negative edge weights: For graphs with negative weight edges, Floyd-Warshall or Bellman Ford can be used. But for graphs with positive edge weights, Dijkstra’s has better worst case performance than more general alternatives (O((n + m)log(n)) for Dijkstra vs.&nbsp;O(mn) for Bellman-Ford and O(n^3) for Floyd-Warshall).</p>
+<p>However, Dijkstra’s only returns a single shortest path. In many cases a single shortest path is enough. But there are plenty of applications in which knowledge of alternate minimum weight paths can be useful. If a graph has multiple shortest paths, it is necessary to add supplementary logic to identify and return all such paths. The modified routine to return all shortest paths from graph G is described below:</p>
+<ol type="1">
+<li><p>Run Dijkstra’s starting from start node <strong>a</strong>. Returns shortest path and distance to every node from vertex <strong>a</strong>.</p></li>
+<li><p>Run Dijkstra’s starting from end node <strong>f</strong>. Returns shortest path and distance to every node from vertex <strong>f</strong>.</p></li>
+<li><p>Let <code>dist_a2f</code> = A shortest path from vertex <strong>a</strong> to vertex <strong>f</strong>.</p></li>
+<li><p>For (u, v) in G.edges:</p>
+<p>Let <code>w_uv</code> = Weight of edge (u, v).</p>
+<p>Let <code>dist_a2u</code> = Distance from start vertex <strong>a</strong> to vertex u.</p>
+<p>Let <code>dist_f2v</code> = Distance from end vertex <strong>f</strong> to vertex v.</p>
+<p>If <code>dist_a2u</code> + <code>w_uv</code> + <code>dist_f2v</code> == <code>dist_a2f</code>:</p>
+<p>Then edge (u, v) is on some minimal weight path.</p></li>
+</ol>
+<p>Lets use networkx to create a graph with multiple shortest paths:</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create network with multiple minimal weight paths.</span></span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> nx</span>
+<span id="cb1-5"></span>
+<span id="cb1-6">seed <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">518</span></span>
+<span id="cb1-7">G <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nx.Graph()</span>
+<span id="cb1-8"></span>
+<span id="cb1-9">G.add_edge(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"a"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"b"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)</span>
+<span id="cb1-10">G.add_edge(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"b"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"c"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb1-11">G.add_edge(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"a"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"c"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>)</span>
+<span id="cb1-12">G.add_edge(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"c"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"d"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb1-13">G.add_edge(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"d"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"e"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)</span>
+<span id="cb1-14">G.add_edge(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"e"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"f"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb1-15">G.add_edge(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"c"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"f"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>)</span>
+<span id="cb1-16">G.add_edge(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"a"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"d"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb1-17">G.add_edge(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"f"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"d"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span>
+<span id="cb1-18"></span>
+<span id="cb1-19">edges <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [(u, v) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> (u, v, d) <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> G.edges(data<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)]</span>
+<span id="cb1-20"></span>
+<span id="cb1-21">color_map <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb1-22"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> g <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> G:</span>
+<span id="cb1-23">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> g<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"a"</span>:</span>
+<span id="cb1-24">        color_map.append(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"green"</span>)</span>
+<span id="cb1-25">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">elif</span> g<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"f"</span>:</span>
+<span id="cb1-26">        color_map.append(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>)</span>
+<span id="cb1-27">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">else</span>:</span>
+<span id="cb1-28">        color_map.append(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>)</span>
+<span id="cb1-29"></span>
+<span id="cb1-30"></span>
+<span id="cb1-31"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># edge weight labels.</span></span>
+<span id="cb1-32">edge_labels <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nx.get_edge_attributes(G, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"weight"</span>)</span>
+<span id="cb1-33"></span>
+<span id="cb1-34"></span>
+<span id="cb1-35">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-36">pos <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nx.spring_layout(G, seed<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>seed)</span>
+<span id="cb1-37">nx.draw_networkx_nodes(G, pos, node_size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">800</span>, node_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>color_map)</span>
+<span id="cb1-38">nx.draw_networkx_edges(G, pos, edgelist<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>edges, width<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.5</span>, edge_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"grey"</span>, style<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"solid"</span>)</span>
+<span id="cb1-39">nx.draw_networkx_labels(G, pos, font_size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">16</span>, font_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"white"</span>, font_weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bold"</span>, font_family<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sans-serif"</span>)</span>
+<span id="cb1-40">nx.draw_networkx_edge_labels(G, pos, edge_labels, font_size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>)</span>
+<span id="cb1-41">plt.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb1-42">plt.show()<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span></code></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="www.jtrive.com/posts/dijkstras-shortest-paths/dijkstras-shortest-paths_files/figure-html/cell-2-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>G has three shortest paths of weight/distance 12:</p>
+<ul>
+<li><code>a - c - f</code></li>
+<li><code>a - b - c - f</code></li>
+<li><code>a - c - d - e - f</code></li>
+</ul>
+<p>Running <code>single_source_dijkstra</code> from networkx returns the distance to each vertex in a graph from a specified starting vertex (in our example, vertex a). <code>single_source_dijkstra</code> returns two dictionaries: The first stores distances to each vertex; the second stores the shortest path from the start node to all other vertices (<code>d2v0</code> and <code>p2v0</code> in the code below):</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2">d2v0, p2v0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nx.single_source_dijkstra(G, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"a"</span>)</span>
+<span id="cb2-3"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"d2v0: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>d2v0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb2-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"p2v0: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>p2v0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>d2v0: {'a': 0, 'b': 4, 'c': 6, 'd': 7, 'e': 10, 'f': 12}
+p2v0: {'a': ['a'], 'b': ['a', 'b'], 'c': ['a', 'c'], 'd': ['a', 'c', 'd'], 'f': ['a', 'c', 'f'], 'e': ['a', 'c', 'd', 'e']}</code></pre>
+</div>
+</div>
+<p><code>single_source_dijkstra</code> only returns <code>a - c - f</code>. To also identify <code>a - b - c - f</code> and <code>a - c - d - e - f</code>, we implement the steps from our pseudocode:</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Idenitfy all shortests paths in graph G.</span></span>
+<span id="cb4-3">all_shortest_paths <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">set</span>()</span>
+<span id="cb4-4"></span>
+<span id="cb4-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># d2v: Distance to vertex (from start node a).</span></span>
+<span id="cb4-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># p2v: Shortest path to vertext (from start node a).</span></span>
+<span id="cb4-7">d2v0, p2v0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nx.single_source_dijkstra(G, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"a"</span>)</span>
+<span id="cb4-8">d2v1, p2v1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nx.single_source_dijkstra(G, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"f"</span>)</span>
+<span id="cb4-9">all_shortest_paths.add(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">tuple</span>(p2v0[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"f"</span>]))</span>
+<span id="cb4-10"></span>
+<span id="cb4-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Iterate through all edges. Check for additional shortest paths. </span></span>
+<span id="cb4-12"></span>
+<span id="cb4-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Distance of a shortest path from a to f. </span></span>
+<span id="cb4-14">dist_a2f <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> d2v0[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"f"</span>]</span>
+<span id="cb4-15"></span>
+<span id="cb4-16"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> u, v, dw <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> G.edges(data<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>):</span>
+<span id="cb4-17">    </span>
+<span id="cb4-18">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get weight of current edge spanning (u, v)</span></span>
+<span id="cb4-19">    w_uv <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dw[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"weight"</span>]</span>
+<span id="cb4-20">    </span>
+<span id="cb4-21">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get distance from start vertex to u.</span></span>
+<span id="cb4-22">    dist_a2u <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> d2v0[u]</span>
+<span id="cb4-23">    </span>
+<span id="cb4-24">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get distance from end vertex to v.</span></span>
+<span id="cb4-25">    dist_f2v <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> d2v1[v]</span>
+<span id="cb4-26">    </span>
+<span id="cb4-27">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> dist_a2u <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> w_uv <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> dist_f2v <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> dist_a2f:</span>
+<span id="cb4-28">        </span>
+<span id="cb4-29">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Edge uv is on some minimal weight path. Append to all_shortest_paths.</span></span>
+<span id="cb4-30">        pp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">tuple</span>(p2v0[u] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> p2v1[v][::<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])</span>
+<span id="cb4-31">        all_shortest_paths.add(pp)</span></code></pre></div>
+</div>
+<p>Shortest paths are stored in a set of ordered tuples, with each tuple representing the vertices of some path of minimum weight. Printing the contents of all_shortest_paths yields:</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1">all_shortest_paths</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>{('a', 'b', 'c', 'f'), ('a', 'c', 'd', 'e', 'f'), ('a', 'c', 'f')}</code></pre>
+</div>
+</div>
+<p>The time complexity for two separate invocations of Dijkstra’s is 2 * O((n + m)log(n)), and O(m + n) to iterate through the adjacency list checking for intermediate edges falling on a path of minimum weight.</p>
+
+
+
+ ]]></description>
+  <category>Statistical Modeling</category>
+  <category>Python</category>
+  <guid>www.jtrive.com/posts/dijkstras-shortest-paths/index.html</guid>
+  <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Generating Correlated Random Samples in Python</title>
