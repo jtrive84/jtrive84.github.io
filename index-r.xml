@@ -1,0 +1,1013 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
+      xmlns:media="http://search.yahoo.com/mrss/" 
+      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
+      xmlns:dc="http://purl.org/dc/elements/1.1/" 
+      version="2.0">
+<channel>
+<title>The Pleasure of Finding Things Out: A blog by James Triveri</title>
+<link>www.jtrive.com/index.html#category=R</link>
+<atom:link href="www.jtrive.com/index-r.xml" rel="self" type="application/rss+xml"/>
+<description></description>
+<generator>quarto-1.3.450</generator>
+<lastBuildDate>Mon, 05 Feb 2024 06:00:00 GMT</lastBuildDate>
+<item>
+  <title>Expectation Maximization from Scratch in R</title>
+  <link>www.jtrive.com/posts/em-from-scratch-r/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>Lets create a dataset which appears to be a mixture of two separate distributions. Such a dataset can be created using the following code:</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Creating simulated bimodal data observations.</span></span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">options</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">scipen=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9999</span>)</span>
+<span id="cb1-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set.seed</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb1-4"></span>
+<span id="cb1-5">x <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb1-6">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">31</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">75</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">17.5</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">31</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5.5</span>), </span>
+<span id="cb1-7">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">23</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">175</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">25</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">23</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span>
+<span id="cb1-8">    )</span></code></pre></div>
+<p>Running <code>plot(density(x))</code> generates a plot of the kernel density estimate:</p>
+<p><img src="www.jtrive.com/posts/em-from-scratch-r/em01.png" class="img-fluid"></p>
+<p>Our goal is to fit a 2-component Gaussian Mixture Model (GMM) to a dataset consisting of <img src="https://latex.codecogs.com/png.latex?N"> observations using Expectation Maximization with parameters <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bk%7D,%20%5Csigma_%7Bk%7D,%20%5Cpi_%7Bk%7D"> where <img src="https://latex.codecogs.com/png.latex?k%20%5Cin%20%5B1,%202%5D">.</p>
+<p>The probability density of a K-component GMM is given by</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af(%5Cboldsymbol%7Bx%7D)%20=%20%5Csum_%7Bk=1%7D%5E%7BK%7D%5Cpi_%7Bk%7D%20%5Ccdot%20%5Cmathcal%7BN%7D(%5Cboldsymbol%7Bx%7D%7C%20%5Cmu_%7Bk%7D,%20%5Csigma%5E2_%7Bk%7D),%0A"></p>
+<p>where in the 2 component case, <img src="https://latex.codecogs.com/png.latex?K=2"> (however, expressions will be in terms of <img src="https://latex.codecogs.com/png.latex?K"> for generality). From the density, an expression for the log-likelihood immediately follows:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7BLn%7D%5Chspace%7B.10em%7Df(X%7C%5Cpi,%20%5Cmu,%20%5Csigma)%20=%20%5Csum_%7Bj=1%7D%5E%7BN%7D%5Cmathrm%7BLn%7D%5Chspace%7B.10em%7D%20%5CBig%5B%5Csum_%7Bk=1%7D%5E%7BK%7D%20%5Cpi_%7Bk%7D%20%5Ccdot%5Cmathcal%7BN%7D(%5Cboldsymbol%7Bx%7D%7C%20%5Cmu_k,%20%5Csigma%5E2_k)%5CBig%5D.%0A"></p>
+<p>In the log-likelihood, <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bk%7D">, <img src="https://latex.codecogs.com/png.latex?%5Csigma_%7Bk%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7Bk%7D"> represent the mean, standard deviation and mixture coefficient respectively for component <img src="https://latex.codecogs.com/png.latex?k">. The inner summation (indexed by <img src="https://latex.codecogs.com/png.latex?k">) iterates over mixture components while the outer summation (indexed by <img src="https://latex.codecogs.com/png.latex?j">) iterates over each observation in the data. Note that for each component <img src="https://latex.codecogs.com/png.latex?k">, <img src="https://latex.codecogs.com/png.latex?0%20%3C=%20%5Cpi_%7Bk%7D%20%3C=%201">, and for a <img src="https://latex.codecogs.com/png.latex?K">-component GMM, vectors <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Cmu%7D">, <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Csigma%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Cpi%7D"> will each have length <img src="https://latex.codecogs.com/png.latex?K">.</p>
+<p>Taking the derivative of the log-likelihood w.r.t. <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Cmu%7D">, <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Csigma%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Cpi%7D">, setting equal to zero and re-arranging yields update expressions for the parameters of interest:</p>
+<p>For the mean of component <img src="https://latex.codecogs.com/png.latex?k">, <img src="https://latex.codecogs.com/png.latex?%5Cmu%5E%7B'%7D_%7Bk%7D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmu%5E%7B'%7D_%7Bk%7D%20=%20%5Csum_%7Bj=1%7D%5E%7BN%7D%20%5Cfrac%7Bx_%7Bj%7D%20%5Ccdot%20%5Cpi_%7Bk%7D%20%20%5Ccdot%20%5Cmathcal%7BN%7D(x_%7Bj%7D%7C%20%5Cmu_%7Bk%7D,%20%5Csigma%5E2_%7Bk%7D)%7D%20%7B%5Cpi_%7Bk%7D%20%5Ccdot%20%5Cmathcal%7BN%7D(x_%7Bj%7D%7C%20%5Cmu_%7Bk%7D,%20%5Csigma%5E2_%7Bk%7D)%7D%0A"></p>
+<p>For the standard deviation of component <img src="https://latex.codecogs.com/png.latex?k">, <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B'%7D_%7Bk%7D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csigma%5E%7B'%7D_%7Bk%7D%20=%20%20%5Csqrt%7B%5Csum_%7Bj=1%7D%5E%7BN%7D%20%5Cfrac%7B(x_%7Bj%7D%20-%20%5Cmu%5E%7B'%7D_%7Bk%7D)%5E%7B2%7D%20%5Ccdot%20%5Cpi_%7Bk%7D%20%5Ccdot%20%5Cmathcal%7BN%7D(x_%7Bj%7D%7C%20%5Cmu_%7Bk%7D,%20%5Csigma%5E2_r)%7D%20%7B%5Cpi_%7Bk%7D%20%5Ccdot%20%5Cmathcal%7BN%7D(x_%7Bj%7D%7C%20%5Cmu_k,%20%5Csigma%5E2_k)%7D%7D%0A"></p>
+<p>For the mixture probability of component <img src="https://latex.codecogs.com/png.latex?k">, <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7Bk%7D">, first note that the posterior probability of a single observation <img src="https://latex.codecogs.com/png.latex?x"> originating from component <img src="https://latex.codecogs.com/png.latex?k=z"> is given by</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af(z%7Cx)%20=%20%5Cfrac%7Bf(k=z)%20%5Ccdot%20f(x%7Ck=z)%7D%7B%5Csum%20f(k)%20%5Ccdot%20f(x%7Ck)%7D%20=%20%5Cfrac%7B%5Cpi_%7Bz%7D%20%5Ccdot%20%5Cmathcal%7BN%7D(x%7C%20%5Cmu_%7Bz%7D,%20%5Csigma%5E%7B2%7D_%7Bz%7D)%7D%7B%5Csum_%7Bk=1%7D%5E%7BK%7D%20%5Cpi_%7Bk%7D%20%5Ccdot%20%5Cmathcal%7BN%7D(x%7C%20%5Cmu_%7Bk%7D,%20%5Csigma%5E%7B2%7D_%7Bk%7D)%7D.%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%5Cpi%5E%7B'%7D_%7Bk%7D"> is updated by aggregating the probabilities for component <img src="https://latex.codecogs.com/png.latex?k"> across all observations, then dividing by the total number of observations:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cpi%5E%7B'%7D_%7Bk%7D%20=%20%5Cfrac%7B1%7D%7BN%7D%5Csum_%7Bj=1%7D%5E%7BN%7D%20f(k%7Cx_%7Bj%7D)%20=%20%5Cfrac%7B1%7D%7BN%7D%5Csum_%7Bj=1%7D%5E%7BN%7D%20%5Cfrac%7B%5Cpi_%7Bk%7D%20%5Ccdot%20%5Cmathcal%7BN%7D(x_%7Bj%7D%7C%20%5Cmu%5E%7B'%7D_k,%20%5Csigma%5E%7B2*%7D_k)%7D%7B%5Csum_%7Br=1%7D%5EK%20%5Cpi_%7Br%7D%20%5Ccdot%20%5Cmathcal%7BN%7D(x_%7Bj%7D%7C%20%5Cmu%5E%7B'%7D_%7Br%7D,%20%5Csigma%5E%7B2'%7D_%7Br%7D)%7D%0A"></p>
+<p>We can summarize Expectation Maximization as follows:</p>
+<ol type="1">
+<li><p>(E-step): Using current parameter values <img src="https://latex.codecogs.com/png.latex?(%5Cmu_%7Bk%7D,%20%5Csigma_%7Bk%7D,%20%5Cpi_%7Bk%7D)">, estimate the posterior probabilities of each mixture component <img src="https://latex.codecogs.com/png.latex?%5Cpi%5E%7B'%7D_%7Bk%7D">.</p></li>
+<li><p>(M-step): Using updated posterior probabilities, re-estimate component means and standard deviations <img src="https://latex.codecogs.com/png.latex?%5Cmu%5E%7B'%7D_%7Bk%7D">, <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B'%7D_%7Bk%7D">.</p></li>
+</ol>
+<section id="implementation" class="level3">
+<h3 class="anchored" data-anchor-id="implementation">Implementation</h3>
+<p>The code that follows represents an implementation of the Expectation Maximization algorithm for a two-component Gaussian Mixture Model. The initial estimates of <img src="https://latex.codecogs.com/png.latex?%5Cmu">, <img src="https://latex.codecogs.com/png.latex?%5Csigma"> and <img src="https://latex.codecogs.com/png.latex?%5Cpi"> are obtained using k-means. We create a number of data structures to which parameter estimates and log-likelihood are saved at each iteration. Finally, parameter estimates are saved to the <code>paramsDF0</code> data.table for comparison with estimates from the mixtools library:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Implementation of the Expectation Maximization algorithm. </span></span>
+<span id="cb2-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data.table"</span>)</span>
+<span id="cb2-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"foreach"</span>)</span>
+<span id="cb2-4"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">options</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">scipen=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9999</span>)</span>
+<span id="cb2-5"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">set.seed</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb2-6"></span>
+<span id="cb2-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Generate bimodal data to fit via GMM. </span></span>
+<span id="cb2-8">x <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(</span>
+<span id="cb2-9">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">31</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">75</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">17.5</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">31</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5.5</span>),</span>
+<span id="cb2-10">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">23</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">175</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">25</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rnorm</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">23</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span>
+<span id="cb2-11">    )</span>
+<span id="cb2-12"></span>
+<span id="cb2-13">n <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(x)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Number of observations.</span></span>
+<span id="cb2-14">r <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>          <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Number of components in Gaussian Mixture Model.</span></span>
+<span id="cb2-15">maxIter <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">500</span>  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Maximum number of EM iterations.</span></span>
+<span id="cb2-16">tol <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-8</span>     <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Log-likelihood exceedance threshold.</span></span>
+<span id="cb2-17"></span>
+<span id="cb2-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Use k-means to obtain initial parameter estimates.</span></span>
+<span id="cb2-19">km <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">kmeans</span>(x, r)</span>
+<span id="cb2-20"></span>
+<span id="cb2-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create data.table with original observations and cluster assignments. </span></span>
+<span id="cb2-22">kmeansDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">setorder</span>(</span>
+<span id="cb2-23">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.table</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x=</span>x, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">group=</span>km<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>cluster, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stringsAsFactors=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>),</span>
+<span id="cb2-24">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"group"</span></span>
+<span id="cb2-25">    )</span>
+<span id="cb2-26"></span>
+<span id="cb2-27"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Bind reference to initial values for rmu, rsd and rpi.</span></span>
+<span id="cb2-28">rmu <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> kmeansDF[,.(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">mean</span>(x)), by<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"group"</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>x</span>
+<span id="cb2-29">rsd <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> kmeansDF[,.(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">x=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sd</span>(x)), by<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"group"</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>x</span>
+<span id="cb2-30">rpi <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> kmeansDF[,.N, by<span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"group"</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>N <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> n</span>
+<span id="cb2-31"></span>
+<span id="cb2-32"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Collect log-likelihood and updated parameter estimates at each iteration.</span></span>
+<span id="cb2-33">llEM <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, maxIter)</span>
+<span id="cb2-34">muEM <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">matrix</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, r <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> maxIter), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ncol=</span>r)</span>
+<span id="cb2-35">sdEM <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">matrix</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, r <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> maxIter), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ncol=</span>r)</span>
+<span id="cb2-36">piEM <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">matrix</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, r <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> maxIter), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ncol=</span>r)</span>
+<span id="cb2-37"></span>
+<span id="cb2-38"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Initialize muEM, sdEM and piEM.</span></span>
+<span id="cb2-39">muEM[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> rmu</span>
+<span id="cb2-40">sdEM[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> rsd</span>
+<span id="cb2-41">piEM[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> rpi</span>
+<span id="cb2-42"></span>
+<span id="cb2-43"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Iteration tracker.</span></span>
+<span id="cb2-44">jj <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb2-45"></span>
+<span id="cb2-46"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Expectation Maximization iteration.</span></span>
+<span id="cb2-47"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># All m-prefixed variables have dimension (n x r).</span></span>
+<span id="cb2-48"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># All r-prefixed variables have length r.</span></span>
+<span id="cb2-49"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">while</span> (jj<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span>maxIter) {</span>
+<span id="cb2-50"></span>
+<span id="cb2-51">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Expectation step. </span></span>
+<span id="cb2-52">    mcomp <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">foreach</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ii=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span>r, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.combine=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"cbind"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%do%</span> {</span>
+<span id="cb2-53">        rpi[ii] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dnorm</span>(x, rmu[ii], rsd[ii])</span>
+<span id="cb2-54">    }</span>
+<span id="cb2-55">    </span>
+<span id="cb2-56">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Determine likelihood contribution for each observation.</span></span>
+<span id="cb2-57">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># mcompSum is a vector of length n. </span></span>
+<span id="cb2-58">    mcompSum <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply</span>(mcomp, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">MARGIN=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, sum, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb2-59">    </span>
+<span id="cb2-60">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute mixture probabilities for each observation. Summing across</span></span>
+<span id="cb2-61">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># columns, each row will equal 1.0.</span></span>
+<span id="cb2-62">    mpi <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">foreach</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ii=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ncol</span>(mcomp), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.combine=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"cbind"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%do%</span> {</span>
+<span id="cb2-63">        mcomp[,ii] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> mcompSum</span>
+<span id="cb2-64">    }</span>
+<span id="cb2-65">        </span>
+<span id="cb2-66">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Maximization step.</span></span>
+<span id="cb2-67">    rmu <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.numeric</span>((<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">t</span>(x) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> mpi) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">apply</span>(mpi, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">MARGIN=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, sum))</span>
+<span id="cb2-68">    </span>
+<span id="cb2-69">    rsd <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">foreach</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ii=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(rmu), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.combine=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"c"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%do%</span> {</span>
+<span id="cb2-70">        denom <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(mpi[,ii][<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.finite</span>(mpi[,ii])], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb2-71">        numer <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> mpi[,ii] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (x <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> rmu[ii])<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">^</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb2-72">        numer <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(numer[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.finite</span>(numer)], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>)</span>
+<span id="cb2-73">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sqrt</span>(numer <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> denom)</span>
+<span id="cb2-74">    }</span>
+<span id="cb2-75">    </span>
+<span id="cb2-76">    rpi <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">foreach</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ii=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ncol</span>(mpi), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">.combine=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"c"</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%do%</span> {</span>
+<span id="cb2-77">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(mpi[,ii][<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">is.finite</span>(mpi[,ii])], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">na.rm=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> n</span>
+<span id="cb2-78">    }</span>
+<span id="cb2-79">    </span>
+<span id="cb2-80">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Update llEM, muEM, sdEM and piEM.</span></span>
+<span id="cb2-81">    llEM[jj] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">log</span>(mcompSum)); muEM[jj,] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> rmu; sdEM[jj,] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> rsd; piEM[jj,] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> rpi</span>
+<span id="cb2-82"></span>
+<span id="cb2-83">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">message</span>(</span>
+<span id="cb2-84">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"["</span>, jj, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"] ll="</span>, llEM[jj], <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" (dll="</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">abs</span>(llEM[jj] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> llEM[jj<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">-1</span>]), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">")."</span></span>
+<span id="cb2-85">        )</span>
+<span id="cb2-86">    </span>
+<span id="cb2-87">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">abs</span>(llEM[jj] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> llEM[jj<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">-1</span>])<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span>tol) {</span>
+<span id="cb2-88">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">break</span></span>
+<span id="cb2-89">    }</span>
+<span id="cb2-90">    </span>
+<span id="cb2-91">    jj <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> jj <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb2-92">}</span>
+<span id="cb2-93"></span>
+<span id="cb2-94"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Extract last populated row from muEM, sdEM and piEM.</span></span>
+<span id="cb2-95">paramsDF0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rbindlist</span>(</span>
+<span id="cb2-96">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb2-97">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.table</span>(</span>
+<span id="cb2-98">            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">parameter=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mean"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">w=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(muEM[jj,])), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value=</span>muEM[jj,],</span>
+<span id="cb2-99">            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stringsAsFactors=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb2-100">            ),</span>
+<span id="cb2-101">         <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.table</span>(</span>
+<span id="cb2-102">            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">parameter=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sd"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">w=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(sdEM[jj,])), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value=</span>sdEM[jj,],</span>
+<span id="cb2-103">            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stringsAsFactors=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb2-104">            ),</span>
+<span id="cb2-105">         <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.table</span>(</span>
+<span id="cb2-106">            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">parameter=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"w"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">w=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(piEM[jj,])), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value=</span>piEM[jj,],</span>
+<span id="cb2-107">            <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stringsAsFactors=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb2-108">            )</span>
+<span id="cb2-109">        ), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fill=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span></span>
+<span id="cb2-110">    )</span>
+<span id="cb2-111"></span>
+<span id="cb2-112">paramsDF0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dcast</span>(</span>
+<span id="cb2-113">    paramsDF0, parameter <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste0</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"w_"</span>, w), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fun.aggregate=</span>sum, </span>
+<span id="cb2-114">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value.var=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"value"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">fill=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NA_real_</span></span>
+<span id="cb2-115">    )</span></code></pre></div>
+<p>The code generates a status message at each iteration indicating the current log-likelihood estimate (<code>ll</code>) as well as the change in log-likelihood from the previous estimate (<code>dll</code>). Results are given below.</p>
+<pre><code>[2] ll=-276.872839784171 (dll=276.872839784171).
+[3] ll=-276.8390507688 (dll=0.0337890153707576).
+[4] ll=-276.83590305353 (dll=0.0031477152705861).
+[5] ll=-276.835432239165 (dll=0.000470814365030492).
+[6] ll=-276.835356881754 (dll=0.0000753574105374355).
+[7] ll=-276.835344544138 (dll=0.0000123376157148414).
+[8] ll=-276.835342506099 (dll=0.00000203803961085214).
+[9] ll=-276.835342168222 (dll=0.000000337876826961292).
+[10] ll=-276.835342112125 (dll=0.0000000560970079277467).
+[11] ll=-276.835342102806 (dll=0.00000000931919430513517).</code></pre>
+<p><code>paramsDF0</code> reflects the final estimates of <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bi%7D">, <img src="https://latex.codecogs.com/png.latex?%5Csigma_%7Bi%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7Bi%7D">:</p>
+<pre><code>&gt; paramsDF0
+   parameter         w_1        w_2
+1:      mean 181.2244438 81.7632674
+2:        sd  30.6704024 16.0083545
+3:         w   0.4325322  0.5674678</code></pre>
+<p><br></p>
+</section>
+<section id="comparison-with-mixtools-library" class="level3">
+<h3 class="anchored" data-anchor-id="comparison-with-mixtools-library">Comparison with mixtools Library</h3>
+<p><em>mixtools</em> is a third-party R library used to estimate Gaussian Mixture Models. Using out data and initial estimates of <img src="https://latex.codecogs.com/png.latex?%5Cmu">, <img src="https://latex.codecogs.com/png.latex?%5Csigma"> and <img src="https://latex.codecogs.com/png.latex?%5Cpi">, let’s compare the results of our implementation vs.&nbsp;the <code>normalmixEM</code> function provided by mixtools:</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data.table"</span>)</span>
+<span id="cb5-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mixtools"</span>)</span>
+<span id="cb5-3"></span>
+<span id="cb5-4">gmm <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">normalmixEM</span>(</span>
+<span id="cb5-5">    x, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">k=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">lambda=</span>piEM[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mu=</span>muEM[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,],<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sigma=</span>sdEM[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,]</span>
+<span id="cb5-6">    )</span>
+<span id="cb5-7"></span>
+<span id="cb5-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create data.table containing normalmixEM parameter estimates.</span></span>
+<span id="cb5-9">paramsDF1 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.table</span>(</span>
+<span id="cb5-10">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">parameter=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mu"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sigma"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pi"</span>), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stringsAsFactors=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb5-11">  )</span>
+<span id="cb5-12"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> (ii <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span>r) {</span>
+<span id="cb5-13">    paramsDF1[[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">paste0</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"comp"</span>, ii)]] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(gmm<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>mu[ii], gmm<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>sigma[ii], gmm<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>lambda[ii])</span>
+<span id="cb5-14">}</span></code></pre></div>
+<p>Let’s compare <code>paramsDF0</code> with <code>paramsDF1</code>:</p>
+<pre><code>&gt; paramsDF0
+   parameter        w_1         w_2
+1:        mu 81.7632674 181.2244438
+2:     sigma 16.0083545  30.6704024
+3:        pi  0.5674678   0.4325322
+
+&gt; paramsDF1
+   parameter      comp1       comp2
+1:        mu 81.7632740 181.2244778
+2:     sigma 16.0083538  30.6704046
+3:        pi  0.5674678   0.4325322</code></pre>
+<p>We find the results to be almost identical.</p>
+<p>Finally, we can create a density plot to illustrate the adequacy of the GMM fit to the data:</p>
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plot comparing empirical data with estimated mixture model.</span></span>
+<span id="cb7-2">exhibitPath <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"C:/Users/i103455/Repos/Tutorials/Supporting/em2.png"</span></span>
+<span id="cb7-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">png</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">file=</span>exhibitPath)</span>
+<span id="cb7-4"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">hist</span>(x, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">prob=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">breaks=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">23</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">xlim=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">min</span>(x), <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">max</span>(x), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">main=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"GMM Estimate via EM"</span>)</span>
+<span id="cb7-5"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">xx =</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">seq</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">from=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">min</span>(x), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">to=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">max</span>(x), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">length.out=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">500</span>)</span>
+<span id="cb7-6"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">yy =</span> rpi[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dnorm</span>(xx, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span>rmu[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span>rsd[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> rpi[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dnorm</span>(xx, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">mean=</span>rmu[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>], <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sd=</span>rsd[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>])</span>
+<span id="cb7-7"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">lines</span>(xx, yy, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">col=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#E02C70"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">lwd=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb7-8"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dev.off</span>()</span></code></pre></div>
+<p>Which results in:</p>
+<p><img src="www.jtrive.com/posts/em-from-scratch-r/em02.png" class="img-fluid"></p>
+<p>We see that the model serves as a good representation of the underlying data.</p>
+</section>
+<section id="conclusion" class="level3">
+<h3 class="anchored" data-anchor-id="conclusion">Conclusion</h3>
+<p>One final note regarding Expectation Maximization estimates: This is taken from Christopher Bishop’s <em>Pattern Recognition and Machine Learning</em>, Chapter 9:</p>
+<blockquote class="blockquote">
+<p>A K-component mixture model will have a total of <img src="https://latex.codecogs.com/png.latex?K!"> equivalent solutions corresponding to the <img src="https://latex.codecogs.com/png.latex?K!"> ways of assigning <img src="https://latex.codecogs.com/png.latex?K"> sets of parameters to <img src="https://latex.codecogs.com/png.latex?K"> components. In other words, for any given point in the space of parameter values there will be a further <img src="https://latex.codecogs.com/png.latex?K!%20-%201"> additional points all of which give rise to exactly the same distribution. This problem is known as <em>identifiability</em>.</p>
+</blockquote>
+<p>This means that for certain datasets, the parameters estimates from our implementation may differ from those found via mixtools, but for the purposes of finding a good density model, the difference is irrelevant since any of the equivalent solutions is as good as any other. Just be sure to perform a visual adequacy assessment to ensure the differences in parameter estimates do indeed result in identical or nearly identical probability densities.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Machine Learning</category>
+  <category>R</category>
+  <guid>www.jtrive.com/posts/em-from-scratch-r/index.html</guid>
+  <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+</channel>
+</rss>
