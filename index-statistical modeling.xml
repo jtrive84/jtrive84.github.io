@@ -4534,5 +4534,453 @@ font-style: inherit;">;</span></span></code></pre></div>
   <guid>www.jtrive.com/posts/correlated-samples/index.html</guid>
   <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
 </item>
+<item>
+  <title>A Matrix Factorization Approach to Linear Regression</title>
+  <link>www.jtrive.com/posts/mat-fact-lin-reg/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>This post is intended to shed light on why the closed form solution to linear regression estimates is avoided in statistical software packages. But we start by first by deriving the solution to the normal equations within the standard multivariate regression setting.</p>
+<p>The normal linear regression model specifies that the sampling variability around the mean is i.i.d. from a normal distribution:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cepsilon_%7B1%7D,%20%5Ccdots,%20%5Cepsilon_%7Bn%7D%20%5Csim%20%5Cmathrm%7Bi.i.d.%7D%5Chspace%7B.25em%7D%5Cmathrm%7Bnormal%7D(0,%20%5Csigma%5E%7B2%7D)%5C%5C%0Ay_%7Bi%7D%20=%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D%20+%20%5Cepsilon_%7Bi%7D.%0A"></p>
+<p>Therefore the specification for the joint PDF of observed data conditional upon and values is given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Af(y_%7B1%7D,%20%5Ccdots,%20y_%7Bn%7D%7Cx_%7B1%7D,%20%5Ccdots,%20x_%7Bn%7D,%20%5Cbeta,%20%5Csigma%5E%7B2%7D)%20&amp;=%20%5Cprod_%7Bi=1%7D%5E%7Bn%7D%20f(y_%7Bi%7D%7Cx_%7Bi%7D,%20%5Cbeta,%20%5Csigma%5E%7B2%7D)%5C%5C%0A&amp;=%20(2%5Cpi%20%5Csigma%5E%7B2%7D)%5E%7B-n/2%7D%20%5Cmathrm%7Bexp%7D%5Cbig(-%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D%20%5Csum_%7Bi=1%7D%5E%7Bn%7D(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)%5E%7B2%7D%5Cbig).%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Alternatively, the joint PDF can be represented in terms of the multivariate normal distribution. Let <img src="https://latex.codecogs.com/png.latex?y"> be the n-dimensional response vector, and <img src="https://latex.codecogs.com/png.latex?X"> the <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20p"> design matrix whose <img src="https://latex.codecogs.com/png.latex?i%5E%7Bth%7D"> row is <img src="https://latex.codecogs.com/png.latex?x_%7Bi%7D">. We have:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ay%7CX,%5Cbeta,%20%5Csigma%5E%7B2%7D%20%5Csim%20%5Cmathrm%7BMVN%7D(X%5Cbeta,%20%5Csigma%5E%7B2%7D%20%5Cmathrm%7BI%7D)%0A"></p>
+<p>Where <img src="https://latex.codecogs.com/png.latex?I"> represents the <img src="https://latex.codecogs.com/png.latex?p%20%5Ctimes%20p"> identity matrix.</p>
+<p>The density depends on <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> through the residuals. Given the observed data, the term in the exponent <img src="https://latex.codecogs.com/png.latex?(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)"> is maximized when the sum of squared residuals, <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7BSSR%7D%20=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)"> is minimized. To find the optimal <img src="https://latex.codecogs.com/png.latex?%5Cbeta">, we expand the expression for the residual sum of squares:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cmathrm%7BSSR%7D%20&amp;=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)%5C%5C%0A&amp;=(y%20-%20X%5Cbeta)%5E%7BT%7D(y%20-%20X%5Cbeta)%5C%5C%0A&amp;=y%5E%7BT%7Dy%20-%202%5Cbeta%5E%7BT%7DX%5E%7BT%7Dy%20+%20%5Cbeta%5E%7BT%7DX%5E%7BT%7DX%5Cbeta.%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Computing the first derivative of the last expression above w.r.t. <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> and setting equal to 0 yields <img src="https://latex.codecogs.com/png.latex?-2X%5E%7BT%7Dy%20+%202X%7BT%7DX%5Cbeta%20=%200">, which can be rearranged to obtain the familiar expression for the ordinary least squares solution:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbeta%20=%20(X%5E%7BT%7DX)%5E%7B-1%7DX%5E%7BT%7Dy.%0A"></p>
+<p>Why isn’t this expression implemented in linear model solvers directly?</p>
+<p>The condition number of a matrix is the ratio of maximum-to-minimum singular values (which, for a normal matrix, is the ratio of the maximum-to-minimum absolute value of eigenvalues). Essentially, the condition number tells you how much solving a linear system will magnify any noise in your data. It can be thought of as a measure of amplification. The smaller the condition number, the better (the best value being 1).</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Demonstrating the equivalence of computing the condition</span></span>
+<span id="cb1-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">number as the ratio of maximum-to-minimum singular values</span></span>
+<span id="cb1-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">and using np.linalg.cond, as well as a comparison of the </span></span>
+<span id="cb1-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">condition numbers for X vs. X^T*X. </span></span>
+<span id="cb1-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-7"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-8">rng <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.random.default_rng(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb1-9"></span>
+<span id="cb1-10">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>))</span>
+<span id="cb1-11"></span>
+<span id="cb1-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># SVD for X. </span></span>
+<span id="cb1-13">U0, S0, Vt0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.svd(X, full_matrices<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-14">c0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.cond(X, p<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-15"></span>
+<span id="cb1-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># SVD for X^T*X. </span></span>
+<span id="cb1-17">U1, S1, Vt1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.svd(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X, full_matrices<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-18">c1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.cond(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X, p<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-19"></span>
+<span id="cb1-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># S0 and S1 represent the singular values of X and X^T*X.</span></span>
+<span id="cb1-21"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"S0.max() / S0.min()       : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>S0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span>() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> S0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">min</span>()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-22"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Condition number of X     : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>c0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-23"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"S1.max() / S1.min()       : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>S1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span>() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> S1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">min</span>()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-24"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Condition number of X^T*X : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>c1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-25"></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>S0.max() / S0.min()       : 2.44498390.
+Condition number of X     : 2.44498390.
+S1.max() / S1.min()       : 5.97794628.
+Condition number of X^T*X : 5.97794628.</code></pre>
+</div>
+</div>
+<p>In terms of numerical precision, computing <img src="https://latex.codecogs.com/png.latex?X%5E%7BT%7DX"> roughly squares the condition number. As an approximation, <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Blog%7D_%7B10%7D(%5Cmathrm%7Bcondition%7D)"> represents the number of digits lost in a given matrix computation. So by merely forming the Gram matrix, we’ve doubled the loss of precision in our final result, since</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7Blog%7D_%7B10%7D(%5Cmathrm%7Bcondition%7D(X%5E%7BT%7DX))%20%5Capprox%202%20%5Ctimes%20%5Cmathrm%7Blog%7D_%7B10%7D(%5Cmathrm%7Bcondition%7D(X)).%0A"></p>
+<p>If the condition number of <img src="https://latex.codecogs.com/png.latex?X"> is small, forming the Gram matrix and solving the system via <img src="https://latex.codecogs.com/png.latex?%5Cbeta%20=%20(X%5E%7BT%7DX)%5E%7B-1%7DX%5E%7BT%7Dy"> should be fine. But as the condition number grows, solving the normal equations becomes increasingly unstable, ultimately resulting in a solution devoid of accuracy. Since statistical software packages need to handle an incredible variety of potential design matrices with a wide range of condition numbers, the normal equations approach cannot be relied upon.</p>
+<section id="the-qr-decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="the-qr-decomposition">The QR Decomposition</h3>
+<p>The QR Decomposition factors a matrix <img src="https://latex.codecogs.com/png.latex?X"> into the product of an orthonormal matrix <img src="https://latex.codecogs.com/png.latex?Q"> and an upper triangular matrix <img src="https://latex.codecogs.com/png.latex?R">, <img src="https://latex.codecogs.com/png.latex?X%20=%20QR">. Because <img src="https://latex.codecogs.com/png.latex?Q"> is orthonormal, <img src="https://latex.codecogs.com/png.latex?Q%5E%7BT%7D%20=%20Q%5E%7B-1%7D">. Beginning with a version of the normal equations solution, substitute <img src="https://latex.codecogs.com/png.latex?QR"> for <img src="https://latex.codecogs.com/png.latex?X">, rearrange and arrive at:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AX%5E%7BT%7DX%20%5Cbeta%20&amp;=%20X%5E%7BT%7Dy%5C%5C%0A(QR)%5E%7BT%7D(QR)%20%5Cbeta%20&amp;=%20(QR)%5E%7BT%7Dy%5C%5C%0AR%5E%7BT%7D(Q%5E%7BT%7DQ)R%20%5Cbeta%20&amp;=%20R%5E%7BT%7D%20Q%5E%7BT%7D%20y%5C%5C%0AR%5E%7BT%7DR%20%5Cbeta%20&amp;=%20R%5E%7BT%7D%20Q%5E%7BT%7D%20y%5C%5C%0A(R%5E%7BT%7D)%5E%7B-1%7D%20R%5E%7BT%7D%20R%20%5Cbeta%20&amp;=%20(R%5E%7BT%7D)%5E%7B-1%7D%20R%5E%7BT%7D%20Q%5E%7BT%7D%20y%5C%5C%0AR%20%5Cbeta%20&amp;=%20Q%5E%7BT%7D%20y,%0A%5Cend%7Balign*%7D%0A"></p>
+<p>where we’ve taken advantage of how transpose distributes over matrix products (i.e.&nbsp;<img src="https://latex.codecogs.com/png.latex?(AB)%5E%7BT%7D%20=%20B%5E%7BT%7DA%5E%7BT%7D">), and the fact that since <img src="https://latex.codecogs.com/png.latex?Q"> is orthonormal, <img src="https://latex.codecogs.com/png.latex?Q%5E%7BT%7DQ%20=%20I">.</p>
+<p>Because <img src="https://latex.codecogs.com/png.latex?R"> is upper triangular, <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> can be solved for using back substitution. A quick demonstration of how this can be accomplished with Scipy:</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Solving for regression coefficients using normal equations and QR decomposition. </span></span>
+<span id="cb3-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb3-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.linalg <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> solve_triangular</span>
+<span id="cb3-5">rng <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.random.default_rng(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb3-6"></span>
+<span id="cb3-7">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>))</span>
+<span id="cb3-8">y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(scale<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>)</span>
+<span id="cb3-9"></span>
+<span id="cb3-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Normal equations solution.</span></span>
+<span id="cb3-11">B0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.inv(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y</span>
+<span id="cb3-12"></span>
+<span id="cb3-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># QR Decomposition solution.</span></span>
+<span id="cb3-14">Q, R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.qr(X, mode<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"reduced"</span>)</span>
+<span id="cb3-15">B1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> solve_triangular(R, Q.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y)</span>
+<span id="cb3-16"></span>
+<span id="cb3-17"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B0: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb3-18"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B1: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb3-19"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"np.allclose(B0, B1): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>np<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>allclose(B0, B1)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>B0: [ 0.42402765 -1.21951527  0.22396056  0.26773935 -0.72067314]
+B1: [ 0.42402765 -1.21951527  0.22396056  0.26773935 -0.72067314]
+np.allclose(B0, B1): True</code></pre>
+</div>
+</div>
+<p>Using the QR Decomposition, we’ve eliminated the need to explicitly create the Gram matrix, and no longer need to invert matrices, which is computationally expensive and has its own set of precision degradation issues.</p>
+</section>
+<section id="the-singular-value-decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="the-singular-value-decomposition">The Singular Value Decomposition</h3>
+<p>The Singular Value Decomposition is a generalization of the Eigendecomposition to any <img src="https://latex.codecogs.com/png.latex?nxp"> matrix. The SVD decomposes a matrix <img src="https://latex.codecogs.com/png.latex?A"> into 3 matrices (<img src="https://latex.codecogs.com/png.latex?A%20=%20U%20%5CSigma%20V%5E%7BT%7D">):</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?U"> is a <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20p"> orthogonal matrix (assuming <img src="https://latex.codecogs.com/png.latex?A"> is real); columns represent <em>left singular vectors</em>.</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5CSigma"> is a <img src="https://latex.codecogs.com/png.latex?p%20%5Ctimes%20p"> diagonal matrix with diagonal entries representing the <em>singular values</em> of <img src="https://latex.codecogs.com/png.latex?A">.</li>
+<li><img src="https://latex.codecogs.com/png.latex?V%5E%7BT%7D"> is a <img src="https://latex.codecogs.com/png.latex?p%20%5Ctimes%20p"> orthogonal matrix (assuming <img src="https://latex.codecogs.com/png.latex?A"> is real); rows represent <em>right singular vectors</em>.</li>
+</ul>
+<p>Beginning with the normal equations solution, replace <img src="https://latex.codecogs.com/png.latex?X"> with <img src="https://latex.codecogs.com/png.latex?U%20%5CSigma%20V%5E%7BT%7D"> and solve for <img src="https://latex.codecogs.com/png.latex?%5Cbeta">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AX%5E%7BT%7DX%20%5Cbeta%20&amp;=%20X%5E%7BT%7Dy%5C%5C%0A(U%20%5CSigma%20V%5E%7BT%7D)%5E%7BT%7DU%20%5CSigma%20V%5E%7BT%7D%5Cbeta%20&amp;=%20(U%20%5CSigma%20V%5E%7BT%7D)%5E%7BT%7Dy%5C%5C%0AV%20%5CSigma%5E%7BT%7D%20U%5E%7BT%7D%20U%20%5CSigma%20V%5E%7BT%7D%20%5Cbeta%20&amp;=%20V%20%5CSigma%20U%5E%7BT%7D%20y%5C%5C%0AV%20%5CSigma%5E%7BT%7D%20%5CSigma%20V%5E%7BT%7D%20%5Cbeta%20&amp;=V%20%5CSigma%20U%5E%7BT%7D%20y%5C%5C%0AV%20V%5E%7BT%7D%20%5Cbeta%20&amp;=%20V%20%5CSigma%5E%7B-1%7D%20U%5E%7BT%7D%20y%5C%5C%0A%5Cbeta%20&amp;=%20V%20%5CSigma%5E%7B-1%7D%20U%5E%7BT%7D%20y%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Since <img src="https://latex.codecogs.com/png.latex?%5CSigma"> is a diagonal matrix, the inverse is simply the reciprocal of the diagonal elements, which doesn’t incur the runtime associated with a conventional matrix inversion. In addition, <img src="https://latex.codecogs.com/png.latex?VV%5E%7BT%7D%20=%20I">. Note that we assume the singular values are strictly greater than 0. If this is not the case, the condition number would be infinite, and a well-defined solution wouldn’t exist.</p>
+<p>Determining the estimated coefficients using SVD can be accomplished as follows:</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
+<span id="cb5-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Solving for regression coefficients using normal equations and SVD. </span></span>
+<span id="cb5-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb5-4">rng <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.random.default_rng(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb5-5"></span>
+<span id="cb5-6">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>))</span>
+<span id="cb5-7">y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(scale<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>)</span>
+<span id="cb5-8"></span>
+<span id="cb5-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Normal equations solution.</span></span>
+<span id="cb5-10">B0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.inv(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y</span>
+<span id="cb5-11"></span>
+<span id="cb5-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># SVD solution.</span></span>
+<span id="cb5-13">U, S, Vt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.svd(X, full_matrices<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb5-14">B1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Vt.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> np.diag(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> S) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> U.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y</span>
+<span id="cb5-15"></span>
+<span id="cb5-16"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B0: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-17"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B1: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-18"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"np.allclose(B0, B1): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>np<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>allclose(B0, B1)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>B0: [ 0.42402765 -1.21951527  0.22396056  0.26773935 -0.72067314]
+B1: [ 0.42402765 -1.21951527  0.22396056  0.26773935 -0.72067314]
+np.allclose(B0, B1): True</code></pre>
+</div>
+</div>
+<p>Each of these methods (normal equations, QR Decomposition, SVD) incur different computational cost. From Golub &amp; Van Loan, the flop count associated with each algorithm is presented below:</p>
+<pre><code>-------------------------------------------
+Normal Equations       |  mn^2 + n^3 / 3  |
+-------------------------------------------
+Householder QR         |  n^3 / 3         |
+-------------------------------------------
+Modified Gram-Schmidt  |  2mn^2           |
+-------------------------------------------
+SVD                    |  2mn^2 + 11n^3   |
+-------------------------------------------</code></pre>
+<p>Householder and Modified Gram-Schmidt are two approaches used in the first step of the QR Decomposition. SVD offers far more stability, but comes with added runtime complexity. Other matrix decomposition methods such as LU and Cholesky can be leveraged, but the QR Decomposition represents a good trade-off between runtime and numerical stability. This explains its wide use in statistical software packages. Check out <a href="http://madrury.github.io/jekyll/update/statistics/2016/07/20/lm-in-R.html">A Deep Dive into how R Fits a Linear Model</a> for an in-depth explanation of how the QR Decomposition is used to fit linear models in R.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Statistical Modeling</category>
+  <category>Python</category>
+  <guid>www.jtrive.com/posts/mat-fact-lin-reg/index.html</guid>
+  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+</item>
 </channel>
 </rss>

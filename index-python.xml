@@ -5596,6 +5596,982 @@ font-style: inherit;">;</span></span></code></pre></div>
   <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 <item>
+  <title>A Matrix Factorization Approach to Linear Regression</title>
+  <link>www.jtrive.com/posts/mat-fact-lin-reg/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>This post is intended to shed light on why the closed form solution to linear regression estimates is avoided in statistical software packages. But we start by first by deriving the solution to the normal equations within the standard multivariate regression setting.</p>
+<p>The normal linear regression model specifies that the sampling variability around the mean is i.i.d. from a normal distribution:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cepsilon_%7B1%7D,%20%5Ccdots,%20%5Cepsilon_%7Bn%7D%20%5Csim%20%5Cmathrm%7Bi.i.d.%7D%5Chspace%7B.25em%7D%5Cmathrm%7Bnormal%7D(0,%20%5Csigma%5E%7B2%7D)%5C%5C%0Ay_%7Bi%7D%20=%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D%20+%20%5Cepsilon_%7Bi%7D.%0A"></p>
+<p>Therefore the specification for the joint PDF of observed data conditional upon and values is given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Af(y_%7B1%7D,%20%5Ccdots,%20y_%7Bn%7D%7Cx_%7B1%7D,%20%5Ccdots,%20x_%7Bn%7D,%20%5Cbeta,%20%5Csigma%5E%7B2%7D)%20&amp;=%20%5Cprod_%7Bi=1%7D%5E%7Bn%7D%20f(y_%7Bi%7D%7Cx_%7Bi%7D,%20%5Cbeta,%20%5Csigma%5E%7B2%7D)%5C%5C%0A&amp;=%20(2%5Cpi%20%5Csigma%5E%7B2%7D)%5E%7B-n/2%7D%20%5Cmathrm%7Bexp%7D%5Cbig(-%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D%20%5Csum_%7Bi=1%7D%5E%7Bn%7D(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)%5E%7B2%7D%5Cbig).%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Alternatively, the joint PDF can be represented in terms of the multivariate normal distribution. Let <img src="https://latex.codecogs.com/png.latex?y"> be the n-dimensional response vector, and <img src="https://latex.codecogs.com/png.latex?X"> the <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20p"> design matrix whose <img src="https://latex.codecogs.com/png.latex?i%5E%7Bth%7D"> row is <img src="https://latex.codecogs.com/png.latex?x_%7Bi%7D">. We have:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ay%7CX,%5Cbeta,%20%5Csigma%5E%7B2%7D%20%5Csim%20%5Cmathrm%7BMVN%7D(X%5Cbeta,%20%5Csigma%5E%7B2%7D%20%5Cmathrm%7BI%7D)%0A"></p>
+<p>Where <img src="https://latex.codecogs.com/png.latex?I"> represents the <img src="https://latex.codecogs.com/png.latex?p%20%5Ctimes%20p"> identity matrix.</p>
+<p>The density depends on <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> through the residuals. Given the observed data, the term in the exponent <img src="https://latex.codecogs.com/png.latex?(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)"> is maximized when the sum of squared residuals, <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7BSSR%7D%20=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)"> is minimized. To find the optimal <img src="https://latex.codecogs.com/png.latex?%5Cbeta">, we expand the expression for the residual sum of squares:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cmathrm%7BSSR%7D%20&amp;=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)%5C%5C%0A&amp;=(y%20-%20X%5Cbeta)%5E%7BT%7D(y%20-%20X%5Cbeta)%5C%5C%0A&amp;=y%5E%7BT%7Dy%20-%202%5Cbeta%5E%7BT%7DX%5E%7BT%7Dy%20+%20%5Cbeta%5E%7BT%7DX%5E%7BT%7DX%5Cbeta.%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Computing the first derivative of the last expression above w.r.t. <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> and setting equal to 0 yields <img src="https://latex.codecogs.com/png.latex?-2X%5E%7BT%7Dy%20+%202X%7BT%7DX%5Cbeta%20=%200">, which can be rearranged to obtain the familiar expression for the ordinary least squares solution:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbeta%20=%20(X%5E%7BT%7DX)%5E%7B-1%7DX%5E%7BT%7Dy.%0A"></p>
+<p>Why isn’t this expression implemented in linear model solvers directly?</p>
+<p>The condition number of a matrix is the ratio of maximum-to-minimum singular values (which, for a normal matrix, is the ratio of the maximum-to-minimum absolute value of eigenvalues). Essentially, the condition number tells you how much solving a linear system will magnify any noise in your data. It can be thought of as a measure of amplification. The smaller the condition number, the better (the best value being 1).</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Demonstrating the equivalence of computing the condition</span></span>
+<span id="cb1-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">number as the ratio of maximum-to-minimum singular values</span></span>
+<span id="cb1-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">and using np.linalg.cond, as well as a comparison of the </span></span>
+<span id="cb1-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">condition numbers for X vs. X^T*X. </span></span>
+<span id="cb1-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-7"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-8">rng <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.random.default_rng(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb1-9"></span>
+<span id="cb1-10">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>))</span>
+<span id="cb1-11"></span>
+<span id="cb1-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># SVD for X. </span></span>
+<span id="cb1-13">U0, S0, Vt0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.svd(X, full_matrices<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-14">c0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.cond(X, p<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-15"></span>
+<span id="cb1-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># SVD for X^T*X. </span></span>
+<span id="cb1-17">U1, S1, Vt1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.svd(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X, full_matrices<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-18">c1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.cond(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X, p<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-19"></span>
+<span id="cb1-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># S0 and S1 represent the singular values of X and X^T*X.</span></span>
+<span id="cb1-21"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"S0.max() / S0.min()       : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>S0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span>() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> S0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">min</span>()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-22"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Condition number of X     : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>c0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-23"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"S1.max() / S1.min()       : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>S1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span>() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> S1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">min</span>()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-24"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Condition number of X^T*X : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>c1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-25"></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>S0.max() / S0.min()       : 2.44498390.
+Condition number of X     : 2.44498390.
+S1.max() / S1.min()       : 5.97794628.
+Condition number of X^T*X : 5.97794628.</code></pre>
+</div>
+</div>
+<p>In terms of numerical precision, computing <img src="https://latex.codecogs.com/png.latex?X%5E%7BT%7DX"> roughly squares the condition number. As an approximation, <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Blog%7D_%7B10%7D(%5Cmathrm%7Bcondition%7D)"> represents the number of digits lost in a given matrix computation. So by merely forming the Gram matrix, we’ve doubled the loss of precision in our final result, since</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7Blog%7D_%7B10%7D(%5Cmathrm%7Bcondition%7D(X%5E%7BT%7DX))%20%5Capprox%202%20%5Ctimes%20%5Cmathrm%7Blog%7D_%7B10%7D(%5Cmathrm%7Bcondition%7D(X)).%0A"></p>
+<p>If the condition number of <img src="https://latex.codecogs.com/png.latex?X"> is small, forming the Gram matrix and solving the system via <img src="https://latex.codecogs.com/png.latex?%5Cbeta%20=%20(X%5E%7BT%7DX)%5E%7B-1%7DX%5E%7BT%7Dy"> should be fine. But as the condition number grows, solving the normal equations becomes increasingly unstable, ultimately resulting in a solution devoid of accuracy. Since statistical software packages need to handle an incredible variety of potential design matrices with a wide range of condition numbers, the normal equations approach cannot be relied upon.</p>
+<section id="the-qr-decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="the-qr-decomposition">The QR Decomposition</h3>
+<p>The QR Decomposition factors a matrix <img src="https://latex.codecogs.com/png.latex?X"> into the product of an orthonormal matrix <img src="https://latex.codecogs.com/png.latex?Q"> and an upper triangular matrix <img src="https://latex.codecogs.com/png.latex?R">, <img src="https://latex.codecogs.com/png.latex?X%20=%20QR">. Because <img src="https://latex.codecogs.com/png.latex?Q"> is orthonormal, <img src="https://latex.codecogs.com/png.latex?Q%5E%7BT%7D%20=%20Q%5E%7B-1%7D">. Beginning with a version of the normal equations solution, substitute <img src="https://latex.codecogs.com/png.latex?QR"> for <img src="https://latex.codecogs.com/png.latex?X">, rearrange and arrive at:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AX%5E%7BT%7DX%20%5Cbeta%20&amp;=%20X%5E%7BT%7Dy%5C%5C%0A(QR)%5E%7BT%7D(QR)%20%5Cbeta%20&amp;=%20(QR)%5E%7BT%7Dy%5C%5C%0AR%5E%7BT%7D(Q%5E%7BT%7DQ)R%20%5Cbeta%20&amp;=%20R%5E%7BT%7D%20Q%5E%7BT%7D%20y%5C%5C%0AR%5E%7BT%7DR%20%5Cbeta%20&amp;=%20R%5E%7BT%7D%20Q%5E%7BT%7D%20y%5C%5C%0A(R%5E%7BT%7D)%5E%7B-1%7D%20R%5E%7BT%7D%20R%20%5Cbeta%20&amp;=%20(R%5E%7BT%7D)%5E%7B-1%7D%20R%5E%7BT%7D%20Q%5E%7BT%7D%20y%5C%5C%0AR%20%5Cbeta%20&amp;=%20Q%5E%7BT%7D%20y,%0A%5Cend%7Balign*%7D%0A"></p>
+<p>where we’ve taken advantage of how transpose distributes over matrix products (i.e.&nbsp;<img src="https://latex.codecogs.com/png.latex?(AB)%5E%7BT%7D%20=%20B%5E%7BT%7DA%5E%7BT%7D">), and the fact that since <img src="https://latex.codecogs.com/png.latex?Q"> is orthonormal, <img src="https://latex.codecogs.com/png.latex?Q%5E%7BT%7DQ%20=%20I">.</p>
+<p>Because <img src="https://latex.codecogs.com/png.latex?R"> is upper triangular, <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> can be solved for using back substitution. A quick demonstration of how this can be accomplished with Scipy:</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Solving for regression coefficients using normal equations and QR decomposition. </span></span>
+<span id="cb3-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb3-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.linalg <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> solve_triangular</span>
+<span id="cb3-5">rng <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.random.default_rng(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb3-6"></span>
+<span id="cb3-7">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>))</span>
+<span id="cb3-8">y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(scale<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>)</span>
+<span id="cb3-9"></span>
+<span id="cb3-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Normal equations solution.</span></span>
+<span id="cb3-11">B0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.inv(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y</span>
+<span id="cb3-12"></span>
+<span id="cb3-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># QR Decomposition solution.</span></span>
+<span id="cb3-14">Q, R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.qr(X, mode<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"reduced"</span>)</span>
+<span id="cb3-15">B1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> solve_triangular(R, Q.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y)</span>
+<span id="cb3-16"></span>
+<span id="cb3-17"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B0: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb3-18"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B1: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb3-19"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"np.allclose(B0, B1): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>np<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>allclose(B0, B1)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>B0: [ 0.42402765 -1.21951527  0.22396056  0.26773935 -0.72067314]
+B1: [ 0.42402765 -1.21951527  0.22396056  0.26773935 -0.72067314]
+np.allclose(B0, B1): True</code></pre>
+</div>
+</div>
+<p>Using the QR Decomposition, we’ve eliminated the need to explicitly create the Gram matrix, and no longer need to invert matrices, which is computationally expensive and has its own set of precision degradation issues.</p>
+</section>
+<section id="the-singular-value-decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="the-singular-value-decomposition">The Singular Value Decomposition</h3>
+<p>The Singular Value Decomposition is a generalization of the Eigendecomposition to any <img src="https://latex.codecogs.com/png.latex?nxp"> matrix. The SVD decomposes a matrix <img src="https://latex.codecogs.com/png.latex?A"> into 3 matrices (<img src="https://latex.codecogs.com/png.latex?A%20=%20U%20%5CSigma%20V%5E%7BT%7D">):</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?U"> is a <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20p"> orthogonal matrix (assuming <img src="https://latex.codecogs.com/png.latex?A"> is real); columns represent <em>left singular vectors</em>.</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5CSigma"> is a <img src="https://latex.codecogs.com/png.latex?p%20%5Ctimes%20p"> diagonal matrix with diagonal entries representing the <em>singular values</em> of <img src="https://latex.codecogs.com/png.latex?A">.</li>
+<li><img src="https://latex.codecogs.com/png.latex?V%5E%7BT%7D"> is a <img src="https://latex.codecogs.com/png.latex?p%20%5Ctimes%20p"> orthogonal matrix (assuming <img src="https://latex.codecogs.com/png.latex?A"> is real); rows represent <em>right singular vectors</em>.</li>
+</ul>
+<p>Beginning with the normal equations solution, replace <img src="https://latex.codecogs.com/png.latex?X"> with <img src="https://latex.codecogs.com/png.latex?U%20%5CSigma%20V%5E%7BT%7D"> and solve for <img src="https://latex.codecogs.com/png.latex?%5Cbeta">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AX%5E%7BT%7DX%20%5Cbeta%20&amp;=%20X%5E%7BT%7Dy%5C%5C%0A(U%20%5CSigma%20V%5E%7BT%7D)%5E%7BT%7DU%20%5CSigma%20V%5E%7BT%7D%5Cbeta%20&amp;=%20(U%20%5CSigma%20V%5E%7BT%7D)%5E%7BT%7Dy%5C%5C%0AV%20%5CSigma%5E%7BT%7D%20U%5E%7BT%7D%20U%20%5CSigma%20V%5E%7BT%7D%20%5Cbeta%20&amp;=%20V%20%5CSigma%20U%5E%7BT%7D%20y%5C%5C%0AV%20%5CSigma%5E%7BT%7D%20%5CSigma%20V%5E%7BT%7D%20%5Cbeta%20&amp;=V%20%5CSigma%20U%5E%7BT%7D%20y%5C%5C%0AV%20V%5E%7BT%7D%20%5Cbeta%20&amp;=%20V%20%5CSigma%5E%7B-1%7D%20U%5E%7BT%7D%20y%5C%5C%0A%5Cbeta%20&amp;=%20V%20%5CSigma%5E%7B-1%7D%20U%5E%7BT%7D%20y%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Since <img src="https://latex.codecogs.com/png.latex?%5CSigma"> is a diagonal matrix, the inverse is simply the reciprocal of the diagonal elements, which doesn’t incur the runtime associated with a conventional matrix inversion. In addition, <img src="https://latex.codecogs.com/png.latex?VV%5E%7BT%7D%20=%20I">. Note that we assume the singular values are strictly greater than 0. If this is not the case, the condition number would be infinite, and a well-defined solution wouldn’t exist.</p>
+<p>Determining the estimated coefficients using SVD can be accomplished as follows:</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
+<span id="cb5-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Solving for regression coefficients using normal equations and SVD. </span></span>
+<span id="cb5-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb5-4">rng <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.random.default_rng(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb5-5"></span>
+<span id="cb5-6">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>))</span>
+<span id="cb5-7">y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(scale<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>)</span>
+<span id="cb5-8"></span>
+<span id="cb5-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Normal equations solution.</span></span>
+<span id="cb5-10">B0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.inv(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y</span>
+<span id="cb5-11"></span>
+<span id="cb5-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># SVD solution.</span></span>
+<span id="cb5-13">U, S, Vt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.svd(X, full_matrices<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb5-14">B1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Vt.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> np.diag(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> S) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> U.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y</span>
+<span id="cb5-15"></span>
+<span id="cb5-16"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B0: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-17"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B1: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-18"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"np.allclose(B0, B1): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>np<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>allclose(B0, B1)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>B0: [ 0.42402765 -1.21951527  0.22396056  0.26773935 -0.72067314]
+B1: [ 0.42402765 -1.21951527  0.22396056  0.26773935 -0.72067314]
+np.allclose(B0, B1): True</code></pre>
+</div>
+</div>
+<p>Each of these methods (normal equations, QR Decomposition, SVD) incur different computational cost. From Golub &amp; Van Loan, the flop count associated with each algorithm is presented below:</p>
+<pre><code>-------------------------------------------
+Normal Equations       |  mn^2 + n^3 / 3  |
+-------------------------------------------
+Householder QR         |  n^3 / 3         |
+-------------------------------------------
+Modified Gram-Schmidt  |  2mn^2           |
+-------------------------------------------
+SVD                    |  2mn^2 + 11n^3   |
+-------------------------------------------</code></pre>
+<p>Householder and Modified Gram-Schmidt are two approaches used in the first step of the QR Decomposition. SVD offers far more stability, but comes with added runtime complexity. Other matrix decomposition methods such as LU and Cholesky can be leveraged, but the QR Decomposition represents a good trade-off between runtime and numerical stability. This explains its wide use in statistical software packages. Check out <a href="http://madrury.github.io/jekyll/update/statistics/2016/07/20/lm-in-R.html">A Deep Dive into how R Fits a Linear Model</a> for an in-depth explanation of how the QR Decomposition is used to fit linear models in R.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Statistical Modeling</category>
+  <category>Python</category>
+  <guid>www.jtrive.com/posts/mat-fact-lin-reg/index.html</guid>
+  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Gradient Descent for Logistic Regression</title>
+  <link>www.jtrive.com/posts/logistic-regression-gd/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>Within the GLM framework, model coefficients are estimated using iterative reweighted least squares (IRLS), sometimes referred to as Fisher Scoring. This works well, but becomes inefficient as the size of the dataset increases: IRLS relies on the matrix of second partial derivatives which is expensive to compute. Instead, we can estimate logistic regression coefficients using gradient descent, which only relies on the first derivative of the cost function. This is much more efficient to compute, and generally provides good estimates once features have been standardized.</p>
+<p>Expression for linear predictions:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Az%20=%20%5Cboldsymbol%7BX%7D%20%5Cboldsymbol%7B%5Ctheta%7D%0A"></p>
+<p>Expression for predicted probabilities:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7By%7D%20=%20%5Csigma(z)%20=%20%5Cfrac%7B1%7D%7B1%20+%20e%5E%7B-z%7D%7D%0A"></p>
+<p>Gradient descent:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctheta_%7Bt%20+%201%7D%20:=%20%5Ctheta_%7Bt%7D%20-%20%5Ceta%20%5Cnabla%20L(%5Chat%7By%7D,%20y)%0A"></p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5Ceta"> is the learning rate.</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cnabla%20L"> represents the gradients of the loss function.</li>
+</ul>
+<p>Optimal parameters:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboldsymbol%7B%5Chat%7B%5Ctheta%7D%7D%20=%20%5Coperatorname*%7Bargmin%7D_%5Ctheta%20%5Cfrac%7B1%7D%7Bm%7D%20%5Csum_%7Bi=1%7D%5E%7Bm%7D%20L(f(x%5E%7B(i)%7D;%20%5Ctheta),%20y%5E%7B(i)%7D)%0A"></p>
+<p>The loss function is used to determine how much predictions differs from labels. Here we use binary cross entropy loss:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AL(%5Chat%7By%7D,%20y)%20=%20-%5Cfrac%7B1%7D%7Bm%7D%20%5Csum_%7Bi=1%7D%5E%7Bm%7D%20y%20%5Ccdot%20%5Cmathrm%7Blog%7D(%5Chat%7By%7D)%20+%20(1%20-%20y)%20%5Ccdot%20%5Cmathrm%7Blog%7D(1%20-%20%5Chat%7By%7D),%0A"></p>
+<p>which we obtain from the log-likelihood of a single observation assumed to follow a binomial distribution. We flip the sign (the leading <code>-</code>) in order to minimize the loss. Note that <img src="https://latex.codecogs.com/png.latex?%5Chat%7By%7D%20=%20%5Csigma(z)">.</p>
+<p>Expression for gradient of loss function:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cnabla%20L(%5Chat%7By%7D,%20y)%20=%20%5Cfrac%7B1%7D%7Bm%7D(%5Chat%7By%7D%20-%20y)x%5E%7BT%7D%0A"></p>
+<p>We choose <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctheta%7D"> that maximizes the log-probability of the true y labels in the training data given the observations <img src="https://latex.codecogs.com/png.latex?X">. The goal is to find the set of weights which minimize the loss function, averaged over all examples. For each variable <img src="https://latex.codecogs.com/png.latex?%5Ctheta_%7Bj%7D"> in <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctheta%7D">, the gradient will have a component that tells us the slope w.r.t. that variable.</p>
+<p>The breast cancer dataset is loaded from scikit-learn, the features are standardized and model coefficients estimated using gradient descent. Results are then compared with statsmodels coefficient estimates using the same data to ensure correctness.</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Load breast cancer dataset from scikit-learn. Standardize features.</span></span>
+<span id="cb1-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-6"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> sklearn.model_selection <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> train_test_split</span>
+<span id="cb1-7"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> sklearn.datasets <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_breast_cancer</span>
+<span id="cb1-8"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> sklearn.metrics <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> accuracy_score</span>
+<span id="cb1-9"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> sklearn.preprocessing <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> StandardScaler</span>
+<span id="cb1-10"></span>
+<span id="cb1-11">data_loader <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> load_breast_cancer()</span>
+<span id="cb1-12">X_data, y_data <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> data_loader.data, data_loader.target</span>
+<span id="cb1-13">column_names <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> data_loader.feature_names</span>
+<span id="cb1-14">df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(X_data, columns<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>column_names)</span>
+<span id="cb1-15"></span>
+<span id="cb1-16">keep_features <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb1-17">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'mean radius'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'mean texture'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'mean perimeter'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'mean area'</span>,</span>
+<span id="cb1-18">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'mean smoothness'</span></span>
+<span id="cb1-19">    ]</span>
+<span id="cb1-20"></span>
+<span id="cb1-21">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[keep_features].values</span>
+<span id="cb1-22">y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y_data[:,<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>]</span>
+<span id="cb1-23"></span>
+<span id="cb1-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Standardize features. </span></span>
+<span id="cb1-25">sclr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> StandardScaler()</span>
+<span id="cb1-26">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> sclr.fit_transform(X)</span>
+<span id="cb1-27"></span>
+<span id="cb1-28"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Add bias term.</span></span>
+<span id="cb1-29">bias <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.ones(X.shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>])[:, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>]</span>
+<span id="cb1-30">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.concatenate([bias, X], axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span></code></pre></div>
+</div>
+<p><code>eta</code> represents the learning rate and is a hyperparameter. <code>num_epochs</code> can be set as desired. For this example, we haven’t incorporated early stopping logic, but this would be straightforward to implement. We initialize the weight vector <code>w</code> to all 0s. <code>w</code> has the same length as the number of features + 1 for the intercept term.</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2">eta <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.50</span></span>
+<span id="cb2-3">num_epochs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50000</span></span>
+<span id="cb2-4">w <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.zeros((X.shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>))</span>
+<span id="cb2-5">loss <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb2-6"></span>
+<span id="cb2-7"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> _ <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(num_epochs):</span>
+<span id="cb2-8">    z <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> w</span>
+<span id="cb2-9">    ypred <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> np.exp(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>z))</span>
+<span id="cb2-10">    L <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>np.mean(y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> np.log(ypred) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> y) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> np.log(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> ypred))</span>
+<span id="cb2-11">    dL <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.mean(((ypred <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> y) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> X), axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)[:, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>]</span>
+<span id="cb2-12">    loss.append(L)        </span>
+<span id="cb2-13">    w<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-=</span>eta <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dL</span>
+<span id="cb2-14"></span>
+<span id="cb2-15"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"w: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>w<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>ravel()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>w: [ -0.4592425   22.09479813  -1.56463209 -14.7402888  -14.68918055
+  -1.66460167]</code></pre>
+</div>
+</div>
+<p>Estimating the coefficients using statsmodels yields:</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> statsmodels.formula.api <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> smf</span>
+<span id="cb4-2"></span>
+<span id="cb4-3">df2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(X[:,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>:], columns<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>keep_features)</span>
+<span id="cb4-4">df2[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"target"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y</span>
+<span id="cb4-5">df2.columns <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [ii.replace(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" "</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"_"</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> df2.columns]</span>
+<span id="cb4-6">features <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" + "</span>.join([ii <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> df2.columns <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> ii<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"target"</span>])</span>
+<span id="cb4-7">mdl_expr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"target ~ "</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> features</span>
+<span id="cb4-8">mdl <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> smf.logit(mdl_expr, data<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>df2).fit()</span>
+<span id="cb4-9">mdl.params</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Optimization terminated successfully.
+         Current function value: 0.148702
+         Iterations 10</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>Intercept          -0.459246
+mean_radius        22.094852
+mean_texture       -1.564632
+mean_perimeter    -14.740317
+mean_area         -14.689213
+mean_smoothness    -1.664601
+dtype: float64</code></pre>
+</div>
+</div>
+<p>Which matches closely with the results produced via gradient descent.</p>
+
+
+
+ ]]></description>
+  <category>Machine Learning</category>
+  <category>Python</category>
+  <guid>www.jtrive.com/posts/logistic-regression-gd/index.html</guid>
+  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Simple Example of RSA Encryption and Decryption</title>
+  <link>www.jtrive.com/posts/python-rsa/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>The RSA algorithm is named after Ron Rivest, Adi Shamir and Len Adleman, who invented the system in 1977. The RSA cryptosystem is the most widely-used public key cryptography algorithm in the world. It can be used to encrypt a message without requiring the exchange of a secret key. RSA exploits the fact that while multiplying large integers is trivial, determining the factors of large integers is much more difficult. The original paper introducing the RSA cryptosystem is quite readable, and is available for downloaded <a href="https://people.csail.mit.edu/rivest/Rsapaper.pdf">here</a>.</p>
+<p>In this post, we’ll walk through each step of the RSA algorithm (key generation, key distribution, encryption and decryption) with an illustrative example using small primes.</p>
+<section id="rsa-algorithm" class="level3">
+<h3 class="anchored" data-anchor-id="rsa-algorithm">RSA Algorithm</h3>
+<ol type="1">
+<li>Generate two prime numbers <img src="https://latex.codecogs.com/png.latex?p,q"> then compute their product <img src="https://latex.codecogs.com/png.latex?n">.<br>
+</li>
+<li>Compute <em>Euler’s totient</em>: <img src="https://latex.codecogs.com/png.latex?%5Cphi%20=%20(p%20-%201)(q%20-%201)">.<br>
+</li>
+<li>Select a number <img src="https://latex.codecogs.com/png.latex?e"> that is relatively coprime with <img src="https://latex.codecogs.com/png.latex?(p%20-1)"> and <img src="https://latex.codecogs.com/png.latex?(q%20-%201)">.<br>
+</li>
+<li>Compute <img src="https://latex.codecogs.com/png.latex?d"> such that <img src="https://latex.codecogs.com/png.latex?ed%20%5Cequiv%201%20(mod%20%5Cphi)">.</li>
+</ol>
+<p>Once we have <img src="https://latex.codecogs.com/png.latex?n">, <img src="https://latex.codecogs.com/png.latex?d"> and <img src="https://latex.codecogs.com/png.latex?e">, we specify our public key as <img src="https://latex.codecogs.com/png.latex?(n,%20e)"> and private key as <img src="https://latex.codecogs.com/png.latex?(n,%20d)">.</p>
+<p>For a plain text message <img src="https://latex.codecogs.com/png.latex?m">, we can generate the corresponding ciphertext <img src="https://latex.codecogs.com/png.latex?c"> by computing:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ac%20=%20m%5E%7Be%7D%20%5Cbmod%20n%0A"></p>
+<p>Similarly, we can convert the ciphertext <img src="https://latex.codecogs.com/png.latex?c"> back to plaintext <img src="https://latex.codecogs.com/png.latex?m"> using:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Am%20=%20c%5E%7Bd%7D%20%5Cbmod%20n%0A"></p>
+</section>
+<section id="demonstration" class="level3">
+<h3 class="anchored" data-anchor-id="demonstration">Demonstration</h3>
+<p>In order to use the RSA cryptosystem, it is necessary to use an encoding to represent letters as numbers. A well know mapping of english letters to numeric values is the <a href="https://en.wikipedia.org/wiki/ASCII">ASCII character encoding</a>. Using the ASCII encoding, <strong>HELP!</strong> would be encoded as <strong>72 - 69 - 76 - 80 - 33</strong>.</p>
+<p>We start by generating two primes then compute their product. In practice, the modulus can be 1024-bits or greater. A 1024-bit modulus corresponds to a number with over 300 decimal digits[ref]https://www.di-mgt.com.au/rsa_alg.html[/ref].</p>
+<p>As stated above, we select <img src="https://latex.codecogs.com/png.latex?p"> and <img src="https://latex.codecogs.com/png.latex?q"> then compute <img src="https://latex.codecogs.com/png.latex?n">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign%7D%0Ap&amp;=19%5C%5C%0Aq&amp;=29%5C%5C%0An&amp;=pq%20=%20551%0A%5Cend%7Balign%7D%0A"></p>
+<p>Then we compute Euler’s totient:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cphi%20=%20(p%20-1)(q-1)%20=%2018%20%5Ctimes%2028%20=%20504%0A"></p>
+<p>Next we need to find a number <img src="https://latex.codecogs.com/png.latex?e">, where <img src="https://latex.codecogs.com/png.latex?1%20%3C%20e%20%3C%20%5Cphi"> that is relatively coprime with <img src="https://latex.codecogs.com/png.latex?(p%20-%201)"> and <img src="https://latex.codecogs.com/png.latex?(q%20-%201)">. In other words, find <img src="https://latex.codecogs.com/png.latex?e"> such that the greatest common divisor of <img src="https://latex.codecogs.com/png.latex?%5Cphi"> and <img src="https://latex.codecogs.com/png.latex?e"> is 1. For this example, we set <img src="https://latex.codecogs.com/png.latex?e=17">.</p>
+<p>Finally, we need to find <img src="https://latex.codecogs.com/png.latex?d"> such that <img src="https://latex.codecogs.com/png.latex?ed%20%5Cequiv%201%20(mod%20%5Cphi)">. This can be accomplished using the following function implemented in Python:</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> itertools</span>
+<span id="cb1-2"></span>
+<span id="cb1-3"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> get_d(e, phi):</span>
+<span id="cb1-4">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Compute d such that e * d = 1 % phi.</span></span>
+<span id="cb1-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-7">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> itertools.count(start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>(phi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> e)):</span>
+<span id="cb1-8">        v <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (e <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> i) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span> phi</span>
+<span id="cb1-9">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> v<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>: </span>
+<span id="cb1-10">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">break</span></span>
+<span id="cb1-11">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span>(i)</span></code></pre></div>
+</div>
+<p>Running <code>get_d</code> yields <img src="https://latex.codecogs.com/png.latex?89">. To summarize:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign%7D%0Ap&amp;=19%5C%5C%0Aq&amp;=29%5C%5C%0An&amp;=551%5C%5C%0A%5Cphi&amp;=504%5C%5C%0Ae&amp;=17%5C%5C%0Ad&amp;=89%0A%5Cend%7Balign%7D%0A"></p>
+<p>Given these values, our public key is <img src="https://latex.codecogs.com/png.latex?(551,%2017)"> and our private key is <img src="https://latex.codecogs.com/png.latex?(551,%2089)">.</p>
+<p>Given the numerically-encoded plaintext <strong>HELP!</strong> as <img src="https://latex.codecogs.com/png.latex?72%20-%2069%20-%2076%20-%2080%20-%2033">, we generate the ciphertext. Recall that in order to convert plaintext to ciphertext, we use <img src="https://latex.codecogs.com/png.latex?c%20=%20m%5E%7Be%7D%20%5Cbmod%20n">. Note that Python’s <code>pow</code> function takes an optional 3rd parameter representing the modulus. For example, calling <code>pow(a, b, c)</code> calculates <img src="https://latex.codecogs.com/png.latex?a%5E%7Bb%7D%5Cbmod%20c">:</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2">p, q, n, phi, e, d <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">19</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">29</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">551</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">504</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">17</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">89</span></span>
+<span id="cb2-3">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">72</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">69</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">76</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">80</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">33</span>]</span>
+<span id="cb2-4">c <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">pow</span>(i, e, n) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> m]</span>
+<span id="cb2-5">c</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<pre><code>[185, 293, 171, 5, 528]</code></pre>
+</div>
+</div>
+<p>As expected, when we print <code>c</code>, the numbers are completely different than the plaintext encoding.</p>
+<p>This message can only be decoded by the entity in possession of the private key. Let’s imagine that we received a message from a counter party who generated the ciphertext using the public key. We need to decrypt the message using our private key. To do so, we calculate <img src="https://latex.codecogs.com/png.latex?m%20=%20c%5E%7Bd%7D%20%5Cbmod%20n">. In Python, we can obtain the ASCII character associated with an integer by calling the <img src="https://latex.codecogs.com/png.latex?chr"> function. Picking up where we left off in the previous example, we first convert the ciphertext to plaintext, then the plaintext array of integers to a string:</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">pow</span>(i, d, n) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> c]</span>
+<span id="cb4-2">pt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span>.join(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">chr</span>(i) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> m)</span>
+<span id="cb4-3"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"m : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>m<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb4-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"pt: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>pt<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>m : [72, 69, 76, 80, 33]
+pt: HELP!</code></pre>
+</div>
+</div>
+</section>
+<section id="breaking-rsa-with-brute-force" class="level2">
+<h2 class="anchored" data-anchor-id="breaking-rsa-with-brute-force">Breaking RSA with Brute-Force</h2>
+<p>Recently I came across a <a href="https://crypto.stackexchange.com/questions/3043/how-much-computing-resource-is-required-to-brute-force-rsa">question</a> posted to crypto.statsexchange inquiring about the computing resources that would be required to brute-force enumerate every possible RSA {1024, 2048,4096}-bit key-pair. Here was a response I found particularly helpful:</p>
+<blockquote class="blockquote">
+<p>Even if you had infinite computing power you would not have the space to store all these public/private key pairs (I’ll spare you the semi-mathematical posts comparing the space required to the number of protons in the universe). Many people have trouble perceiving just how big a number <img src="https://latex.codecogs.com/png.latex?2%5E%7B2048%7D"> is, it’s a common error. A much more practical approach instead is to harvest as many real-life public keys as possible, and trying to find common factors between them. It actually works because of poor key generation practices.</p>
+</blockquote>
+
+
+</section>
+
+ ]]></description>
+  <category>Python</category>
+  <guid>www.jtrive.com/posts/python-rsa/index.html</guid>
+  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+<item>
   <title>Parameterized Decorators in Python</title>
   <link>www.jtrive.com/posts/parameterized-decorators/index.html</link>
   <description><![CDATA[ 
@@ -6208,6 +7184,846 @@ font-style: inherit;">."</span>)</span></code></pre></div>
  ]]></description>
   <category>Python</category>
   <guid>www.jtrive.com/posts/parameterized-decorators/index.html</guid>
+  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Denoising Signals using the FFT</title>
+  <link>www.jtrive.com/posts/fft-denoise/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>The Discrete Fourier Transform (DFT) turns a data vector into a sum of sine/cosine components. The DFT is a Fourier series on data instead of analytic functions. Why do we perform the DFT? Because the features typically of interest aren’t always obvious in the time domain. The Fast Fourier Transform (FFT) is an efficient method used to calculate the DFT. The naive implementation of DFT scales as <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BO%7D(n%5E2)">, whereas FFT scales as <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BO%7D(n%20%5Cmathrm%7Blog%7D(n))">.</p>
+<p>Our original data is sampled at uniform intervals represented as <img src="https://latex.codecogs.com/png.latex?%5Bf_%7B0%7D,%20f_%7B1%7D,%20%5Cdots,%20f_%7Bn%7D%5D%5E%7BT%7D">, and we want to obtain a vector of Fourier coefficients <img src="https://latex.codecogs.com/png.latex?%5B%5Chat%7Bf%7D_%7B0%7D,%20%5Chat%7Bf%7D_%7B1%7D,%20%5Cdots,%20%5Chat%7Bf%7D_%7Bn%7D%5D%5E%7BT%7D">. In the second vector, <img src="https://latex.codecogs.com/png.latex?%5Chat%7Bf%7D_%7B0%7D"> represents how much of the lowest frequency is in the data, <img src="https://latex.codecogs.com/png.latex?%5Chat%7Bf%7D_%7B1%7D"> represents how much of the second lowest frequency, etc. The formula used to go from data to Fourier coefficients is given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7Bf%7D_%7Bk%7D%20=%20%5Csum_%7Bj=0%7D%5E%7Bn-1%7D%20f_%7Bj%7De%5E%7Bi%202%5Cpi%20jk/n%7D.%0A"></p>
+<p>In words, the <img src="https://latex.codecogs.com/png.latex?k%5E%7Bth%7D"> Fourier coefficient is obtained by taking the sum over all <img src="https://latex.codecogs.com/png.latex?j"> data points at the <img src="https://latex.codecogs.com/png.latex?j%5E%7Bth%7D"> frequency times the <img src="https://latex.codecogs.com/png.latex?k%5E%7Bth%7D"> frequency divided by <img src="https://latex.codecogs.com/png.latex?n">. We can see that this expression represents a sum of sin and cosine terms by recalling <img src="https://latex.codecogs.com/png.latex?e%5E%7Bin%7D%20=%20%5Cmathrm%7Bcos%7D(n)%20+%20i%5Cmathrm%7Bsin%7D(n)">. The <img src="https://latex.codecogs.com/png.latex?%5Chat%7Bf%7D_%7Bk%7D"> are complex numbers which contain phase and magnitude information. The magnitude of <img src="https://latex.codecogs.com/png.latex?%5Chat%7Bf%7D_%7Bk%7D"> tells us how much of the <img src="https://latex.codecogs.com/png.latex?k%5E%7Bth%7D"> mode is in the original data.</p>
+<p>To go from Fourier coefficients back to data, the formula is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af_%7Bk%7D%20=%20%5Cfrac%7B1%7D%7Bn%7D%5CBig(%5Csum_%7Bj=0%7D%5E%7Bn-1%7D%20%5Chat%7Bf%7D_%7Bj%7De%5E%7Bi%202%5Cpi%20jk/n%7D%5CBig),%0A"></p>
+<p>which represents the inverse FFT.</p>
+<p>The DFT matrix can be represented in terms of the fundemental frequency for an interval with <img src="https://latex.codecogs.com/png.latex?n"> data points, defined as <img src="https://latex.codecogs.com/png.latex?%5Comega_%7Bn%7D%20=%20e%5E%7B-2%5Cpi%20i%20/%20n%7D">:</p>
+$$ M =
+<img src="https://latex.codecogs.com/png.latex?%5Cbegin%7Bpmatrix%7D%0A1%20&amp;%201%20&amp;%201%20&amp;%20%5Cdots%20&amp;%201%20%5C%5C%0A1%20&amp;%20%5Comega_%7Bn%7D%20&amp;%20%5Comega_%7Bn%7D%5E%7B2%7D%20&amp;%20%5Cdots%20&amp;%20%5Comega_%7Bn%7D%5E%7Bn-1%7D%20%5C%5C%0A1%20&amp;%20%5Comega_%7Bn%7D%5E%7B2%7D%20&amp;%20%5Comega_%7Bn%7D%5E%7B4%7D%20&amp;%20%5Cdots%20&amp;%20%5Comega_%7Bn%7D%5E%7B2(n-1)%7D%20%5C%5C%0A%5Cvdots%20&amp;%20%5Cvdots%20&amp;%20%5Cvdots%20&amp;%20%5Cvdots%20&amp;%20%5Cvdots%20%5C%5C%0A1%20&amp;%20%5Comega_%7Bn%7D%5E%7Bn-1%7D%20&amp;%20%5Comega_%7Bn%7D%5E%7B2(n-1)%7D%20&amp;%20%5Cdots%20&amp;%20%5Comega_%7Bn%7D%5E%7B(n-1)%5E2%7D%0A%5Cend%7Bpmatrix%7D">
+<p>$$</p>
+<p><br></p>
+<p>To obtain the Fourier coefficients, we multiply <img src="https://latex.codecogs.com/png.latex?M"> by <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7Bf%7D">, which yields a vector of complex coefficients, <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Chat%7Bf%7D%7D">. Next we show how the FFT can be used to de-noise a signal.</p>
+<section id="denoising-signals" class="level3">
+<h3 class="anchored" data-anchor-id="denoising-signals">Denoising Signals</h3>
+<p>This example, as well as much of the background, is taken from Steve Brunton’s FFT videos available <a href="https://youtu.be/jNC0jxb0OxE?si=H4JZGVU3-HB9PhCJ">here</a>. Assume you receive a dataset representing a discrete signal, and our goal is to identify the characteristic frequencies above a certain threshold. We then execute the following steps:</p>
+<ol type="1">
+<li>Fourier transform the data.</li>
+<li>Identify the peaks in the frequency domain, and zero out everything below some threshold.</li>
+<li>Run the inverse Fourier transform to recover the denoised signal.</li>
+</ol>
+<p>We create the original signal and add noise as follows:</p>
+<div class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> math <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pi</span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-3">np.random.seed(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb1-4"></span>
+<span id="cb1-5">dt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.001</span></span>
+<span id="cb1-6">t <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.arange(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, dt)</span>
+<span id="cb1-7">n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(t)</span>
+<span id="cb1-8">forig <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.sin(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> pi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> t) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> np.sin(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> pi <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">120</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> t)</span>
+<span id="cb1-9">f <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> forig <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.5</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> np.random.randn(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(t))</span>
+<span id="cb1-10"></span>
+<span id="cb1-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Run FFT on f. Capture power spectrum.</span></span>
+<span id="cb1-12">fhat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.fft.fft(f, n)</span>
+<span id="cb1-13">psd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(fhat)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> n</span>
+<span id="cb1-14"></span>
+<span id="cb1-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># x-axis for plotting.</span></span>
+<span id="cb1-16">freq <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (dt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> n)) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> np.arange(n)      </span>
+<span id="cb1-17"></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Filter out noise using psd.</span></span>
+<span id="cb1-19">thresh <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span></span>
+<span id="cb1-20"></span>
+<span id="cb1-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Find all freqs with power &gt; thresh. Zero out small Fourier coeffs.</span></span>
+<span id="cb1-22">indices <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> psd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> thresh</span>
+<span id="cb1-23"></span>
+<span id="cb1-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Inverse fft for filtered time signal.</span></span>
+<span id="cb1-25">ffilt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.fft.ifft(indices <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> fhat) </span></code></pre></div>
+</div>
+<p>Next we create a 3-facet plot: The top facet represents <code>forig</code> overlaid on the noisy signal <code>f</code>. The second facet represents the power spectrum, and the third the reconstructed filtered signal.</p>
+<div class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb2-2"></span>
+<span id="cb2-3">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb2-4">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Original and noise-added signals"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb2-5">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].plot(t, f, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.</span>, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.75</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"noisy"</span>)</span>
+<span id="cb2-6">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].plot(t, forig, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"black"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.25</span>, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"clean"</span>)</span>
+<span id="cb2-7">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].set_xlim(t[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], t[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])</span>
+<span id="cb2-8">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].legend(fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"small"</span>, loc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"upper right"</span>)</span>
+<span id="cb2-9"></span>
+<span id="cb2-10">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Power spectrum"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb2-11">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].plot(freq[:n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">//</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>], psd[:n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">//</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>], color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.5</span>)</span>
+<span id="cb2-12">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].set_xlabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"frequency"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb2-13">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].set_ylabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"power"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb2-14"></span>
+<span id="cb2-15">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].plot(t, ffilt, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"purple"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.25</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"filtered"</span>)</span>
+<span id="cb2-16">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].plot(t, forig, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"grey"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.25</span>, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.75</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"original"</span>)</span>
+<span id="cb2-17">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Filtered signal"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb2-18">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].legend(fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"small"</span>, loc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"upper right"</span>)</span>
+<span id="cb2-19">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].set_xlim(t[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], t[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])</span>
+<span id="cb2-20"></span>
+<span id="cb2-21"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>):</span>
+<span id="cb2-22">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>)</span>
+<span id="cb2-23">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>)</span>
+<span id="cb2-24"></span>
+<span id="cb2-25">plt.show()<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="www.jtrive.com/posts/fft-denoise/fft-denoise_files/figure-html/cell-3-output-1.png" class="img-fluid figure-img" alt="Original, power spectrum and filtered signal for generated signal with noise."></p>
+<figcaption class="figure-caption">Original, power spectrum and filtered signal for generated signal with noise.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>This tells us that even though the original signal is noisy, much of the signal is at 50Hz and 120Hz (verified by running <code>np.where(psd[:n // 2]&gt;thresh)[0]</code>), or the frequencies with power value in excess of the black horizontal dashed line in the center facet. Overlaying the filtered and original signals in the bottom facet, we see they line up perfectly.</p>
+</section>
+<section id="filtering-an-audio-file" class="level3">
+<h3 class="anchored" data-anchor-id="filtering-an-audio-file">Filtering an Audio File</h3>
+<p>In practice, the signal of interest will not be generated from an analytic function. Typically we’ll have a signal, and need to identify the dominant frequencies for downstream analysis. In the code that follows, the frequency spectrum is generated for a signal of arbitrary origin, which can be extended to any time domain signal. The signal is filtered, then we approximate the original signal using only a small number of frequencies. The focus will be on an audio clip of a vintage telephone ringer, available <a href="https://mixkit.co/free-sound-effects/">here</a>.</p>
+<div class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Code to read in a .wav file, perform FFT and generate filtered signal.</span></span>
+<span id="cb3-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.fftpack <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> fft, fftfreq</span>
+<span id="cb3-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.io.wavfile <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> read</span>
+<span id="cb3-5"></span>
+<span id="cb3-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Load .wav file. data has dimension nx2, with 2 representing</span></span>
+<span id="cb3-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># the channels. We focus on the first channel only. </span></span>
+<span id="cb3-8">censor <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">16</span></span>
+<span id="cb3-9">fs, data <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> read(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"vintage-telephone-ringtone.wav"</span>)</span>
+<span id="cb3-10">s <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> data[:, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].astype(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>)[:censor]</span>
+<span id="cb3-11">n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(s)</span>
+<span id="cb3-12">t <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.arange(n)</span>
+<span id="cb3-13">sample_secs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(s) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> fs   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Duration of sample audio clip. </span></span>
+<span id="cb3-14">dt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> fs                 <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Time in seconds between samples. </span></span>
+<span id="cb3-15">fhat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> fft(s)               <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Generate Fourier coefficients.</span></span>
+<span id="cb3-16">psd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(fhat) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> n      <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Power spectrum.</span></span>
+<span id="cb3-17"></span>
+<span id="cb3-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># x-axis for plotting. Can also call fftfreq(s.shape[0], d=dt).</span></span>
+<span id="cb3-19">freq <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (dt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> n)) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> np.arange(n) </span>
+<span id="cb3-20"></span>
+<span id="cb3-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Retain frequencies with power above this threshold.</span></span>
+<span id="cb3-22">thresh <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">500</span></span>
+<span id="cb3-23"></span>
+<span id="cb3-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Find all freqs with power &gt; thresh. Zero out small Fourier coeffs.</span></span>
+<span id="cb3-25">indices <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> psd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> thresh</span>
+<span id="cb3-26">ffilt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.fft.ifft(indices <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> fhat) <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Inverse fft for filtered time signal.</span></span></code></pre></div>
+</div>
+<p>We then plot the original signal, power spectrum and filtered signal:</p>
+<div class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb4-2">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"original signal (first 2^16 samples,~1.5 secs)"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb4-3">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].plot(t, s, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.5</span>, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.75</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"original"</span>)</span>
+<span id="cb4-4">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].set_xlim(t[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], t[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])</span>
+<span id="cb4-5"></span>
+<span id="cb4-6">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Power spectrum"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb4-7">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].plot(freq[:n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">//</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>], psd[:n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">//</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>], color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.5</span>)</span>
+<span id="cb4-8">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].axhline(thresh, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"black"</span>, linestyle<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"--"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.25</span>)</span>
+<span id="cb4-9">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].set_xlabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"frequency"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb4-10">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].set_ylabel(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"power"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb4-11"></span>
+<span id="cb4-12">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Filtered signal with original"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb4-13">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].plot(t, ffilt, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"purple"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.25</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"filtered"</span>)</span>
+<span id="cb4-14">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].plot(t, s, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"grey"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.25</span>, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.75</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"original"</span>)</span>
+<span id="cb4-15">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].legend(fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"small"</span>)</span>
+<span id="cb4-16">ax[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>].set_xlim(t[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], t[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])</span>
+<span id="cb4-17"></span>
+<span id="cb4-18"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>):</span>
+<span id="cb4-19">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>)</span>
+<span id="cb4-20">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>)</span>
+<span id="cb4-21">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>)</span>
+<span id="cb4-22">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>)</span>
+<span id="cb4-23"></span>
+<span id="cb4-24">plt.show()<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="www.jtrive.com/posts/fft-denoise/fft-denoise_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img" alt="Original, power spectrum and filtered signal for audio signal."></p>
+<figcaption class="figure-caption">Original, power spectrum and filtered signal for audio signal.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>We set the threshold to retain only those frequencies with power in excess of 500. In the bottom facet, we see that by retaining only a small number of frequencies, we are able to capture a reasonable approximation to the original signal, especially away from the endpoints.</p>
+<p>The filtered signal can be written to file as follows:</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Optionally export filtered audio.</span></span>
+<span id="cb5-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.io.wavfile <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> write</span>
+<span id="cb5-3">write(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"filtered-telephone2.wav"</span>, fs, np.real(ffilt).astype(np.int16))</span></code></pre></div>
+
+
+</section>
+
+ ]]></description>
+  <category>Machine Learning</category>
+  <category>Python</category>
+  <guid>www.jtrive.com/posts/fft-denoise/index.html</guid>
   <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
