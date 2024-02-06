@@ -10,7 +10,189 @@
 <atom:link href="www.jtrive.com/index-statistical modeling.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.450</generator>
-<lastBuildDate>Mon, 05 Feb 2024 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 09 Feb 2024 06:00:00 GMT</lastBuildDate>
+<item>
+  <title>The Beta Function and its Variants</title>
+  <link>www.jtrive.com/posts/beta-function/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>This post highlights variants of the beta function and includes an implementation that reproduces CDF output from <code>scipy.stats.nbinom</code> for a given parameterization.</p>
+<p>No discussion of the beta function would be complete without first introducing the gamma function. The gamma function is an extension of the factorial function, with its argument shifted down by 1, to real and complex numbers:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CGamma(x)%20=%20%5Cint_%7B0%7D%5E%7B%5Cinfty%7D%20t%5E%7Bx-1%7D%20e%5E%7B-t%7D%20dt%0A"></p>
+<p>If <img src="https://latex.codecogs.com/png.latex?n"> is a positive integer, the gamma function reduces to:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5CGamma(n)%20=%20(n-1)!.%0A"></p>
+<p>The beta function is given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AB(a,%20b)%20=%20%5Cint_%7B0%7D%5E%7B1%7D%20t%5E%7Ba-1%7D%20(1-t)%5E%7Bb-1%7D%20dt,%20%5Cquad%20a,%20b%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B%5Cgeq%7D.%0A"></p>
+<p>The beta function can be represented in terms of the gamma function as follows:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AB(a,%20b)%20=%20%5Cfrac%7B%5CGamma(a)%5CGamma(b)%7D%7B%5CGamma(a+b)%7D%0A"></p>
+<p>When <img src="https://latex.codecogs.com/png.latex?a,%20b%20%5Cin%20%5Cmathbb%7BZ%7D%5E%7B%5Cgeq%7D">, the expression simplifies to:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AB(a,%20b)%20=%20%5Cfrac%7B(a-1)!(b-1)!%7D%7B(a+b-1)!%7D.%0A"></p>
+<p>In the first beta function expression, the limits of integration were <img src="https://latex.codecogs.com/png.latex?(0,1)">. The <em>incomplete beta function</em> is a generalization of the beta function which allows the upper limit of integration to take on values within the range <img src="https://latex.codecogs.com/png.latex?%5B0,x%5D">. Symbolically, the incomplete beta function is represented as:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AB(x;%20a,%20b)%20=%20%5Cint_%7B0%7D%5E%7Bx%7D%20t%5E%7Ba-1%7D%20(1-t)%5E%7Bb-1%7D%20dt.%0A"></p>
+<p>When <img src="https://latex.codecogs.com/png.latex?x=1">, <em>the incomplete beta function and the beta function are equivalent</em>. Put another way, the beta function is the incomplete beta function evaluated at <img src="https://latex.codecogs.com/png.latex?x=1">. Having described the beta function and the incomplete beta function, the regularized incomplete beta function is introduced, which is also referred to as the <em>regularized beta function</em>. It is defined as the ratio of the incomplete beta function to the beta function, evaluated at <img src="https://latex.codecogs.com/png.latex?x">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AI_%7Bx%7D(a,b)%20=%20%5Cfrac%7BB(x;%20a,b)%7D%7BB(a,b)%7D%0A"></p>
+<p>The regularized beta function is the cumulative distribution function for the beta distribution, which can be used to calculate the CDF for both the negative binomial and binomial distributions. For a binomial random variable <img src="https://latex.codecogs.com/png.latex?X">, to determine the probability of <img src="https://latex.codecogs.com/png.latex?k"> or fewer successes in <img src="https://latex.codecogs.com/png.latex?n"> independent trials, <img src="https://latex.codecogs.com/png.latex?k%20%5Cleq%20n">, the CDF can be expressed by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AF(x)%20=%20%5Csum_%7Bi=0%7D%5E%7Bn%7D%20%5Cbinom%7Bn%7D%7Bi%7D%20p%5E%7Bi%7D%20(1-p)%5E%7Bn-i%7D%20=%20I_%7B1-p%7D(n-k,1+k).%0A"></p>
+<p>To demonstrate, assume <img src="https://latex.codecogs.com/png.latex?p=.25">, <img src="https://latex.codecogs.com/png.latex?n=5">. The probability of 3 or fewer successes is conventionally computed via binomial expansion as:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP%5BX%20%5Cleq%203%5D%20=%20%5Cbinom%7B5%7D%7B0%7D%20.25%5E%7B0%7D%20.75%5E%7B5%7D%20+%20%5Cbinom%7B5%7D%7B1%7D%20.25%5E%7B1%7D%20.75%5E%7B4%7D%20+%20%5Cbinom%7B5%7D%7B2%7D%20.25%5E%7B2%7D%20.75%5E%7B3%7D%20+%20%5Cbinom%7B5%7D%7B3%7D%20.25%5E%7B3%7D%20.75%5E%7B2%7D%20=%20%5Cmathbf%7B0.984375%7D.%0A"></p>
+<p>Equivalently, leveraging the regularized incomplete beta function yields:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP%5BX%20%5Cleq%203%5D%20=%20I_%7B.75%7D(2,%204)%20=%20%5Cmathbf%7B0.984375%7D.%0A"></p>
+<p>For the negative binomial distribution, assuming the common <img src="https://latex.codecogs.com/png.latex?r,k"> parameterization in which the PDF is given by</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP(X=k)%20=%20%5Cbinom%7Bk+r-1%7D%7Bk%7D%20p%5E%7Bk%7D%20(1-p)%5E%7Br%7D%20%5Cquad%20%5Ctext%7Bfor%7D%20k%20=%200,%201,%202,%20%5Ccdots.%0A"></p>
+<p>The negative binomial CDF can be computed using the regularized incomplete beta function:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AP(X%20%5Cleq%20k)%20=%201%20-%20I_%7Bp%7D(k+1,%20r).%0A"></p>
+<section id="implementation" class="level3">
+<h3 class="anchored" data-anchor-id="implementation">Implementation</h3>
+<p>In what follows, a function to compute the CDF of the negative binomial distribution using functions available in <code>scipy.special</code> is demonstrated. Results will be compared to <code>scipy.stats.nbinom.cdf</code> for a set of inputs to assess the correctness of the implementation.</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Calculation of negative binomial CDF using regularized incomplete </span></span>
+<span id="cb1-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">beta function. Note that the call signature for nbinom.cdf is:</span></span>
+<span id="cb1-4"></span>
+<span id="cb1-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    nbinom.cdf(&lt;nbr_failures&gt;, &lt;nbr_successes&gt;, &lt;prob_success&gt;)</span></span>
+<span id="cb1-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-7"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.special <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> betainc</span>
+<span id="cb1-8"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.stats <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> nbinom</span>
+<span id="cb1-9"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-10"></span>
+<span id="cb1-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Vectorization of nbinom.pmf.</span></span>
+<span id="cb1-12">nb_pdfs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.vectorize(nbinom.pmf)</span>
+<span id="cb1-13"></span>
+<span id="cb1-14"></span>
+<span id="cb1-15"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> nb_cdf(k, n,  p):</span>
+<span id="cb1-16">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Negative binomial CDF using the regularized incomplete beta function.</span></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-19">    I <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> betainc(n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, k, p)</span>
+<span id="cb1-20">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> I)</span>
+<span id="cb1-21"></span></code></pre></div>
+</div>
+<p>We test the implementation against the actual negative binomial CDF:</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2">nbr_successes, nbr_failures, prob_success <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.5</span></span>
+<span id="cb2-3">sum_pdfs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nb_pdfs(np.arange(nbr_failures <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>), nbr_successes, prob_success).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>()</span>
+<span id="cb2-4">actual_cdf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nbinom.cdf(nbr_failures, nbr_successes, prob_success)</span>
+<span id="cb2-5">new_cdf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nb_cdf(nbr_failures, nbr_successes, prob_success)</span>
+<span id="cb2-6"></span>
+<span id="cb2-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"sum_pdfs: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>sum_pdfs<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb2-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"actual_cdf: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>actual_cdf<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb2-9"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"new_cdf: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>new_cdf<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>sum_pdfs: 0.588099
+actual_cdf: 0.588099
+new_cdf: 0.588099</code></pre>
+</div>
+</div>
+<p>As expected, all three approaches arrive at the same value for the negative binomial CDF.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Statistical Modeling</category>
+  <guid>www.jtrive.com/posts/beta-function/index.html</guid>
+  <pubDate>Fri, 09 Feb 2024 06:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Bayesian Linear Regression via Gibbs Sampling</title>
   <link>www.jtrive.com/posts/gibbs-sampling-linear-regression/index.html</link>
@@ -2698,6 +2880,69 @@ font-style: inherit;">1</span>])</span>
   <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 <item>
+  <title>Derivation of the Normal Equations</title>
+  <link>www.jtrive.com/posts/deriv-normal-equations/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>The Normal Equations, represented in matrix form as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A(X%5E%7BT%7DX)%5Chat%7B%5Cbeta%7D%20=%20X%5E%7BT%7Dy%0A"></p>
+<p>are utilized in determining coefficient estimates associated with regression models. The matrix form is a compact representation of the model specification commonly represented as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ay%20=%20%5Cbeta_%7B0%7D%20+%20%5Cbeta_%7B1%7Dx_%7B1%7D%20+%20%5Cbeta_%7B2%7Dx_%7B2%7D%20+%20%5Ccdots%20+%20%5Cbeta_%7Bk%7Dx_%7Bk%7D%20+%20%5Cvarepsilon%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?%5Cepsilon"> represents the error term, and</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csum_%7Bi=1%7D%5E%7Bn%7D%20%5Cvarepsilon_%7Bi%7D%20=%200.%0A"></p>
+<p>For a dataset with <img src="https://latex.codecogs.com/png.latex?n"> records by <img src="https://latex.codecogs.com/png.latex?k"> explanatory variables per record, the components of the Normal Equations are:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D%20=%20(%5Chat%7B%5Cbeta%7D_%7B0%7D,%5Chat%7B%5Cbeta%7D_%7B1%7D,%5Ccdots,%5Chat%7B%5Cbeta%7D_%7Bk%7D)%5E%7BT%7D">, a vector of <img src="https://latex.codecogs.com/png.latex?(k+1)"> coefficents (one for each of the k explanatory variables plus one for the intercept term)<br>
+</li>
+<li><img src="https://latex.codecogs.com/png.latex?X"> , an <img src="https://latex.codecogs.com/png.latex?n"> by <img src="https://latex.codecogs.com/png.latex?(k+1)">-dimensional matrix of explanatory variables, with the first column consisting entirely of 1’s<br>
+</li>
+<li><img src="https://latex.codecogs.com/png.latex?%7By%7D%20=%20(y_%7B1%7D,%20y_%7B2%7D,...,y_%7Bn%7D)">, the response</li>
+</ul>
+<p>The task is to solve for the <img src="https://latex.codecogs.com/png.latex?(k+1)"> <img src="https://latex.codecogs.com/png.latex?%5Cbeta_%7Bj%7D">’s such that <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D_%7B0%7D,%20%5Chat%7B%5Cbeta%7D_%7B1%7D,...,%5Chat%7B%5Cbeta%7D_%7Bk%7D"> minimize</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csum_%7Bi=1%7D%5E%7Bn%7D%20%5Chat%7B%5Cvarepsilon%7D%5E%7B2%7D_%7Bi%7D%20=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_%7Bi%7D%20-%20%5Chat%7B%5Cbeta%7D_%7B0%7D%20-%20%5Chat%7B%5Cbeta%7D_%7B1%7Dx_%7Bi1%7D%20-%20%5Chat%7B%5Cbeta%7D_%7B2%7Dx_%7Bi2%7D%20-%20%5Ccdots%20-%20%5Chat%7B%5Cbeta%7D_%7Bk%7Dx_%7Bik%7D)%5E2.%0A"></p>
+<p>The Normal Equations can be derived using Least-Squares and Maximum likelihood Estimation.</p>
+<section id="least-squares-derivation" class="level3">
+<h3 class="anchored" data-anchor-id="least-squares-derivation">Least-Squares Derivation</h3>
+<p>Unlike Maximum Likelihood derivation, the Least-Squares approach requires no distributional assumption. For <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D_%7B0%7D,%20%5Chat%7B%5Cbeta%7D_%7B1%7D,%20%5Ccdots%20,%5Chat%7B%5Cbeta%7D_%7Bk%7D">, we seek estimators that minimize the sum of squared deviations between the <img src="https://latex.codecogs.com/png.latex?n"> response values and the predicted values, <img src="https://latex.codecogs.com/png.latex?%5Chat%7By%7D">. The objective is to minimize</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csum_%7Bi=1%7D%5E%7Bn%7D%20%5Chat%7B%5Cvarepsilon%7D%5E%7B2%7D_%7Bi%7D%20=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_%7Bi%7D%20-%20%5Chat%7B%5Cbeta%7D_%7B0%7D%20-%20%5Chat%7B%5Cbeta%7D_%7B1%7Dx_%7Bi1%7D%20-%20%5Chat%7B%5Cbeta%7D_%7B2%7Dx_%7Bi2%7D%20-%20%5Ccdots%20-%20%5Chat%7B%5Cbeta%7D_%7Bk%7Dx_%7Bik%7D)%5E2.%0A"></p>
+<p>Using matrix notation, our model can be represented as <img src="https://latex.codecogs.com/png.latex?y%20=%20X%5E%7BT%7D%5Cbeta%20+%20%5Cvarepsilon">. Isolating and squaring the error term yields</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%20%5Cvarepsilon%5ET%20%5Chat%20%5Cvarepsilon%20=%20%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y%20-%20X%5Chat%7B%5Cbeta%7D)%5E%7BT%7D(y%20-%20X%5Chat%7B%5Cbeta%7D).%0A"></p>
+<p>Expanding the right-hand side and combining terms results in</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%20%5Cvarepsilon%5ET%20%5Chat%20%5Cvarepsilon%20=%20y%5E%7BT%7Dy%20-%202y%5E%7BT%7DX%5Chat%7B%5Cbeta%7D%20+%20%5Chat%7B%5Cbeta%7DX%5E%7BT%7DX%5Chat%7B%5Cbeta%7D%0A"></p>
+<p>To find the value of <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D"> that minimizes <img src="https://latex.codecogs.com/png.latex?%5Chat%20%5Cvarepsilon%5ET%20%5Chat%20%5Cvarepsilon">, we differentiate <img src="https://latex.codecogs.com/png.latex?%5Chat%20%5Cvarepsilon%5ET%20%5Chat%20%5Cvarepsilon"> with respect to <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D">, and set the result to zero:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Chat%7B%5Cvarepsilon%7D%5E%7BT%7D%5Chat%7B%5Cvarepsilon%7D%7D%7B%5Cpartial%20%5Chat%7B%5Cbeta%7D%7D%20=%20-2X%5E%7BT%7Dy%20+%202X%5E%7BT%7DX%5Chat%7B%5Cbeta%7D%20=%200%0A"></p>
+<p>Which can then be solved for <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7B%5Cbeta%7D%20=%20%7B(X%5E%7BT%7DX)%7D%5E%7B-1%7D%7BX%7D%5E%7BT%7Dy%0A"></p>
+<p>Since <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D"> minimizes the sum of squares, <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D"> is called the <em>Least-Squares Estimator</em>.</p>
+</section>
+<section id="maximum-likelihood-derivation" class="level3">
+<h3 class="anchored" data-anchor-id="maximum-likelihood-derivation">Maximum Likelihood Derivation</h3>
+<p>For the Maximum Likelihood derivation, <img src="https://latex.codecogs.com/png.latex?X">, <img src="https://latex.codecogs.com/png.latex?y"> and <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D"> are the same as described in the Least-Squares derivation, and the model still follows the form</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ay%20=%20X%5E%7BT%7D%5Cbeta%20+%20%5Cvarepsilon%0A"></p>
+<p>but now we assume the <img src="https://latex.codecogs.com/png.latex?%5Cvarepsilon_%7Bi%7D"> are <img src="https://latex.codecogs.com/png.latex?iid"> and follow a zero-mean normal distribution:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AN(%5Cvarepsilon_%7Bi%7D;%200,%20%5Csigma%5E%7B2%7D)%20=%20%5Cfrac%7B1%7D%7B%5Csqrt%7B2%5Cpi%5Csigma%5E%7B2%7D%7D%7D%20e%5E%7B-%20%5Cfrac%7B(y_%7Bi%7D-X%5E%7BT%7D%5Chat%7B%5Cbeta%7D)%5E%7B2%7D%7D%7B2%5Csigma%5E%7B2%7D%7D%7D.%0A"></p>
+<p>In addition, the responses, <img src="https://latex.codecogs.com/png.latex?y_%7Bi%7D">, are each assumed to follow a normal distribution. For <img src="https://latex.codecogs.com/png.latex?n"> observations, the likelihood function is</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AL(%5Cbeta)%20=%20%5CBig(%5Cfrac%7B1%7D%7B%5Csqrt%7B2%5Cpi%5Csigma%5E%7B2%7D%7D%7D%5CBig)%5E%7Bn%7D%20e%5E%7B-(y-X%5Cbeta)%5E%7BT%7D(y-X%5Cbeta)/2%5Csigma%5E%7B2%7D%7D.%0A"></p>
+<p>The Log-Likelihood is then</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7BLn%7D(L(%5Cbeta))%20=%20-%5Cfrac%7Bn%7D%7B2%7D%5Cmathrm%7BLn%7D(2%5Cpi)%20-%5Cfrac%7Bn%7D%7B2%7D%5Cmathrm%7BLn%7D(%5Csigma%5E%7B2%7D)-%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D(y-X%5Cbeta)%5E%7BT%7D(y-X%5Cbeta).%0A"></p>
+<p>Taking derivatives with respect to <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> and setting the result equal to zero yields</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathrm%7BLn%7D(L(%5Cbeta))%7D%7B%5Cpartial%20%5Cbeta%7D%20=%20-2X%5E%7BT%7Dy%20-2X%5E%7BT%7DX%5Cbeta%20=%200.%0A"></p>
+<p>Rearranging and solving for <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> we obtain</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7B%5Cbeta%7D%20=%20%7B(X%5E%7BT%7DX)%7D%5E%7B-1%7D%7BX%7D%5E%7BT%7Dy,%0A"></p>
+<p>which is the same result obtained via Least Squares.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Statistical Modeling</category>
+  <guid>www.jtrive.com/posts/deriv-normal-equations/index.html</guid>
+  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+<item>
   <title>The Buried Assumption in Constant Dispersion Tweedie Models</title>
   <link>www.jtrive.com/posts/tweedie-dispersion/index.html</link>
   <description><![CDATA[ 
@@ -2781,6 +3026,269 @@ font-style: inherit;">1</span>])</span>
  ]]></description>
   <category>Statistical Modeling</category>
   <guid>www.jtrive.com/posts/poisson-binomial/index.html</guid>
+  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Bessel’s Correction</title>
+  <link>www.jtrive.com/posts/bessels-correction/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>Bessel’s correction is the use of <img src="https://latex.codecogs.com/png.latex?n-1"> instead of <img src="https://latex.codecogs.com/png.latex?n"> in the sample variance formula where <img src="https://latex.codecogs.com/png.latex?n"> is the number of observations in a sample. This method corrects the bias in the estimation of the population variance.</p>
+<p>Recall that <em>bias</em> is defined as:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Abias(%5Ctheta)%20=%20E%5B%5Chat%7B%5Ctheta%7D%5D%20-%20%5Ctheta,%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?%5Ctheta"> represents the actual parameter value, and <img src="https://latex.codecogs.com/png.latex?E%5B%5Chat%7B%5Ctheta%7D%5D"> is an estimator of the parameter <img src="https://latex.codecogs.com/png.latex?%5Ctheta">. A desirable property of an estimator is that its expected value equals the parameter being estimated, or <img src="https://latex.codecogs.com/png.latex?E%5B%5Chat%7B%5Ctheta%7D%5D%20=%20%5Ctheta">. When this occurs, the estimator is said to be <em>unbiased</em>. Let <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D"> represent the population variance, given by</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7B%5Csigma%7D%5E%7B2%7D%20=%20%5Cfrac%7B1%7D%7Bn%7D%5Csum_%7Bi=1%7D%5E%7Bn%7D(Y_%7Bi%7D%20-%20%5Cbar%7BY%7D)%5E%7B2%7D.%0A"></p>
+<p>To show that <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Csigma%7D%5E%7B2%7D"> is a biased estimator for <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">, let <img src="https://latex.codecogs.com/png.latex?Y_%7B1%7D,%20Y_%7B2%7D,%20%5Ccdots,%20Y_%7Bn%7D"> be a random sample with <img src="https://latex.codecogs.com/png.latex?E%5BY_%7Bi%7D%5D%20=%20%5Cmu"> and <img src="https://latex.codecogs.com/png.latex?Var%5BY_%7Bi%7D%5D%20=%20%5Csigma%5E%7B2%7D">. First, note that</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Csum_%7Bi=1%7D%5E%7Bn%7D(Y_%7Bi%7D%20-%20%5Cbar%7BY%7D)%5E%7B2%7D%20=%20%5Csum_%7Bi=1%7D%5E%7Bn%7DY_%7Bi%7D%5E%7B2%7D%20-%20n%5Cbar%7BY%7D%5E%7B2%7D,%0A"></p>
+<p>and as a result</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AE%5CBig%5B%5Csum_%7Bi=1%7D%5E%7Bn%7D(Y_%7Bi%7D%20-%20%5Cbar%7BY%7D)%5E%7B2%7D%5CBig%5D%20=%20E%5CBig(%5Csum_%7Bi=1%7D%5E%7Bn%7DY_%7Bi%7D%5E%7B2%7D%5CBig)%20-%20nE(%5Cbar%7BY%7D%5E%7B2%7D)%20=%20%5Csum_%7Bi=1%7D%5E%7Bn%7DE(Y_%7Bi%7D%5E%7B2%7D)%20-%20nE(%5Cbar%7BY%7D%5E%7B2%7D).%0A"></p>
+<p>Rearranging the familiar expression for variance yields</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AE%5BY%5E%7B2%7D%5D%20=%20Var%5BY%5D%20+%20E%5BY%5D%5E%7B2%7D%20=%20%5Csigma%5E%7B2%7D%20+%20%5Cmu%5E%7B2%7D,%0A"></p>
+<p>and similarly,</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AVar%5B%5Cbar%7BY%7D%5D%20+%20E%5B%5Cbar%7BY%7D%5D%5E%7B2%7D%20=%20%5Csigma%5E%7B2%7D/n%20+%20%5Cmu%5E%7B2%7D.%0A"></p>
+<p>Therefore</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AE%5CBig%5B%5Csum_%7Bi=1%7D%5E%7Bn%7D(Y_%7Bi%7D-%5Cbar%7BY%7D)%5E%7B2%7D%5CBig%5D%20&amp;=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%5Csigma%5E%7B2%7D+%5Cmu%5E%7B2%7D-n%5CBig(%5Cfrac%7B%5Csigma%5E%7B2%7D%7D%7Bn%7D%20+%20%5Cmu%5E%7B2%7D%5CBig)%20%5C%5C%0A&amp;=n(%5Csigma%5E%7B2%7D%20+%20%5Cmu%5E%7B2%7D)%20-%20n%5CBig(%5Cfrac%7B%5Csigma%5E%7B2%7D%7D%7Bn%7D%20+%20%5Cmu%5E%7B2%7D%5CBig)%20%5C%5C%0A&amp;=n%5Csigma%5E%7B2%7D%20-%20%5Csigma%5E%7B2%7D%20=%20(n-1)%5Csigma%5E%7B2%7D.%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Thus,</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AE%5B%5Chat%7B%5Csigma%7D%5E%7B2%7D%5D%20=%20%5Cfrac%7B1%7D%7Bn%7DE%5CBig%5B%5Csum_%7Bi=1%7D%5E%7Bn%7D(Y_%7Bi%7D%20-%20%5Cbar%7BY%7D)%5E%7B2%7D%5CBig%5D%20=%20%5Cfrac%7B1%7D%7Bn%7D(n-1)%5Csigma%5E%7B2%7D%20=%20%5CBig(%5Cfrac%7Bn-1%7D%7Bn%7D%5CBig)%5Csigma%5E%7B2%7D,%0A"></p>
+<p>and we conclude that <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D"> is biased since <img src="https://latex.codecogs.com/png.latex?E%5B%5Chat%7B%5Csigma%7D%5E%7B2%7D%5D%20%5Cne%20%5Csigma%5E%7B2%7D">. We now consider the sample variance <img src="https://latex.codecogs.com/png.latex?S%5E%7B2%7D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AE%5BS%5E%7B2%7D%5D%20=%20%5Cfrac%7B1%7D%7Bn-1%7DE%5CBig%5B%5Csum_%7Bi=1%7D%5E%7Bn%7D(Y_%7Bi%7D%20-%20%5Cbar%7BY%7D)%5E%7B2%7D%5CBig%5D%20=%20%5Cfrac%7B1%7D%7Bn-1%7D(n-1)%5Csigma%5E%7B2%7D%20=%20%5Csigma%5E%7B2%7D,%0A"></p>
+<p>and since <img src="https://latex.codecogs.com/png.latex?E%5BS%5E%7B2%7D%5D%20=%20%5Csigma%5E%7B2%7D">, we conclude that <img src="https://latex.codecogs.com/png.latex?S%5E%7B2%7D"> is an unbiased estimator for <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">.</p>
+<section id="demonstration" class="level3">
+<h3 class="anchored" data-anchor-id="demonstration">Demonstration</h3>
+<p>An important property of an unbiased estimator of a population parameter is that if the sample statistic is evaluated for every possible sample and the average computed, the mean over all samples will exactly equal the population parameter. For a given population with mean <img src="https://latex.codecogs.com/png.latex?%5Cmu"> and variance <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">, if the sample variance (division by <img src="https://latex.codecogs.com/png.latex?(n%E2%88%921)">) is computed for all possible permutations of the dataset, the average of the sample variances will exactly equal <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">. This also demonstrates (indirectly) that division by <img src="https://latex.codecogs.com/png.latex?n"> would consistently underestimate the population variance.</p>
+<p>We now attempt to verify this property on the following dataset:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A7,%209,%2010,%2012,%2015%0A"></p>
+<p>The Python itertools module exposes a collection of efficient iterators that stream values on-demand based on various starting and/or stopping conditions. For example, the <code>permutations</code> implementation takes as arguments an iterable and the length of the permutation <code>r</code>. It returns all <code>r</code>-length permutations of elements from the iterable (itertools also exposes a <code>combinations</code> function that does the same for all r-length combinations). The <code>product</code> function generates the cartesian product of the specified iterables, and takes an optional <code>repeat</code> argument. From the <a href="https://docs.python.org/3/library/itertools.html#itertools.product">documentation</a>:</p>
+<blockquote class="blockquote">
+<p>To compute the product of an iterable with itself, specify the number of repetitions with the optional repeat keyword argument. For example, <code>product(A, repeat=4)</code> means the same as product(A, A, A, A).</p>
+</blockquote>
+<p><code>product</code> is used to compute the average sample variance for all 2, 3 and 4-element permutations from <img src="https://latex.codecogs.com/png.latex?%5B7,%209,%2010,%2012,%2015%5D">, and the result is compared to the population variance. Before we begin, lets calculate the population mean and variance:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cbar%7BY%7D%20&amp;=%2010.6%20%5C%5C%0A%5Csigma%5E%7B2%7D%20&amp;=%20%5Csum_%7Bi=1%7D%5E%7B5%7D%5Cfrac%7BY_%7Bi%7D%5E%7B2%7D%7D%7Bn%7D%20-%20%5Cbar%7BY%7D%5E%7B2%7D%20%5C%5C%0A&amp;=%20119.8%20-%2010.6%5E%7B2%7D%20%5C%5C%0A&amp;=%207.44%0A%5Cend%7Balign*%7D%0A"></p>
+<p>We now compute the average of the sample variance for all <img src="https://latex.codecogs.com/png.latex?k">-element permutations from <img src="https://latex.codecogs.com/png.latex?%5B7,%209,%2010,%2012,%2015%5D"> for <img src="https://latex.codecogs.com/png.latex?2%20%5Cle%20k%20%5Cle%205">:</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Demonstrating that the sample variance is an unbiased estimator </span></span>
+<span id="cb1-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">of the population variance. </span></span>
+<span id="cb1-4"></span>
+<span id="cb1-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Generate all possible 2, 3, 4 and 5-element permutations from </span></span>
+<span id="cb1-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">[7, 9, 10, 12, 15], and determine the sample variance of each </span></span>
+<span id="cb1-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">sample. The average of the sample variances will exactly equate </span></span>
+<span id="cb1-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">to the population variance if the sample variance is an unbiased </span></span>
+<span id="cb1-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">estimator of the population variance.</span></span>
+<span id="cb1-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-11"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> itertools</span>
+<span id="cb1-12"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-13"></span>
+<span id="cb1-14">v <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15</span>]</span>
+<span id="cb1-15"></span>
+<span id="cb1-16"></span>
+<span id="cb1-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Verify that the average of the sample variance</span></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># for all 2-element samples equates to 7.44.</span></span>
+<span id="cb1-19">s2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(itertools.product(v, repeat<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>))</span>
+<span id="cb1-20">result2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.mean([np.var(ii, ddof<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> s2])</span>
+<span id="cb1-21"></span>
+<span id="cb1-22"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Verify that the average of the sample variance</span></span>
+<span id="cb1-23"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># for all 3-element samples equates to 7.44.</span></span>
+<span id="cb1-24">s3 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(itertools.product(v, repeat<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>))</span>
+<span id="cb1-25">result3 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.mean([np.var(ii, ddof<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> s3])</span>
+<span id="cb1-26"></span>
+<span id="cb1-27"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Verify that the average of the sample variance</span></span>
+<span id="cb1-28"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># for all 4-element samples equates to 7.44.</span></span>
+<span id="cb1-29">s4 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(itertools.product(v, repeat<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>))</span>
+<span id="cb1-30">result4 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.mean([np.var(ii, ddof<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> s4])</span>
+<span id="cb1-31"></span>
+<span id="cb1-32"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Verify that the average of the sample variance</span></span>
+<span id="cb1-33"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># for all 5-element samples equates to 7.44.</span></span>
+<span id="cb1-34">s5 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(itertools.product(v, repeat<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>))</span>
+<span id="cb1-35">result5 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.mean([np.var(ii, ddof<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> s5])</span>
+<span id="cb1-36"></span>
+<span id="cb1-37"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"result2: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>result2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-38"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"result3: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>result3<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-39"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"result4: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>result4<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-40"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"result5: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>result5<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>result2: 7.44
+result3: 7.4399999999999995
+result4: 7.44
+result5: 7.44</code></pre>
+</div>
+</div>
+<p>Since the sample variance is an unbiased estimator of the population variance, these results should come as no surprise, but it is an interesting demonstration nonetheless.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Statistical Modeling</category>
+  <category>Python</category>
+  <guid>www.jtrive.com/posts/bessels-correction/index.html</guid>
   <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 <item>
