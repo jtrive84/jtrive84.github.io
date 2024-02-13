@@ -7301,6 +7301,332 @@ font-style: inherit;">"December"</span> </span></code></pre></div>
   <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 <item>
+  <title>Working with SQLite in R</title>
+  <link>www.jtrive.com/posts/sqlite-r/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>Although RSQLite is not included with the standard R distribution, the interface is familiar and straightforward to use, especially if you have experience working with other relational database management systems from R: RSQLite is DBI-compatible, and leverages all of the familiar database functionality found in 3rd-party packages such as RMySQL, ROracle, etc.</p>
+<p>In this tutorial, I’ll demonstrate how to get up and running with RSQLite. We’ll walk through creating a new SQLite database, creating and populating tables in the database, and finally how to query data from the tables we created.</p>
+<section id="creating-sqlite-databases" class="level3">
+<h3 class="anchored" data-anchor-id="creating-sqlite-databases">Creating SQLite Databases</h3>
+<p>Creating a new SQLite database is straightforward: Specify the type of database to create, along with a filepath to which the database will be saved. One of the major benefits of SQLite is that it is a disk-based database which doesn’t require a separate server process:</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"RSQLite"</span>)</span>
+<span id="cb1-3"></span>
+<span id="cb1-4">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"/path/to/database/file.db"</span>)</span></code></pre></div>
+<p>The database file extension can be either <code>".db"</code> or <code>".sqlite"</code>.</p>
+<p>Note that I’ve explicitly referenced the library of origin using the <code>RSQLite::</code> prefix when specifying <code>SQLite()</code>. This is generally a good practice, and removes any ambiguity regarding the library of origin for objects in the current working environment.</p>
+<p>If the database is required only temporarily and it is preferable not to save the database to file, it is possible to create an in-memory database. The initialization is the same as for the persisted database, except the filepath is replaced with <code>":memory:"</code>:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">":memory:"</span>)</span></code></pre></div>
+<p>To disconnect from the database, call:</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(dbConn)</span></code></pre></div>
+<p>When opting for the in-memory database, when <code>dbDisconnect</code> is called, the database will be purged from memory.</p>
+</section>
+<section id="creating-tables-in-sqlite" class="level3">
+<h3 class="anchored" data-anchor-id="creating-tables-in-sqlite">Creating Tables in SQLite</h3>
+<p>One of the advantages of interfacing with relational database management systems in R is that it is not necessary to explicitly create and execute the DDL associated with the table to be written. The structure of an R data.frame is such that all data types and additional table specifications can be inferred from the data.frame, and the DDL in turn is then compiled and executed on the fly. This is especially convenient for workflows that rely on a large number table creation and population routines.</p>
+<p>In the next example, we load the trees dataset into an SQLite database identified as <em>sample.db</em> into a table named trees. Viewing the first few records of trees yields:</p>
+<pre><code>  Girth Height Volume
+1   8.3     70   10.3
+2   8.6     65   10.3
+3   8.8     63   10.2
+4  10.5     72   16.4
+5  10.7     81   18.8
+6  10.8     83   19.7</code></pre>
+<p>In addition to Girth, Height and Volume, I’ll include TIMESTAMP to indicate when the table was loaded:</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb5-2">DF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> trees</span>
+<span id="cb5-3">DF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cbind.data.frame</span>(DF, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Timestamp=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">toString</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.time</span>())))</span>
+<span id="cb5-4"></span>
+<span id="cb5-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Change fieldnames to uppercase.</span></span>
+<span id="cb5-6"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(DF) <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">toupper</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(DF))</span>
+<span id="cb5-7"></span>
+<span id="cb5-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># dbWriteTable arguments: (connection, tablename, dataset)</span></span>
+<span id="cb5-9">successInd <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbWriteTable</span>(dbConn, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"trees"</span>, DF)</span></code></pre></div>
+<p>If the table is loaded successfully, <code>successInd</code> will be <code>TRUE</code>.</p>
+<p>To list all the tables present in a particular database, run:</p>
+<div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbListTables</span>(dbConn)</span>
+<span id="cb6-2">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"trees"</span></span></code></pre></div>
+<p>To drop/remove a table from the database, run:</p>
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbRemoveTable</span>(dbConn, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tablename"</span>)</span></code></pre></div>
+</section>
+<section id="querying-sqlite-tables" class="level3">
+<h3 class="anchored" data-anchor-id="querying-sqlite-tables">Querying SQLite Tables</h3>
+<p>There are two common approaches with respect to data retrieval: First, pass a valid SQL statement to <code>dbGetQuery</code>. The SQL statement gets passed along to the SQLite parser and the corresponding dataset is returned as an R data.frame. Second, pass the name of the table to <code>dbReadTable</code>, and the table will be returned in its entirety as a data.frame. The second approach may incur significant overhead for large tables (I’ll demonstrate a work-around in the next section).</p>
+<p>To demonstrate <code>dbGetQuery</code>, we retrieve records from the trees table with HEIGHT &gt; 80:</p>
+<div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb8-2">SQLStr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SELECT * FROM trees WHERE HEIGHT&gt;80"</span></span>
+<span id="cb8-3">treesDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbGetQuery</span>(dbConn, SQLStr)</span>
+<span id="cb8-4"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(dbConn)</span></code></pre></div>
+<p>Viewing the first few rows of <code>treesDF</code> yields:</p>
+<pre><code>  GIRTH HEIGHT VOLUME           TIMESTAMP
+1  10.7     81   18.8 2017-09-02 21:59:26
+2  10.8     83   19.7 2017-09-02 21:59:26
+3  12.9     85   33.8 2017-09-02 21:59:26
+4  13.3     86   27.4 2017-09-02 21:59:26
+5  17.3     81   55.4 2017-09-02 21:59:26
+6  17.5     82   55.7 2017-09-02 21:59:26
+7  20.6     87   77.0 2017-09-02 21:59:26</code></pre>
+<p>Alternatively, <code>dbReadTable</code> requires only the database connection and tablename. Assuming we haven’t removed the trees table, it can be retrieved un-filtered as follows:</p>
+<div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb10-2">treesDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbReadTable</span>(dbConn, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"trees"</span>)</span>
+<span id="cb10-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(dbConn)</span></code></pre></div>
+</section>
+<section id="variable-substitution-and-dynamic-queries" class="level3">
+<h3 class="anchored" data-anchor-id="variable-substitution-and-dynamic-queries">Variable Substitution and Dynamic Queries</h3>
+<p>RSQLite supports parameterized queries, where a value is provided which fully specifies the SQL statement at runtime. To demonstrate, consider the SQL statement which retrieved the records from the trees table with HEIGHT &gt; 80. Instead of hard-coding 80, we can specify the threshold at runtime. This requires a slight modification to the SQL, as well as the inclusion of an additional argument in the call to <code>dbGetQuery</code>. In the example that follows, we demonstrate the use of two substitution parameters to filter the trees table based on HEIGHT and VOLUME:</p>
+<div class="sourceCode" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb11-2"></span>
+<span id="cb11-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Update thresholds for height and volume. </span></span>
+<span id="cb11-4">heightThresh <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">80</span></span>
+<span id="cb11-5">volumeThresh <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">30</span></span>
+<span id="cb11-6"></span>
+<span id="cb11-7">SQLStr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SELECT * FROM trees WHERE HEIGHT&gt;:heightThresh AND VOLUME&lt;=:volumeThresh"</span></span>
+<span id="cb11-8">treesDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbGetQuery</span>(dbConn, SQLStr, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">params=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">heightThresh=</span>heightThresh, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">volumeThresh=</span>volumeThresh))</span>
+<span id="cb11-9"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(dbConn)</span></code></pre></div>
+<p><code>treesDF</code> contains only three records:</p>
+<pre><code>GIRTH HEIGHT VOLUME           TIMESTAMP
+1  10.7     81   18.8 2020-12-01 15:46:31
+2  10.8     83   19.7 2020-12-01 15:46:31
+3  13.3     86   27.4 2020-12-01 15:46:31</code></pre>
+</section>
+<section id="iterative-retrieval-of-large-datasets" class="level3">
+<h3 class="anchored" data-anchor-id="iterative-retrieval-of-large-datasets">Iterative Retrieval of Large Datasets</h3>
+<p>Using <code>dbGetTable</code> may result in severe performance degradation when retrieving very large datasets. As an alternative, datasets can be retrieved iteratively, using a combination of <code>dbSendQuery</code> and <code>dbFetch</code>.</p>
+<p>The call to <code>dbSendQuery</code> is identical to <code>dbGetQuery</code>, except <code>dbSendQuery</code> initializes a cursor associated with the table as opposed to retrieving the table outright (as <code>dbGetQuery</code> does). Think of the variable bound to the result of <code>dbSendQuery</code> as a pointer to the row currently being processed, and as each record is retrieved, the pointer moves to the next row, on and on until the entire result set has been traversed.</p>
+<p><code>dbFetch</code> takes as arguments a cursor as well as a number which determines how many records to retrieve at each iteration. If n is not specified, it defaults to 500. If n is set to -1, the entire dataset will be retrieved at once, exhibiting behavior akin to <code>dbGetQuery</code>.</p>
+<p>Next we demonstrate iterative retrieval using <code>dbSendQuery</code> and <code>dbFetch</code> to query trees in groups of 5 records. Each data.frame is written to a list, then combined upon completion. Once iteration has ceased, calling <code>dbClearResult(&lt;cursor&gt;)</code> closes the result set:</p>
+<div class="sourceCode" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb13-2">dfList <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()</span>
+<span id="cb13-3">cursor <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbSendQuery</span>(dbConn, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SELECT * FROM trees"</span>)</span>
+<span id="cb13-4"></span>
+<span id="cb13-5"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">while</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbHasCompleted</span>(cursor)) {</span>
+<span id="cb13-6">    DF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbFetch</span>(cursor, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb13-7">    dfList[[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(dfList)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> DF</span>
+<span id="cb13-8">}</span>
+<span id="cb13-9"></span>
+<span id="cb13-10"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbClearResult</span>(cursor)</span>
+<span id="cb13-11"></span>
+<span id="cb13-12">treesDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">do.call</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rbind"</span>, dfList)</span></code></pre></div>
+
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <guid>www.jtrive.com/posts/sqlite-r/index.html</guid>
+  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+<item>
   <title>Aggregation with data.table</title>
   <link>www.jtrive.com/posts/data-table-aggregation/index.html</link>
   <description><![CDATA[ 

@@ -12698,6 +12698,332 @@ result5: 7.44</code></pre>
   <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 <item>
+  <title>Working with SQLite in R</title>
+  <link>www.jtrive.com/posts/sqlite-r/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>Although RSQLite is not included with the standard R distribution, the interface is familiar and straightforward to use, especially if you have experience working with other relational database management systems from R: RSQLite is DBI-compatible, and leverages all of the familiar database functionality found in 3rd-party packages such as RMySQL, ROracle, etc.</p>
+<p>In this tutorial, I’ll demonstrate how to get up and running with RSQLite. We’ll walk through creating a new SQLite database, creating and populating tables in the database, and finally how to query data from the tables we created.</p>
+<section id="creating-sqlite-databases" class="level3">
+<h3 class="anchored" data-anchor-id="creating-sqlite-databases">Creating SQLite Databases</h3>
+<p>Creating a new SQLite database is straightforward: Specify the type of database to create, along with a filepath to which the database will be saved. One of the major benefits of SQLite is that it is a disk-based database which doesn’t require a separate server process:</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">library</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"RSQLite"</span>)</span>
+<span id="cb1-3"></span>
+<span id="cb1-4">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"/path/to/database/file.db"</span>)</span></code></pre></div>
+<p>The database file extension can be either <code>".db"</code> or <code>".sqlite"</code>.</p>
+<p>Note that I’ve explicitly referenced the library of origin using the <code>RSQLite::</code> prefix when specifying <code>SQLite()</code>. This is generally a good practice, and removes any ambiguity regarding the library of origin for objects in the current working environment.</p>
+<p>If the database is required only temporarily and it is preferable not to save the database to file, it is possible to create an in-memory database. The initialization is the same as for the persisted database, except the filepath is replaced with <code>":memory:"</code>:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">":memory:"</span>)</span></code></pre></div>
+<p>To disconnect from the database, call:</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(dbConn)</span></code></pre></div>
+<p>When opting for the in-memory database, when <code>dbDisconnect</code> is called, the database will be purged from memory.</p>
+</section>
+<section id="creating-tables-in-sqlite" class="level3">
+<h3 class="anchored" data-anchor-id="creating-tables-in-sqlite">Creating Tables in SQLite</h3>
+<p>One of the advantages of interfacing with relational database management systems in R is that it is not necessary to explicitly create and execute the DDL associated with the table to be written. The structure of an R data.frame is such that all data types and additional table specifications can be inferred from the data.frame, and the DDL in turn is then compiled and executed on the fly. This is especially convenient for workflows that rely on a large number table creation and population routines.</p>
+<p>In the next example, we load the trees dataset into an SQLite database identified as <em>sample.db</em> into a table named trees. Viewing the first few records of trees yields:</p>
+<pre><code>  Girth Height Volume
+1   8.3     70   10.3
+2   8.6     65   10.3
+3   8.8     63   10.2
+4  10.5     72   16.4
+5  10.7     81   18.8
+6  10.8     83   19.7</code></pre>
+<p>In addition to Girth, Height and Volume, I’ll include TIMESTAMP to indicate when the table was loaded:</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb5-2">DF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> trees</span>
+<span id="cb5-3">DF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cbind.data.frame</span>(DF, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">Timestamp=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">toString</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Sys.time</span>())))</span>
+<span id="cb5-4"></span>
+<span id="cb5-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Change fieldnames to uppercase.</span></span>
+<span id="cb5-6"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(DF) <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">toupper</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">names</span>(DF))</span>
+<span id="cb5-7"></span>
+<span id="cb5-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># dbWriteTable arguments: (connection, tablename, dataset)</span></span>
+<span id="cb5-9">successInd <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbWriteTable</span>(dbConn, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"trees"</span>, DF)</span></code></pre></div>
+<p>If the table is loaded successfully, <code>successInd</code> will be <code>TRUE</code>.</p>
+<p>To list all the tables present in a particular database, run:</p>
+<div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbListTables</span>(dbConn)</span>
+<span id="cb6-2">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"trees"</span></span></code></pre></div>
+<p>To drop/remove a table from the database, run:</p>
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbRemoveTable</span>(dbConn, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tablename"</span>)</span></code></pre></div>
+</section>
+<section id="querying-sqlite-tables" class="level3">
+<h3 class="anchored" data-anchor-id="querying-sqlite-tables">Querying SQLite Tables</h3>
+<p>There are two common approaches with respect to data retrieval: First, pass a valid SQL statement to <code>dbGetQuery</code>. The SQL statement gets passed along to the SQLite parser and the corresponding dataset is returned as an R data.frame. Second, pass the name of the table to <code>dbReadTable</code>, and the table will be returned in its entirety as a data.frame. The second approach may incur significant overhead for large tables (I’ll demonstrate a work-around in the next section).</p>
+<p>To demonstrate <code>dbGetQuery</code>, we retrieve records from the trees table with HEIGHT &gt; 80:</p>
+<div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb8-2">SQLStr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SELECT * FROM trees WHERE HEIGHT&gt;80"</span></span>
+<span id="cb8-3">treesDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbGetQuery</span>(dbConn, SQLStr)</span>
+<span id="cb8-4"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(dbConn)</span></code></pre></div>
+<p>Viewing the first few rows of <code>treesDF</code> yields:</p>
+<pre><code>  GIRTH HEIGHT VOLUME           TIMESTAMP
+1  10.7     81   18.8 2017-09-02 21:59:26
+2  10.8     83   19.7 2017-09-02 21:59:26
+3  12.9     85   33.8 2017-09-02 21:59:26
+4  13.3     86   27.4 2017-09-02 21:59:26
+5  17.3     81   55.4 2017-09-02 21:59:26
+6  17.5     82   55.7 2017-09-02 21:59:26
+7  20.6     87   77.0 2017-09-02 21:59:26</code></pre>
+<p>Alternatively, <code>dbReadTable</code> requires only the database connection and tablename. Assuming we haven’t removed the trees table, it can be retrieved un-filtered as follows:</p>
+<div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb10-2">treesDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbReadTable</span>(dbConn, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"trees"</span>)</span>
+<span id="cb10-3"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(dbConn)</span></code></pre></div>
+</section>
+<section id="variable-substitution-and-dynamic-queries" class="level3">
+<h3 class="anchored" data-anchor-id="variable-substitution-and-dynamic-queries">Variable Substitution and Dynamic Queries</h3>
+<p>RSQLite supports parameterized queries, where a value is provided which fully specifies the SQL statement at runtime. To demonstrate, consider the SQL statement which retrieved the records from the trees table with HEIGHT &gt; 80. Instead of hard-coding 80, we can specify the threshold at runtime. This requires a slight modification to the SQL, as well as the inclusion of an additional argument in the call to <code>dbGetQuery</code>. In the example that follows, we demonstrate the use of two substitution parameters to filter the trees table based on HEIGHT and VOLUME:</p>
+<div class="sourceCode" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb11-2"></span>
+<span id="cb11-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Update thresholds for height and volume. </span></span>
+<span id="cb11-4">heightThresh <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">80</span></span>
+<span id="cb11-5">volumeThresh <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">30</span></span>
+<span id="cb11-6"></span>
+<span id="cb11-7">SQLStr <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SELECT * FROM trees WHERE HEIGHT&gt;:heightThresh AND VOLUME&lt;=:volumeThresh"</span></span>
+<span id="cb11-8">treesDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbGetQuery</span>(dbConn, SQLStr, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">params=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">heightThresh=</span>heightThresh, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">volumeThresh=</span>volumeThresh))</span>
+<span id="cb11-9"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbDisconnect</span>(dbConn)</span></code></pre></div>
+<p><code>treesDF</code> contains only three records:</p>
+<pre><code>GIRTH HEIGHT VOLUME           TIMESTAMP
+1  10.7     81   18.8 2020-12-01 15:46:31
+2  10.8     83   19.7 2020-12-01 15:46:31
+3  13.3     86   27.4 2020-12-01 15:46:31</code></pre>
+</section>
+<section id="iterative-retrieval-of-large-datasets" class="level3">
+<h3 class="anchored" data-anchor-id="iterative-retrieval-of-large-datasets">Iterative Retrieval of Large Datasets</h3>
+<p>Using <code>dbGetTable</code> may result in severe performance degradation when retrieving very large datasets. As an alternative, datasets can be retrieved iteratively, using a combination of <code>dbSendQuery</code> and <code>dbFetch</code>.</p>
+<p>The call to <code>dbSendQuery</code> is identical to <code>dbGetQuery</code>, except <code>dbSendQuery</code> initializes a cursor associated with the table as opposed to retrieving the table outright (as <code>dbGetQuery</code> does). Think of the variable bound to the result of <code>dbSendQuery</code> as a pointer to the row currently being processed, and as each record is retrieved, the pointer moves to the next row, on and on until the entire result set has been traversed.</p>
+<p><code>dbFetch</code> takes as arguments a cursor as well as a number which determines how many records to retrieve at each iteration. If n is not specified, it defaults to 500. If n is set to -1, the entire dataset will be retrieved at once, exhibiting behavior akin to <code>dbGetQuery</code>.</p>
+<p>Next we demonstrate iterative retrieval using <code>dbSendQuery</code> and <code>dbFetch</code> to query trees in groups of 5 records. Each data.frame is written to a list, then combined upon completion. Once iteration has ceased, calling <code>dbClearResult(&lt;cursor&gt;)</code> closes the result set:</p>
+<div class="sourceCode" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1">dbConn <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbConnect</span>(RSQLite<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">SQLite</span>(), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sample.db"</span>)</span>
+<span id="cb13-2">dfList <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>()</span>
+<span id="cb13-3">cursor <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbSendQuery</span>(dbConn, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SELECT * FROM trees"</span>)</span>
+<span id="cb13-4"></span>
+<span id="cb13-5"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">while</span> (<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbHasCompleted</span>(cursor)) {</span>
+<span id="cb13-6">    DF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbFetch</span>(cursor, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">n=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb13-7">    dfList[[<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">length</span>(dfList)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]] <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> DF</span>
+<span id="cb13-8">}</span>
+<span id="cb13-9"></span>
+<span id="cb13-10"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">dbClearResult</span>(cursor)</span>
+<span id="cb13-11"></span>
+<span id="cb13-12">treesDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">do.call</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rbind"</span>, dfList)</span></code></pre></div>
+
+
+</section>
+
+ ]]></description>
+  <category>R</category>
+  <guid>www.jtrive.com/posts/sqlite-r/index.html</guid>
+  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
+</item>
+<item>
   <title>Generating Correlated Random Samples in Python</title>
   <link>www.jtrive.com/posts/correlated-samples/index.html</link>
   <description><![CDATA[ 
@@ -14894,334 +15220,6 @@ SVD                    |  2mn^2 + 11n^3   |
   <category>Statistical Modeling</category>
   <category>Python</category>
   <guid>www.jtrive.com/posts/mat-fact-lin-reg/index.html</guid>
-  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Gradient Descent for Logistic Regression</title>
-  <link>www.jtrive.com/posts/logistic-regression-gd/index.html</link>
-  <description><![CDATA[ 
-
-
-
-
-<p>Within the GLM framework, model coefficients are estimated using iterative reweighted least squares (IRLS), sometimes referred to as Fisher Scoring. This works well, but becomes inefficient as the size of the dataset increases: IRLS relies on the matrix of second partial derivatives which is expensive to compute. Instead, we can estimate logistic regression coefficients using gradient descent, which only relies on the first derivative of the cost function. This is much more efficient to compute, and generally provides good estimates once features have been standardized.</p>
-<p>Expression for linear predictions:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Az%20=%20%5Cboldsymbol%7BX%7D%20%5Cboldsymbol%7B%5Ctheta%7D%0A"></p>
-<p>Expression for predicted probabilities:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%7By%7D%20=%20%5Csigma(z)%20=%20%5Cfrac%7B1%7D%7B1%20+%20e%5E%7B-z%7D%7D%0A"></p>
-<p>Gradient descent:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctheta_%7Bt%20+%201%7D%20:=%20%5Ctheta_%7Bt%7D%20-%20%5Ceta%20%5Cnabla%20L(%5Chat%7By%7D,%20y)%0A"></p>
-<ul>
-<li><img src="https://latex.codecogs.com/png.latex?%5Ceta"> is the learning rate.</li>
-<li><img src="https://latex.codecogs.com/png.latex?%5Cnabla%20L"> represents the gradients of the loss function.</li>
-</ul>
-<p>Optimal parameters:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboldsymbol%7B%5Chat%7B%5Ctheta%7D%7D%20=%20%5Coperatorname*%7Bargmin%7D_%5Ctheta%20%5Cfrac%7B1%7D%7Bm%7D%20%5Csum_%7Bi=1%7D%5E%7Bm%7D%20L(f(x%5E%7B(i)%7D;%20%5Ctheta),%20y%5E%7B(i)%7D)%0A"></p>
-<p>The loss function is used to determine how much predictions differs from labels. Here we use binary cross entropy loss:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AL(%5Chat%7By%7D,%20y)%20=%20-%5Cfrac%7B1%7D%7Bm%7D%20%5Csum_%7Bi=1%7D%5E%7Bm%7D%20y%20%5Ccdot%20%5Cmathrm%7Blog%7D(%5Chat%7By%7D)%20+%20(1%20-%20y)%20%5Ccdot%20%5Cmathrm%7Blog%7D(1%20-%20%5Chat%7By%7D),%0A"></p>
-<p>which we obtain from the log-likelihood of a single observation assumed to follow a binomial distribution. We flip the sign (the leading <code>-</code>) in order to minimize the loss. Note that <img src="https://latex.codecogs.com/png.latex?%5Chat%7By%7D%20=%20%5Csigma(z)">.</p>
-<p>Expression for gradient of loss function:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cnabla%20L(%5Chat%7By%7D,%20y)%20=%20%5Cfrac%7B1%7D%7Bm%7D(%5Chat%7By%7D%20-%20y)x%5E%7BT%7D%0A"></p>
-<p>We choose <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctheta%7D"> that maximizes the log-probability of the true y labels in the training data given the observations <img src="https://latex.codecogs.com/png.latex?X">. The goal is to find the set of weights which minimize the loss function, averaged over all examples. For each variable <img src="https://latex.codecogs.com/png.latex?%5Ctheta_%7Bj%7D"> in <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctheta%7D">, the gradient will have a component that tells us the slope w.r.t. that variable.</p>
-<p>The breast cancer dataset is loaded from scikit-learn, the features are standardized and model coefficients estimated using gradient descent. Results are then compared with statsmodels coefficient estimates using the same data to ensure correctness.</p>
-<div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Load breast cancer dataset from scikit-learn. Standardize features.</span></span>
-<span id="cb1-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb1-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb1-6"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> sklearn.model_selection <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> train_test_split</span>
-<span id="cb1-7"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> sklearn.datasets <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> load_breast_cancer</span>
-<span id="cb1-8"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> sklearn.metrics <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> accuracy_score</span>
-<span id="cb1-9"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> sklearn.preprocessing <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> StandardScaler</span>
-<span id="cb1-10"></span>
-<span id="cb1-11">data_loader <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> load_breast_cancer()</span>
-<span id="cb1-12">X_data, y_data <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> data_loader.data, data_loader.target</span>
-<span id="cb1-13">column_names <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> data_loader.feature_names</span>
-<span id="cb1-14">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.DataFrame(X_data, columns<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>column_names)</span>
-<span id="cb1-15"></span>
-<span id="cb1-16">keep_features <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [</span>
-<span id="cb1-17">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'mean radius'</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'mean texture'</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'mean perimeter'</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'mean area'</span>,</span>
-<span id="cb1-18">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'mean smoothness'</span></span>
-<span id="cb1-19">    ]</span>
-<span id="cb1-20"></span>
-<span id="cb1-21">X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df[keep_features].values</span>
-<span id="cb1-22">y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> y_data[:,<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">None</span>]</span>
-<span id="cb1-23"></span>
-<span id="cb1-24"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Standardize features. </span></span>
-<span id="cb1-25">sclr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> StandardScaler()</span>
-<span id="cb1-26">X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> sclr.fit_transform(X)</span>
-<span id="cb1-27"></span>
-<span id="cb1-28"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Add bias term.</span></span>
-<span id="cb1-29">bias <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.ones(X.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>])[:, <span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">None</span>]</span>
-<span id="cb1-30">X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.concatenate([bias, X], axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span></code></pre></div>
-</div>
-<p><code>eta</code> represents the learning rate and is a hyperparameter. <code>num_epochs</code> can be set as desired. For this example, we haven’t incorporated early stopping logic, but this would be straightforward to implement. We initialize the weight vector <code>w</code> to all 0s. <code>w</code> has the same length as the number of features + 1 for the intercept term.</p>
-<div class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
-<span id="cb2-2">eta <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.50</span></span>
-<span id="cb2-3">num_epochs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">50000</span></span>
-<span id="cb2-4">w <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros((X.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>], <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>))</span>
-<span id="cb2-5">loss <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> []</span>
-<span id="cb2-6"></span>
-<span id="cb2-7"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> _ <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">range</span>(num_epochs):</span>
-<span id="cb2-8">    z <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> w</span>
-<span id="cb2-9">    ypred <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> np.exp(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span>z))</span>
-<span id="cb2-10">    L <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span>np.mean(y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> np.log(ypred) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> y) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> np.log(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> ypred))</span>
-<span id="cb2-11">    dL <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.mean(((ypred <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> y) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> X), axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>)[:, <span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">None</span>]</span>
-<span id="cb2-12">    loss.append(L)        </span>
-<span id="cb2-13">    w<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-=</span>eta <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> dL</span>
-<span id="cb2-14"></span>
-<span id="cb2-15"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"w: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>w<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">.</span>ravel()<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>w: [ -0.4592425   22.09479813  -1.56463209 -14.7402888  -14.68918055
-  -1.66460167]</code></pre>
-</div>
-</div>
-<p>Estimating the coefficients using statsmodels yields:</p>
-<div class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> statsmodels.formula.api <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> smf</span>
-<span id="cb4-2"></span>
-<span id="cb4-3">df2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.DataFrame(X[:,<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>:], columns<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>keep_features)</span>
-<span id="cb4-4">df2[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"target"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> y</span>
-<span id="cb4-5">df2.columns <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [ii.replace(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" "</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"_"</span>) <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> df2.columns]</span>
-<span id="cb4-6">features <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" + "</span>.join([ii <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> df2.columns <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">if</span> ii<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">!=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"target"</span>])</span>
-<span id="cb4-7">mdl_expr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"target ~ "</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> features</span>
-<span id="cb4-8">mdl <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> smf.logit(mdl_expr, data<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>df2).fit()</span>
-<span id="cb4-9">mdl.params</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Optimization terminated successfully.
-         Current function value: 0.148702
-         Iterations 10</code></pre>
-</div>
-<div class="cell-output cell-output-display" data-execution_count="3">
-<pre><code>Intercept          -0.459246
-mean_radius        22.094852
-mean_texture       -1.564632
-mean_perimeter    -14.740317
-mean_area         -14.689213
-mean_smoothness    -1.664601
-dtype: float64</code></pre>
-</div>
-</div>
-<p>Which matches closely with the results produced via gradient descent.</p>
-
-
-
- ]]></description>
-  <category>Machine Learning</category>
-  <category>Python</category>
-  <guid>www.jtrive.com/posts/logistic-regression-gd/index.html</guid>
   <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
