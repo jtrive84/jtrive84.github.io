@@ -10,7 +10,306 @@
 <atom:link href="www.jtrive.com/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.450</generator>
-<lastBuildDate>Sat, 10 Feb 2024 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 18 Feb 2024 06:00:00 GMT</lastBuildDate>
+<item>
+  <title>Online Mean and Variance Update without Full Recalculation</title>
+  <link>www.jtrive.com/posts/online-updates/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>Imagine you are responsible for maintaining the mean and variance of a dataset that is frequently updated. For small-to-moderately sized datasets, much thought might not be given to the method used for recalculation. However, with datasets consisting of hundreds of billions or trillions of observations, full recomputation of the mean and variance at each refresh may require significant computational resources that may not be available.</p>
+<p>Fortunately it isn’t necessary to perform a full recalculation of mean and variance when accounting for new observations. Recall that for a sequence of <img src="https://latex.codecogs.com/png.latex?n"> observations <img src="https://latex.codecogs.com/png.latex?x_%7B1%7D,%20%5Cdots%20x_%7Bn%7D"> the sample mean <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bn%7D"> and variance <img src="https://latex.codecogs.com/png.latex?%5Csigma_%7Bn%7D%5E%7B2%7D"> are given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%20%20%20%20%20%20%20%5Cmu_%7Bn%7D%20&amp;=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20x_%7Bi%7D%20%5C%5C%0A%5Csigma_%7Bn%7D%5E%7B2%7D%20&amp;=%20%5Cfrac%7B1%7D%7Bn-1%7D%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(x_%7Bi%7D%20-%20%5Cmu_%7Bn%7D)%5E%7B2%7D%0A%5Cend%7Balign*%7D%0A"></p>
+<p>A new observation <img src="https://latex.codecogs.com/png.latex?x_%7Bn+1%7D"> becomes available. To calculate the updated mean <img src="https://latex.codecogs.com/png.latex?%5Cmu_%7Bn+1%7D"> and variance <img src="https://latex.codecogs.com/png.latex?%5Csigma_%7Bn+1%7D%5E%7B2%7D"> in light of this new observation without requiring full recalculation, we can use the following:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cmu_%7Bn+1%7D%20&amp;=%20%5Cfrac%7B1%7D%7Bn+1%7D(n%5Cmu_%7Bn%7D%20+%20x_%7Bn+1%7D)%20%5C%5C%0A%5Csigma_%7Bn+1%7D%5E%7B2%7D%20&amp;=%20%5Cfrac%7Bn%7D%7Bn+1%7D%5Csigma_%7Bn%7D%5E%7B2%7D%20+%20%5Cfrac%7B1%7D%7Bn%7D(x_%7Bn+1%7D%20-%20%5Cmu_%7Bn+1%7D)%5E%7B2%7D%0A%5Cend%7Balign*%7D%0A"></p>
+<section id="demonstration" class="level3">
+<h3 class="anchored" data-anchor-id="demonstration">Demonstration</h3>
+<p>Consider the following values:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A1154%5Chspace%7B2mm%7D717%5Chspace%7B2mm%7D958%5Chspace%7B2mm%7D1476%5Chspace%7B2mm%7D889%5Chspace%7B2mm%7D1414%5Chspace%7B2mm%7D1364%5Chspace%7B2mm%7D1047%0A"></p>
+<p>The mean and variance for the observations:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%20%20%20%20%20%20%20%5Cmu_%7B8%7D%20&amp;%5Capprox%201127.38%20%5C%5C%0A%5Csigma_%7B8%7D%5E%7B2%7D%20&amp;%5Capprox%2065096.48%0A%5Cend%7Balign*%7D%0A"></p>
+<p>A new value, <img src="https://latex.codecogs.com/png.latex?1251"> becomes available. Full recalculation of mean and variance yields:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%20%20%20%20%20%20%20%5Cmu_%7B8%7D%20&amp;%5Capprox%20%5Cmathbf%7B1141.11%7D%20%5C%5C%0A%5Csigma_%7B8%7D%5E%7B2%7D%20&amp;%5Capprox%20%5Cmathbf%7B59372.99%7D%0A%5Cend%7Balign*%7D%0A"></p>
+<p>The mean and variance calculated using online update results in:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cmu_%7B9%7D%20&amp;=%20%5Cfrac%7B1%7D%7B9%7D(8(1127.38)%20+%201251)%20%5Capprox%20%5Cmathbf%7B1141.11%7D%20%5C%5C%0A%5Csigma_%7B9%7D%5E%7B2%7D%20&amp;=%20%5Cfrac%7B8%7D%7B9%7D%20(65096.48)%20+%20%5Cfrac%7B1%7D%7B8%7D(1251%20-%201141.11)%5E%7B2%7D%20%5Capprox%20%5Cmathbf%7B59372.99%7D,%0A%5Cend%7Balign*%7D%0A"></p>
+<p>confirming agreement between the two approaches.</p>
+<p>Note that the variance returned using the online update formula is the population variance. In order to return the updated unbiased sample variance, we need to multiply the variance returned by the online update formula by <img src="https://latex.codecogs.com/png.latex?(n+1)/n">, where <img src="https://latex.codecogs.com/png.latex?n"> represents the length of the original array excluding the new observation. Thus, the updated sample variance after accounting for the new value is:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0As_%7Bn+1%7D%5E%7B2%7D%20&amp;=%20%5Cfrac%7Bn+1%7D%7Bn%7D%5Cbig(%5Cfrac%7Bn%7D%7Bn+1%7D%5Csigma_%7Bn%7D%5E%7B2%7D%20+%20%5Cfrac%7B1%7D%7Bn%7D(x_%7Bn+1%7D%20-%20%5Cmu_%7Bn+1%7D)%5E%7B2%7D%5Cbig)%20%5C%5C%0As_%7B9%7D%5E%7B2%7D%20%20%20&amp;=%20%5Cfrac%7B9%7D%7B8%7D(59372.99)%20%5Capprox%2066794.61%0A%5Cend%7Balign*%7D%0A"></p>
+</section>
+<section id="implementation" class="level3">
+<h3 class="anchored" data-anchor-id="implementation">Implementation</h3>
+<p>A straightforward implementation in Python to handle online mean and variance updates, incorporating Bessel’s correction to return the unbiased sample variance is provided below:</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-2"></span>
+<span id="cb1-3"></span>
+<span id="cb1-4"></span>
+<span id="cb1-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> online_mean(mean_init, n, new_obs):</span>
+<span id="cb1-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Return updated mean in light of new observation without</span></span>
+<span id="cb1-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    full recalculation.</span></span>
+<span id="cb1-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-10">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span>((n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> mean_init <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> new_obs) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>))</span>
+<span id="cb1-11"></span>
+<span id="cb1-12"></span>
+<span id="cb1-13"></span>
+<span id="cb1-14"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> online_variance(var_init, mean_new, n, new_obs):</span>
+<span id="cb1-15">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Return updated variance in light of new observation without</span></span>
+<span id="cb1-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    full recalculation. Includes Bessel's correction to return</span></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    unbiased sample variance. </span></span>
+<span id="cb1-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-20">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> ((n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> n) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (((n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> var_init) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> (((new_obs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> mean_new)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> n))</span>
+<span id="cb1-21"></span>
+<span id="cb1-22"></span>
+<span id="cb1-23"></span>
+<span id="cb1-24"></span>
+<span id="cb1-25">a0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.array([<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1154</span>,  <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">717</span>,  <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">958</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1476</span>,  <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">889</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1414</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1364</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1047</span>])</span>
+<span id="cb1-26"></span>
+<span id="cb1-27">a1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.array([<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1154</span>,  <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">717</span>,  <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">958</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1476</span>,  <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">889</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1414</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1364</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1047</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1251</span>])</span>
+<span id="cb1-28"></span>
+<span id="cb1-29"></span>
+<span id="cb1-30"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Original mean and variance.</span></span>
+<span id="cb1-31">mean0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a0.mean()    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 1127.38</span></span>
+<span id="cb1-32">variance0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a0.var() <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 65096.48</span></span>
+<span id="cb1-33"></span>
+<span id="cb1-34"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Full recalculation mean and variance with new observation.</span></span>
+<span id="cb1-35">mean1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a1.mean()    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 1141.11</span></span>
+<span id="cb1-36">variance1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a1.var(ddof<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 59372.99</span></span>
+<span id="cb1-37"></span>
+<span id="cb1-38"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Online update of mean and variance with bias correction.</span></span>
+<span id="cb1-39">mean2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> online_mean(mean0, a0.size, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1251</span>)                     <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 1141.11</span></span>
+<span id="cb1-40">variance2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> online_variance(variance0, mean2, a0.size, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1251</span>)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 66794.61</span></span>
+<span id="cb1-41"></span>
+<span id="cb1-42"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Full recalculation mean    : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>mean1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-43"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Full recalculation variance: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>variance1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-44"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Online calculation mean    : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>mean2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-45"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Online calculation variance: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>variance2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Full recalculation mean    : 1,141.11111
+Full recalculation variance: 66,794.61111
+Online calculation mean    : 1,141.11111
+Online calculation variance: 66,794.61111</code></pre>
+</div>
+</div>
+
+
+</section>
+
+ ]]></description>
+  <category>Statistical Modeling</category>
+  <category>Python</category>
+  <guid>www.jtrive.com/posts/online-updates/index.html</guid>
+  <pubDate>Sun, 18 Feb 2024 06:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Smoothing Data with Cubic Splines in R</title>
   <link>www.jtrive.com/posts/spline-smoothing-r/index.html</link>
@@ -15363,1757 +15662,6 @@ font-style: inherit;">"rbind"</span>, dfList)</span></code></pre></div>
  ]]></description>
   <category>R</category>
   <guid>www.jtrive.com/posts/sqlite-r/index.html</guid>
-  <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Generating Correlated Random Samples in Python</title>
-  <link>www.jtrive.com/posts/correlated-samples/index.html</link>
-  <description><![CDATA[ 
-
-
-
-
-<p>An analysis may require the ability to generate correlated random samples. For example, imagine we have monthly returns for three financial indicators over a 20 year period. We are interested in modeling these returns using parametric distributions for some downstream analysis, perhaps to estimate tail behavior over a large number of samples. In this post, I’ll demonstrate that assuming independence of truly correlated random variables falls short, and how to correctly model the correlation for sample generation. The financial indicator data is available <a href="https://gist.githubusercontent.com/jtrive84/9955433e344ec773e5766657f961fde5/raw/b2e2c99db1e05aeb69186550b9c78cc9412df911/sample_returns.csv">here</a>.</p>
-<div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
-<span id="cb1-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> mpl</span>
-<span id="cb1-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> plt</span>
-<span id="cb1-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb1-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> scipy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> stats</span>
-<span id="cb1-6"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb1-7"></span>
-<span id="cb1-8">indicator_url <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"https://gist.githubusercontent.com/jtrive84/9955433e344ec773e5766657f961fde5/raw/b2e2c99db1e05aeb69186550b9c78cc9412df911/sample_returns.csv"</span></span>
-<span id="cb1-9"></span>
-<span id="cb1-10">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_csv(indicator_url)</span>
-<span id="cb1-11"></span>
-<span id="cb1-12">df.head()</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="1">
-<div>
-
-
-<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">date</th>
-<th data-quarto-table-cell-role="th">us_credit</th>
-<th data-quarto-table-cell-role="th">us_market</th>
-<th data-quarto-table-cell-role="th">global_market</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
-<td>1/31/2001</td>
-<td>0.035525</td>
-<td>0.0301</td>
-<td>0.022123</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
-<td>2/28/2001</td>
-<td>-0.001583</td>
-<td>-0.0950</td>
-<td>-0.091336</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
-<td>3/31/2001</td>
-<td>0.002638</td>
-<td>-0.0675</td>
-<td>-0.075002</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
-<td>4/30/2001</td>
-<td>0.010607</td>
-<td>0.0738</td>
-<td>0.075063</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
-<td>5/31/2001</td>
-<td>0.010448</td>
-<td>0.0035</td>
-<td>-0.010473</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<p>The table contains monthly returns for us_credit, us_market and global_market from 2001-01-31 up to 2023-06-30, but our approach can be extended to any number of financial indicators. Our goal is to find an appropriate parametric distribution for each indicator to use for sample generation. We start by plotting histograms of each indicator to get an idea of the distributional form (symmetric, skewed, etc.). This will dictate which distribution we use to find the best fitting parameters via maximum likelihood. Since there are positive and negative values for each indicator, using a normal distribution is probably a safe bet. If values of the indicators were strictly positive, we would use a distribution with support on <img src="https://latex.codecogs.com/png.latex?(0,%20%5Cinfty)"> such as gamma, lognormal or weibull.</p>
-<div class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Plot histogram for each indicator.</span></span>
-<span id="cb2-2">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df.drop(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"date"</span>, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb2-3"></span>
-<span id="cb2-4">indicators <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df.columns</span>
-<span id="cb2-5"></span>
-<span id="cb2-6">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(nrows<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, ncols<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3.5</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb2-7"></span>
-<span id="cb2-8"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> ii, ind_name <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">enumerate</span>(indicators):</span>
-<span id="cb2-9">    </span>
-<span id="cb2-10">    ind_mean, ind_std <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df[ind_name].mean(), df[ind_name].std()</span>
-<span id="cb2-11">    label0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\bar x = $"</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>ind_mean<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.4</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span></span>
-<span id="cb2-12">    label1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$s = $"</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>ind_std<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.4</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span></span>
-<span id="cb2-13">    ax[ii].set_title(ind_name, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"center"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>)</span>
-<span id="cb2-14">    ax[ii].hist(</span>
-<span id="cb2-15">        df[ind_name].values, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">18</span>, density<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#ff7595"</span>, </span>
-<span id="cb2-16">        edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#FFFFFF"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.0</span></span>
-<span id="cb2-17">        )</span>
-<span id="cb2-18">    </span>
-<span id="cb2-19">    ax[ii].axvline(ind_mean, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.25</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \mu$"</span>)</span>
-<span id="cb2-20">    ax[ii].set_yticklabels([])</span>
-<span id="cb2-21">    ax[ii].set_xlabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb2-22">    ax[ii].set_ylabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb2-23">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb2-24">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb2-25">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb2-26">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb2-27">    ax[ii].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb2-28">    ax[ii].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb2-29">    ax[ii].grid(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)   </span>
-<span id="cb2-30">    ax[ii].set_axisbelow(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb2-31">    </span>
-<span id="cb2-32">    ax[ii].annotate(</span>
-<span id="cb2-33">        label0, xy<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.05</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.90</span>), xycoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"axes fraction"</span>, ha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bottom"</span>, </span>
-<span id="cb2-34">        fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>, rotation<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span></span>
-<span id="cb2-35">        ) </span>
-<span id="cb2-36">    ax[ii].annotate(</span>
-<span id="cb2-37">        label1, xy<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.05</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.85</span>), xycoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"axes fraction"</span>, ha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bottom"</span>, </span>
-<span id="cb2-38">        fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>, rotation<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span></span>
-<span id="cb2-39">        ) </span>
-<span id="cb2-40">    ax[ii].legend(loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"upper right"</span>, fancybox<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, framealpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x-small"</span>)</span>
-<span id="cb2-41">    </span>
-<span id="cb2-42">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="www.jtrive.com/posts/correlated-samples/correlated-samples_files/figure-html/cell-3-output-1.png" class="img-fluid figure-img" alt="Histograms for us_credit, us_market and global_market."></p>
-<figcaption class="figure-caption">Distribution of returns for each indicator</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<p>The distribution of each indicator appears relatively normal. Given that the parametric form has been identified, we can use Scipy to determine the optimal parameters to fit three separate normal distributions (one per indicator) via maximum likelihood.</p>
-<div class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
-<span id="cb3-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> scipy.stats <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> norm</span>
-<span id="cb3-3"></span>
-<span id="cb3-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get normal parameter estimates (mean &amp; standard deviation) via maximum likelihood.</span></span>
-<span id="cb3-5">mu0, std0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm.fit(df[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_credit"</span>], method<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"MLE"</span>)</span>
-<span id="cb3-6">mu1, std1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm.fit(df[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_market"</span>], method<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"MLE"</span>)</span>
-<span id="cb3-7">mu2, std2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm.fit(df[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"global_market"</span>], method<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"MLE"</span>)</span>
-<span id="cb3-8"></span>
-<span id="cb3-9">dparams <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {</span>
-<span id="cb3-10">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_credit"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>: mu0, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>: std0},</span>
-<span id="cb3-11">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_market"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>: mu1, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>: std1},</span>
-<span id="cb3-12">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"global_market"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>: mu2, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>: std2},</span>
-<span id="cb3-13">    }</span>
-<span id="cb3-14"></span>
-<span id="cb3-15"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">- us_credit    : mean=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>mu0<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> std==</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>std0<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb3-16"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"- us_market    : mean=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>mu1<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> std==</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>std1<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb3-17"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"- global_market: mean=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>mu2<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> std==</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>std2<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-- us_credit    : mean=0.00015 std==0.02138
-- us_market    : mean=0.00595 std==0.04442
-- global_market: mean=0.00517 std==0.04605
-</code></pre>
-</div>
-</div>
-<p>The parameter estimates match very closely with the empirical mean and standard deviation overlaid on each histogram. This is because the MLE estimates for the normal distribution are equal to the sample mean and the unadjusted sample variance. Next we overlay the best fitting parametric distribution with each indicator histogram in order to assess the quality of fit.</p>
-<div class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Plot histogram for each indicator along with parameterized normal distribution.</span></span>
-<span id="cb5-2">hist_color <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#ff7595"</span></span>
-<span id="cb5-3">dist_color <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#0000FF"</span></span>
-<span id="cb5-4"></span>
-<span id="cb5-5">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(nrows<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, ncols<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9.5</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3.5</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb5-6"></span>
-<span id="cb5-7"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> ii, ind_name <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">enumerate</span>(indicators):</span>
-<span id="cb5-8"></span>
-<span id="cb5-9">    vals <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df[ind_name]</span>
-<span id="cb5-10">    mle_mean, mle_std <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dparams[ind_name][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>], dparams[ind_name][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>]</span>
-<span id="cb5-11"></span>
-<span id="cb5-12">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get PDF values associated with distribution.</span></span>
-<span id="cb5-13">    ndist <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm(mle_mean, mle_std)</span>
-<span id="cb5-14">    xvals <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.linspace(vals.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">min</span>() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.90</span>, vals.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">max</span>() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1000</span>)</span>
-<span id="cb5-15">    yvals <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> ndist.pdf(xvals)</span>
-<span id="cb5-16"></span>
-<span id="cb5-17">    label0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \mu = $"</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>mle_mean<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.4</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span></span>
-<span id="cb5-18">    label1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \sigma = $"</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>mle_std<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.4</span><span class="er" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">f</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span></span>
-<span id="cb5-19">    </span>
-<span id="cb5-20">    ax[ii].set_title(ind_name, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"center"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>)</span>
-<span id="cb5-21">    ax[ii].hist(</span>
-<span id="cb5-22">        df[ind_name].values, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">18</span>, density<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>hist_color, </span>
-<span id="cb5-23">        edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#FFFFFF"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.0</span></span>
-<span id="cb5-24">        )</span>
-<span id="cb5-25"></span>
-<span id="cb5-26">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Plot normal distribution.</span></span>
-<span id="cb5-27">    ax[ii].plot(xvals, yvals, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.5</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>dist_color, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"--"</span>)</span>
-<span id="cb5-28">    ax[ii].set_yticklabels([])</span>
-<span id="cb5-29">    ax[ii].set_xlabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb5-30">    ax[ii].set_ylabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb5-31">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb5-32">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb5-33">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb5-34">    ax[ii].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb5-35">    ax[ii].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb5-36">    ax[ii].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb5-37">    ax[ii].grid(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)   </span>
-<span id="cb5-38">    ax[ii].set_axisbelow(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb5-39">    </span>
-<span id="cb5-40">    ax[ii].annotate(</span>
-<span id="cb5-41">        label0, xy<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.05</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.90</span>), xycoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"axes fraction"</span>, ha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bottom"</span>, </span>
-<span id="cb5-42">        fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>, rotation<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span></span>
-<span id="cb5-43">        ) </span>
-<span id="cb5-44">    ax[ii].annotate(</span>
-<span id="cb5-45">        label1, xy<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.05</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.85</span>), xycoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"axes fraction"</span>, ha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bottom"</span>, </span>
-<span id="cb5-46">        fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>, rotation<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span></span>
-<span id="cb5-47">        ) </span>
-<span id="cb5-48">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#ax[ii].legend(loc="upper right", fancybox=True, framealpha=1, fontsize="x-small")</span></span>
-<span id="cb5-49">plt.suptitle(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Indicator histograms w/ parametric overlay"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb5-50">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span>
-<span id="cb5-51"></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="www.jtrive.com/posts/correlated-samples/correlated-samples_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img" alt="Histograms for us_credit, us_market and global_market with normal density overlay"></p>
-<figcaption class="figure-caption">Indicator histograms with parametric overlay</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<p>The distributions in each case enclose the original histograms pretty well, with decent tail coverage in each instance. To demonstrate the approach, we next generate independent random samples from each indicator.</p>
-<div class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
-<span id="cb6-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Specify number of samples to generate.</span></span>
-<span id="cb6-3">nbr_sims <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">500</span></span>
-<span id="cb6-4"></span>
-<span id="cb6-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Copying dparams from previous cell.</span></span>
-<span id="cb6-6">dparams <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {</span>
-<span id="cb6-7">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_credit"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>: mu0, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>: std0},</span>
-<span id="cb6-8">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_market"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>: mu1, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>: std1},</span>
-<span id="cb6-9">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"global_market"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>: mu2, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>: std2},</span>
-<span id="cb6-10">    }</span>
-<span id="cb6-11"></span>
-<span id="cb6-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># us_credit.</span></span>
-<span id="cb6-13">mean0, std0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dparams[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_credit"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>], dparams[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_credit"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>]</span>
-<span id="cb6-14">rv0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm(mean0, std0)</span>
-<span id="cb6-15"></span>
-<span id="cb6-16"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># us_market.</span></span>
-<span id="cb6-17">mean1, std1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dparams[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_market"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>], dparams[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_market"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>]</span>
-<span id="cb6-18">rv1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm(mean1, std1)</span>
-<span id="cb6-19"></span>
-<span id="cb6-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># global_market.</span></span>
-<span id="cb6-21">mean2, std2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dparams[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"global_market"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mean"</span>], dparams[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"global_market"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"std"</span>]</span>
-<span id="cb6-22">rv2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm(mean2, std2)</span>
-<span id="cb6-23"></span>
-<span id="cb6-24"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create DataFrame to hold simulated indicators. </span></span>
-<span id="cb6-25">dfsims1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.DataFrame(</span>
-<span id="cb6-26">    np.vstack([rv0.rvs(nbr_sims), rv1.rvs(nbr_sims), rv2.rvs(nbr_sims)]).T,</span>
-<span id="cb6-27">    columns<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>indicators</span>
-<span id="cb6-28">    )</span>
-<span id="cb6-29"></span>
-<span id="cb6-30">dfsims1.describe()</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="5">
-<div>
-
-
-<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">us_credit</th>
-<th data-quarto-table-cell-role="th">us_market</th>
-<th data-quarto-table-cell-role="th">global_market</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">count</td>
-<td>500.000000</td>
-<td>500.000000</td>
-<td>500.000000</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">mean</td>
-<td>0.000558</td>
-<td>0.012024</td>
-<td>0.006257</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">std</td>
-<td>0.022043</td>
-<td>0.042455</td>
-<td>0.045772</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">min</td>
-<td>-0.072494</td>
-<td>-0.115241</td>
-<td>-0.148560</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">25%</td>
-<td>-0.014534</td>
-<td>-0.017264</td>
-<td>-0.024564</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">50%</td>
-<td>-0.000501</td>
-<td>0.014443</td>
-<td>0.007020</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">75%</td>
-<td>0.014217</td>
-<td>0.042519</td>
-<td>0.038046</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">max</td>
-<td>0.069504</td>
-<td>0.149524</td>
-<td>0.132896</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<p>Here we assume the value that an indicator takes on is independent of all other indicators. This is almost surely not the case. Let’s check how correlated the 3 selected indicators are within the original sample:</p>
-<div class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
-<span id="cb7-2">df.corr()</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="6">
-<div>
-
-
-<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">us_credit</th>
-<th data-quarto-table-cell-role="th">us_market</th>
-<th data-quarto-table-cell-role="th">global_market</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">us_credit</td>
-<td>1.000000</td>
-<td>-0.099877</td>
-<td>-0.037652</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">us_market</td>
-<td>-0.099877</td>
-<td>1.000000</td>
-<td>0.955514</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">global_market</td>
-<td>-0.037652</td>
-<td>0.955514</td>
-<td>1.000000</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<p>Do the independent samples exhibit the same correlation?</p>
-<div class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"></span>
-<span id="cb8-2">dfsims1.corr()</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="7">
-<div>
-
-
-<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">us_credit</th>
-<th data-quarto-table-cell-role="th">us_market</th>
-<th data-quarto-table-cell-role="th">global_market</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">us_credit</td>
-<td>1.000000</td>
-<td>-0.072533</td>
-<td>-0.066023</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">us_market</td>
-<td>-0.072533</td>
-<td>1.000000</td>
-<td>-0.044359</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">global_market</td>
-<td>-0.066023</td>
-<td>-0.044359</td>
-<td>1.000000</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<p>Not surprisingly, us_market and global_market are over 95% correlated in the original data. This is not exhibited within the set of non-correlated samples. With such high correlation, it is not reasonable to assume independence across indicators. We need instead to find a way to generate correlated random samples. This can be accomplished using Numpy’s multivariate normal distribution.</p>
-<p>As a brief aside, the significance of a correlation between two random variables depends on the sample size. To test if the correlation between two variables demonstrates a linear relationship at the 5% significance level, we compute:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%7C%5Crho%7C%20%5Cgt%202%20/%20%5Csqrt%7Bn%7D,%0A"></p>
-<p>In our case, there are 270 samples, therefore <img src="https://latex.codecogs.com/png.latex?n%20=%20%5Csqrt%7B270%7D%20%5Capprox%2016.4">. Thus, in order for the correlation between two indicators to be significant at the 5% level, it needs to be greater than <img src="https://latex.codecogs.com/png.latex?2%20/%2016.4%20%5Capprox%20.12">, which is clearly the case for global_market-us_market.</p>
-<div class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
-<span id="cb9-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Generate correlated random samples.</span></span>
-<span id="cb9-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Specify number of simulations to generate.</span></span>
-<span id="cb9-4">nbr_sims <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">500</span></span>
-<span id="cb9-5"></span>
-<span id="cb9-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create vector of means.</span></span>
-<span id="cb9-7">means <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [mean0, mean1, mean2]</span>
-<span id="cb9-8"></span>
-<span id="cb9-9"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Bind reference to covariance matrix.</span></span>
-<span id="cb9-10">V <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df.cov().values</span>
-<span id="cb9-11"></span>
-<span id="cb9-12">dfsims2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.DataFrame(</span>
-<span id="cb9-13">    np.random.multivariate_normal(means, V, nbr_sims),</span>
-<span id="cb9-14">    columns<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>indicators</span>
-<span id="cb9-15">    )</span>
-<span id="cb9-16"></span>
-<span id="cb9-17">dfsims2.describe()</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="8">
-<div>
-
-
-<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">us_credit</th>
-<th data-quarto-table-cell-role="th">us_market</th>
-<th data-quarto-table-cell-role="th">global_market</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">count</td>
-<td>500.000000</td>
-<td>500.000000</td>
-<td>500.000000</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">mean</td>
-<td>0.000547</td>
-<td>0.005966</td>
-<td>0.005387</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">std</td>
-<td>0.021886</td>
-<td>0.042421</td>
-<td>0.044833</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">min</td>
-<td>-0.062250</td>
-<td>-0.097373</td>
-<td>-0.137454</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">25%</td>
-<td>-0.013780</td>
-<td>-0.024495</td>
-<td>-0.027463</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">50%</td>
-<td>0.000788</td>
-<td>0.007268</td>
-<td>0.006098</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">75%</td>
-<td>0.015203</td>
-<td>0.033833</td>
-<td>0.035412</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">max</td>
-<td>0.067324</td>
-<td>0.136830</td>
-<td>0.148773</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<p>The min and max values for each indicator seem to align with what was observed in the original data. Let’s verify that the samples in <code>dfsims2</code> are correlated.</p>
-<div class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
-<span id="cb10-2">dfsims2.corr()</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="9">
-<div>
-
-
-<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">us_credit</th>
-<th data-quarto-table-cell-role="th">us_market</th>
-<th data-quarto-table-cell-role="th">global_market</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">us_credit</td>
-<td>1.000000</td>
-<td>-0.084854</td>
-<td>-0.038219</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">us_market</td>
-<td>-0.084854</td>
-<td>1.000000</td>
-<td>0.944791</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">global_market</td>
-<td>-0.038219</td>
-<td>0.944791</td>
-<td>1.000000</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<p>This matches closely with the original correlation profile. Let’s visualize the correlation in the generated random samples by comparing indicator samples from the independent simulated dataset vs.&nbsp;the dependent simulated dataset.</p>
-<div class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Generate pair-wise scatter plots for each indicator for independent and dependent draws. </span></span>
-<span id="cb11-2"></span>
-<span id="cb11-3">dindices <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {</span>
-<span id="cb11-4">    (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>): {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"independent"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_credit"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_market"</span>},</span>
-<span id="cb11-5">    (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>): {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"independent"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"global_market"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_credit"</span>},</span>
-<span id="cb11-6">    (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>): {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"independent"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_market"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"global_market"</span>},</span>
-<span id="cb11-7">    (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>): {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"dependent"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_credit"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_market"</span>},</span>
-<span id="cb11-8">    (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>): {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"dependent"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"global_market"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_credit"</span>},</span>
-<span id="cb11-9">    (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>): {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"dependent"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"us_market"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"global_market"</span>},</span>
-<span id="cb11-10">    }</span>
-<span id="cb11-11"></span>
-<span id="cb11-12"></span>
-<span id="cb11-13">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(nrows<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, ncols<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6.5</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb11-14"></span>
-<span id="cb11-15"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> kk, vv <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> dindices.items():</span>
-<span id="cb11-16">    </span>
-<span id="cb11-17">    ii, jj <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> kk</span>
-<span id="cb11-18">    data_desc, x_desc, y_desc <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> vv[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>], vv[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>], vv[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>]</span>
-<span id="cb11-19"></span>
-<span id="cb11-20">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">if</span> data_desc <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"independent"</span>:</span>
-<span id="cb11-21">        xx <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dfsims1[x_desc].values</span>
-<span id="cb11-22">        yy <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dfsims1[y_desc].values</span>
-<span id="cb11-23">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">else</span>:</span>
-<span id="cb11-24">        xx <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dfsims2[x_desc].values</span>
-<span id="cb11-25">        yy <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dfsims2[y_desc].values</span>
-<span id="cb11-26">        </span>
-<span id="cb11-27">    titlestr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>data_desc<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>x_desc<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> vs. </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>y_desc<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span></span>
-<span id="cb11-28">    ax[ii, jj].set_title(titlestr, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"center"</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bold"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb11-29">    ax[ii, jj].scatter(</span>
-<span id="cb11-30">        xx, yy, s<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">30</span>, c<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#FFFFFF"</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.85</span>, edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.75</span>)</span>
-<span id="cb11-31"></span>
-<span id="cb11-32">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># ax[ii].set_yticklabels([])</span></span>
-<span id="cb11-33">    ax[ii, jj].set_xlabel(x_desc, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb11-34">    ax[ii, jj].set_ylabel(y_desc, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb11-35">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb11-36">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb11-37">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb11-38">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb11-39">    ax[ii, jj].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb11-40">    ax[ii, jj].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb11-41">    ax[ii, jj].grid(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)   </span>
-<span id="cb11-42">    ax[ii, jj].set_axisbelow(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb11-43"></span>
-<span id="cb11-44">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="www.jtrive.com/posts/correlated-samples/correlated-samples_files/figure-html/cell-11-output-1.png" class="img-fluid figure-img" alt="Scatterplots by indicator pair for correlated and uncorrelated samples."></p>
-<figcaption class="figure-caption">Scatterplots by indicator pair for correlated and uncorrelated samples.</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<p>In the case of global_market-us_market (bottom right), the dependent plot captures the correlation inherent in the original data.</p>
-
-
-
- ]]></description>
-  <category>Statistical Modeling</category>
-  <category>Python</category>
-  <guid>www.jtrive.com/posts/correlated-samples/index.html</guid>
   <pubDate>Thu, 01 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
