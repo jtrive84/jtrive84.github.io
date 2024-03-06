@@ -10,7 +10,1077 @@
 <atom:link href="www.jtrive.com/index-statistical modeling.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.450</generator>
-<lastBuildDate>Sat, 24 Feb 2024 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sat, 02 Mar 2024 06:00:00 GMT</lastBuildDate>
+<item>
+  <title>Estimating Logistic Regression coefficients From Scratch in R</title>
+  <link>www.jtrive.com/posts/logistic-from-scratch-r/index.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>In this post, we highlight the parameter estimation routines called behind the scenes upon invocation of R’s glm function. Specifically, we’ll focus on how parameters of a logistic regression model are estimated when fit to data having a binary response.</p>
+<p>R’s glm function is used to fit generalized linear models, specified by giving a symbolic description of the linear predictor and a description of the error distribution. This function conceals a good deal of the complexity behind a simple interface, making it easy to overlook the calculations that estimate a model’s coefficients. The goal of this post is to shed some light on the mechanics of those calculations.</p>
+<section id="background" class="level3">
+<h3 class="anchored" data-anchor-id="background">Background</h3>
+<p>In a generalized linear model the response may follow any distribution from the exponential family, and rather than assuming the mean is a linear function of the explanatory variables, we assume that a function of the mean (the link function) is a linear function of the explanatory variables.</p>
+<p>Logistic regression is used for modeling data with a categorical response. Although it’s possible to model multinomial data using logistic regression, this article focuses only on fitting data having a dichotomous response (‘Yes/No’, ‘True/False’, ‘1/0’, ‘Good/Bad’).</p>
+<p>The logistic regression model is a generalized linear model whose canonical link is the logit, or log-odds:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7BLn%7D%20%5CBig(%5Cfrac%7B%5Cpi_%7Bi%7D%7D%7B1%20-%20%5Cpi_%7Bi%7D%7D%20%5CBig)%20=%20%5Cbeta_%7B0%7D%20+%20%5Cbeta_%7B1%7D%7Bx%7D_%7Bi1%7D%20+%20%5Cdots%20+%20%5Cbeta_%7Bp%7D%7Bx%7D_%7Bip%7D,%20%5Cquad%20i%20=%20(1,%20%5Cdots%20,%20n).%0A"></p>
+<p>Solving the logit for <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7Bi%7D">, which represents the predicted probability for a set of features <img src="https://latex.codecogs.com/png.latex?x_%7Bi%7D">, yields</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cpi_%7Bi%7D%20=%20%5Cfrac%20%7Be%5E%7B%5Cbeta_%7B0%7D%20+%20%5Cbeta_%7B1%7D%7Bx%7D_%7Bi1%7D%20+%20%5Cdots%20+%20%5Cbeta_%7Bp%7D%7Bx%7D_%7Bip%7D%7D%7D%7B1%20+%20e%5E%7B%5Cbeta_%7B0%7D%20+%20%5Cbeta_%7B1%7D%7Bx%7D_%7Bi1%7D%20+%20%5Cdots%20+%20%5Cbeta_%7Bp%7D%7Bx%7D_%7Bip%7D%7D%7D%20=%20%5Cfrac%20%7B1%7D%7B1%20+%20e%5E%7B-(%5Cbeta_%7B0%7D%20+%20%5Cbeta_%7B1%7D%7Bx%7D_%7Bi1%7D%20+%20%5Cdots%20+%20%5Cbeta_%7Bp%7D%7Bx%7D_%7Bip%7D)%7D%7D,%0A"></p>
+<p>Where <img src="https://latex.codecogs.com/png.latex?-%5Cinfty%20%3C%20x_%7Bi%7D%20%3C%20%5Cinfty"> and <img src="https://latex.codecogs.com/png.latex?0%3C%5Cpi_%7Bi%7D%3C1">.</p>
+<p>In other words, the expression for <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7Bi%7D"> maps any real-valued <img src="https://latex.codecogs.com/png.latex?x_%7Bi%7D"> to a positive probability between 0 and 1.</p>
+</section>
+<section id="parameter-estimation" class="level3">
+<h3 class="anchored" data-anchor-id="parameter-estimation">Parameter Estimation</h3>
+<p>Maximum Likelihood Estimation can be used to determine the parameters of a Logistic Regression model, which entails finding the set of parameters for which the probability of the observed data is greatest. The objective is to estimate the <img src="https://latex.codecogs.com/png.latex?(p+1)"> unknown <img src="https://latex.codecogs.com/png.latex?%5Cbeta_%7B0%7D,%20%5Cdots,%20%5Cbeta_%7Bp%7D">.</p>
+<p>Let <img src="https://latex.codecogs.com/png.latex?Y_%7Bi%7D"> represent independent, dichotomous response values for each of <img src="https://latex.codecogs.com/png.latex?n"> observations, where <img src="https://latex.codecogs.com/png.latex?Y_%7Bi%7D=1"> denotes a success and <img src="https://latex.codecogs.com/png.latex?Y_%7Bi%7D=0"> denotes a failure. The density function of a single observation <img src="https://latex.codecogs.com/png.latex?Y_%7Bi%7D"> can be expressed as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ap(y_%7Bi%7D)%20=%20%5Cpi_%7Bi%7D%5E%7By_%7Bi%7D%7D(1-%5Cpi_%7Bi%7D)%5E%7B1-y_%7Bi%7D%7D,%0A"></p>
+<p>From which we obtain the likelihood function:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AL(%5Cbeta)%20=%20%5Cprod_%7Bi=1%7D%5E%7Bn%7D%20%5Cpi_%7Bi%7D%5E%7By_%7Bi%7D%7D(1-%5Cpi_%7Bi%7D)%5E%7B1-y_%7Bi%7D%7D.%0A"></p>
+<p>Taking the natural log of the maximum likelihood estimate results in the log-likelihood function:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Al(%5Cbeta)%20&amp;=%20%5Cmathrm%7BLn%7D(L(%5Cbeta))%20=%20%5Cmathrm%7BLn%7D%20%5CBig(%5Cprod_%7Bi=1%7D%5E%7Bn%7D%20%5Cpi_%7Bi%7D%5E%7By_%7Bi%7D%7D(1-%5Cpi_%7Bi%7D)%5E%7B1-y_%7Bi%7D%7D%20%5CBig)%20%5C%5C%0A&amp;=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20y_%7Bi%7D%20%5Cmathrm%7BLn%7D(%5Cpi_%7Bi%7D)%20+%20(1-y_%7Bi%7D)%5Cmathrm%7BLn%7D(1-%5Cpi_%7Bi%7D)%20%5C%5C%0A&amp;=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20y_%7Bi%7D(%5Cbeta_%7B0%7D%20+%20%5Cbeta_%7B1%7D%7Bx%7D_%7Bi1%7D%20+%20%5Cdots%20+%20%5Cbeta_%7Bp%7D%7Bx%7D_%7Bip%7D)%20-%20%5Cmathrm%7BLn%7D(1%20+%20e%5E%7B%5Cbeta_%7B0%7D%20+%20%5Cbeta_%7B1%7D%7Bx%7D_%7Bi1%7D%20+%20%5Cdots%20+%20%5Cbeta_%7Bp%7D%7Bx%7D_%7Bip%7D%7D)%0A%5Cend%7Balign*%7D%0A"></p>
+<p>The first-order partial derivatives of the log-likelihood are calculated and set to zero for each <img src="https://latex.codecogs.com/png.latex?%5Cbeta_%7Bk%7D,%20k%20=%200,%201,%20%5Cdots,%20p">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%20%7B%5Cpartial%20l(%5Cbeta)%7D%7B%5Cpartial%20%5Cbeta_%7Bk%7D%7D%20=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20y_%7Bi%7Dx_%7Bik%7D%20-%20%5Cpi_%7Bi%7Dx_%7Bik%7D%20=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20x_%7Bik%7D(y_%7Bi%7D%20-%20%5Cpi_%7Bi%7D)%20=%200,%0A"></p>
+<p>which can be represented in matrix form as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%20%7B%5Cpartial%20l(%5Cbeta)%7D%7B%5Cpartial%20%5Cbeta%7D%20=%20X%5E%7BT%7D(y%20-%20%5Cpi),%0A"></p>
+<p>Where <img src="https://latex.codecogs.com/png.latex?X%5E%7BT%7D"> is a (p+1)xn matrix and <img src="https://latex.codecogs.com/png.latex?(y%20-%20%5Cpi)"> a nx1 vector.</p>
+<p>The vector of first-order partial derivatives of the log-likelihood function is referred to as the score function, and is typically represented as <img src="https://latex.codecogs.com/png.latex?U">.</p>
+<p>These <img src="https://latex.codecogs.com/png.latex?(p+1)"> equations are solved simultaneously to obtain the parameter estimates <img src="https://latex.codecogs.com/png.latex?%5Cbeta_%7B0%7D,%20%5Cdots,%20%5Cbeta_%7Bp%7D">. Each solution specifies a critical-point which will be either a maximum or a minimum. The critical point will be a maximum if the matrix of second partial derivatives is negative definite (which means every element on the diagonal of the matrix is less than zero).</p>
+<p>The matrix of second partial derivatives can be expressed as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta_%7Bk%7D%7D%7B%5Cpartial%20%5Cbeta_%7Bk%7D%7D%5E%7BT%7D%7D%20=%20-%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20x_%7Bik%7D%5Cpi_%7Bi%7D(1-%5Cpi_%7Bi%7D)%7Bx_%7Bik%7D%7D%5E%7BT%7D,%0A"></p>
+<p>which can be represented as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%20=%20-X%5E%7BT%7DWX,%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?W"> is an nxn diagonal matrix of weights with each element equal to <img src="https://latex.codecogs.com/png.latex?%5Cpi_%7Bi%7D(1%20-%20%5Cpi_%7Bi%7D)"> for logistic regression models. In general, the weight matrix <img src="https://latex.codecogs.com/png.latex?W"> will have entries inversely proportional to the variance of the response.</p>
+<p>Since no closed-form solution exists for determining logistic regression coefficients, iterative techniques must be employed.</p>
+</section>
+<section id="fitting-the-model" class="level3">
+<h3 class="anchored" data-anchor-id="fitting-the-model">Fitting the Model</h3>
+<p>Two distinct but related iterative methods can be utilized in determining model coefficients: the Newton-Raphson method and Fisher Scoring. The Newton-Raphson method relies on the matrix of second partial derivatives, also known as the Hessian. The Newton-Raphson update expression is given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbeta%5E%7B(t+1)%7D%20=%20%5Cbeta%5E%7B(t)%7D%20-%20(H%5E%7B(t)%7D)%5E%7B-1%7DU%5E%7B(t)%7D,%0A"></p>
+<p>where:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cbeta%5E%7B(t+1)%7D"> = the vector of updated coefficient estimates.<br>
+</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cbeta%5E%7B(t)%7D"> = the vector of coefficient estimates from the previous iteration.</li>
+<li><img src="https://latex.codecogs.com/png.latex?(H%5E%7B(t)%7D)%5E%7B-1%7D"> = the inverse Hessian, <img src="https://latex.codecogs.com/png.latex?%5CBig(%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%5CBig)%5E%7B-1%7D">.<br>
+</li>
+<li><img src="https://latex.codecogs.com/png.latex?U%5E%7B(t)%7D"> = the vector of first-order partial derivatives of the log-likelihood function, <img src="https://latex.codecogs.com/png.latex?%5Cfrac%20%7B%5Cpartial%20l(%5Cbeta)%7D%7B%5Cpartial%20%5Cbeta%7D%20=%20X%5E%7BT%7D(y%20-%20%5Cpi)">.</li>
+</ul>
+<p>The Newton-Raphson method starts with an initial guess for the solution, and obtains a second guess by approximating the function to be maximized in a neighborhood of the initial guess by a second-degree polynomial, and then finding the location of that polynomial’s maximum value. This process continues until it converges to the actual solution. The convergence of <img src="https://latex.codecogs.com/png.latex?%5Cbeta%5E%7B(t)%7D"> to <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Cbeta%7D"> is usually fast, with adequate convergence usually realized in fewer than 20 iterations.</p>
+<p>Fisher Scoring utilizes the expected information, <img src="https://latex.codecogs.com/png.latex?-E%5CBig(%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%5CBig)">. Let <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BI%7D"> serve as a stand-in for the expected value of the information:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathcal%7BI%7D%20=%20-E%5CBig(%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%5CBig).%0A"></p>
+<p>The Fisher Scoring update step replaces <img src="https://latex.codecogs.com/png.latex?-H%5E%7B(t)%7D"> from Newton-Raphson with <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BI%7D%5E%7B(t)%7D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cbeta%5E%7B(t+1)%7D%20&amp;=%20%5Cbeta%5E%7B(t)%7D%20+%20(%5Cmathcal%7BI%7D%5E%7B(t)%7D)%5E%7B-1%7DU%5E%7B(t)%7D%20%5C%5C%0A&amp;=%20%5Cbeta%5E%7B(t)%7D%20+%20(X%5E%7BT%7DWX)%5E%7B-1%7DX%5E%7BT%7D(y%20-%20%5Cpi),%0A%5Cend%7Balign*%7D%0A"></p>
+<p>where:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cbeta%5E%7B(t+1)%7D"> = the vector of updated coefficient estimates.<br>
+</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cbeta%5E%7B(t)%7D"> = the vector of coefficient estimates from the previous iteration.<br>
+</li>
+<li><img src="https://latex.codecogs.com/png.latex?(%5Cmathcal%7BI%7D%5E%7B(t)%7D)%5E%7B-1%7D"> = the inverse of the expected information matrix, <img src="https://latex.codecogs.com/png.latex?-E%20%5CBig(%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%5CBig)%5E%7B-1%7D">.<br>
+</li>
+<li><img src="https://latex.codecogs.com/png.latex?U%5E%7B(t)%7D"> = the vector of first-order partial derivatives of the log-likelihood function, <img src="https://latex.codecogs.com/png.latex?%5Cfrac%20%7B%5Cpartial%20l(%5Cbeta)%7D%7B%5Cpartial%20%5Cbeta%7D%20=%20X%5E%7BT%7D(y%20-%20%5Cpi)">.</li>
+</ul>
+<p>For GLM’s with a canonical link, the observed and expected information are the same. When the response follows an exponential family distribution and the canonical link function is employed, observed and expected Information coincide so that Fisher Scoring produces the same estimates as Newton-Raphson.</p>
+<p>When the canonical link is used, the second partial derivatives of the log-likelihood do not depend on the observations <img src="https://latex.codecogs.com/png.latex?y_%7Bi%7D">, and therefore</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%20=%20E%20%5CBig(%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%20%5CBig).%0A"></p>
+<p>Fisher scoring has the advantage that it produces the asymptotic covariance matrix as a by-product. To summarize:</p>
+<ul>
+<li>The Hessian is the matrix of second partial derivatives of the log-likelihood with respect to the parameters: <img src="https://latex.codecogs.com/png.latex?H%20=%20%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D">.<br>
+</li>
+<li>The observed information is <img src="https://latex.codecogs.com/png.latex?-%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D">.</li>
+<li>The expected information is <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BI%7D%20=%20E%5CBig(-%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%5CBig)">.<br>
+</li>
+<li>The asymptotic covariance matrix is <img src="https://latex.codecogs.com/png.latex?mathrm%7BVar%7D(%5Chat%7B%5Cbeta%7D)%20=%20E%5CBig(-%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%5CBig)%5E%7B-1%7D%20=%20(X%5E%7BT%7DWX)%5E%7B-1%7D">.</li>
+</ul>
+<p>For models employing a canonical link function:</p>
+<ul>
+<li>The observed and expected information are the same: <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%20=%20E%5CBig(%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%5CBig)">.<br>
+</li>
+<li><img src="https://latex.codecogs.com/png.latex?H%20=%20-%5Cmathcal%7BI%7D">, or <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%20=%20E%5CBig(-%5Cfrac%7B%5Cpartial%5E%7B2%7D%20l(%5Cbeta)%7D%7B%7B%5Cpartial%20%5Cbeta%7D%7B%5Cpartial%20%5Cbeta%7D%5E%7BT%7D%7D%5CBig)">.<br>
+</li>
+<li>The Newton-Raphson and Fisher Scoring algorithms yield identical results.</li>
+</ul>
+</section>
+<section id="fisher-scoring-in-r" class="level3">
+<h3 class="anchored" data-anchor-id="fisher-scoring-in-r">Fisher Scoring in R</h3>
+<p>The data used for our sample calculation can be obtained <a href="https://gist.github.com/jtrive84/835514a76f7afd552c999e4d9134baa8">here</a>. This data represents O-ring failures in the 23 pre-Challenger space shuttle missions. In this dataset, TEMPERATURE serves as the single explanatory variable which will be used to predict “O_RING_FAILURE”, which is 1 if a failure occurred, 0 otherwise.</p>
+<p>Once the parameters have been determined, the model estimate of the probability of success for a given observation can be calculated via:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Chat%5Cpi_%7Bi%7D%20=%20%5Cfrac%20%7Be%5E%7B%5Chat%5Cbeta_%7B0%7D%20+%20%5Chat%5Cbeta_%7B1%7D%7Bx%7D_%7Bi1%7D%20+%20%5Cdots%20+%20%5Chat%5Cbeta_%7Bp%7D%7Bx%7D_%7Bip%7D%7D%7D%7B1%20+%20e%5E%7B%5Chat%5Cbeta_%7B0%7D%20+%20%5Chat%5Cbeta_%7B1%7D%7Bx%7D_%7Bi1%7D%20+%20%5Cdots%20+%20%5Chat%5Cbeta_%7Bp%7D%7Bx%7D_%7Bip%7D%7D%7D%0A"></p>
+<p><code>getCoefficients</code> returns the estimated model coefficients as a (p+1)x1 matrix. In addition, the function returns the number of scoring iterations, fitted values and resulting variance-covariance matrix.</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"></span>
+<span id="cb1-2">getCoefficients <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">function</span>(design_matrix, response_vector, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">epsilon=</span>.<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0001</span>) {</span>
+<span id="cb1-3">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># =========================================================================</span></span>
+<span id="cb1-4">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># design_matrix      `X`     =&gt; n-by-(p+1)                                |</span></span>
+<span id="cb1-5">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># response_vector    `y`     =&gt; n-by-1                                    |</span></span>
+<span id="cb1-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># probability_vector `p`     =&gt; n-by-1                                    |</span></span>
+<span id="cb1-7">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># weights_matrix     `W`     =&gt; n-by-n                                    |</span></span>
+<span id="cb1-8">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># epsilon                    =&gt; threshold above which iteration continues |</span></span>
+<span id="cb1-9">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># =========================================================================</span></span>
+<span id="cb1-10">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># n                          =&gt; # of observations                         |</span></span>
+<span id="cb1-11">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># (p + 1)                    =&gt; # of parameters, +1 for intercept term    |</span></span>
+<span id="cb1-12">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># =========================================================================</span></span>
+<span id="cb1-13">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># U =&gt; First derivative of Log-Likelihood with respect to                 |</span></span>
+<span id="cb1-14">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#      each beta_i, i.e. `Score Function`: X_transpose * (y - p)          |</span></span>
+<span id="cb1-15">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#                                                                         |</span></span>
+<span id="cb1-16">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># I =&gt; Second derivative of Log-Likelihood with respect to                |</span></span>
+<span id="cb1-17">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#      each beta_i. The `Information Matrix`: (X_transpose * W * X)       |</span></span>
+<span id="cb1-18">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#                                                                         |</span></span>
+<span id="cb1-19">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># X^T*W*X results in a (p+1)-by-(p+1) matrix                              |</span></span>
+<span id="cb1-20">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># X^T(y - p) results in a (p+1)-by-1 matrix                               |</span></span>
+<span id="cb1-21">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># (X^T*W*X)^-1 * X^T(y - p) results in a (p+1)-by-1 matrix                |</span></span>
+<span id="cb1-22">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># ========================================================================|</span></span>
+<span id="cb1-23">    X <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>(design_matrix)</span>
+<span id="cb1-24">    y <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>(response_vector)</span>
+<span id="cb1-25"></span>
+<span id="cb1-26">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Initialize logistic function used for Scoring calculations.</span></span>
+<span id="cb1-27">    pi_i <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">function</span>(v) <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">exp</span>(v) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">exp</span>(v)))</span>
+<span id="cb1-28"></span>
+<span id="cb1-29">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Initialize beta_0, p_0, W_0, I_0 &amp; U_0.</span></span>
+<span id="cb1-30">    beta_0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">matrix</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">rep</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ncol</span>(X)), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">nrow=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">ncol</span>(X), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">ncol=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">byrow=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">dimnames=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span>)</span>
+<span id="cb1-31">    p_0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pi_i</span>(X <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> beta_0)</span>
+<span id="cb1-32">    W_0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">diag</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.vector</span>(p_0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> p_0)))</span>
+<span id="cb1-33">    I_0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">t</span>(X) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> W_0 <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> X</span>
+<span id="cb1-34">    U_0 <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">t</span>(X) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> (y <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> p_0)</span>
+<span id="cb1-35"></span>
+<span id="cb1-36">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Initialize variables for iteration.</span></span>
+<span id="cb1-37">    beta_old <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> beta_0</span>
+<span id="cb1-38">    iter_I <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> I_0</span>
+<span id="cb1-39">    iter_U <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> U_0</span>
+<span id="cb1-40">    iter_p <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> p_0</span>
+<span id="cb1-41">    iter_W <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> W_0</span>
+<span id="cb1-42">    fisher_scoring_iterations <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb1-43"></span>
+<span id="cb1-44">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Iterate until difference between abs(beta_new - beta_old) &lt; epsilon.</span></span>
+<span id="cb1-45">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">while</span>(<span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>) {</span>
+<span id="cb1-46">        fisher_scoring_iterations <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> fisher_scoring_iterations <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb1-47">        beta_new <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> beta_old <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">solve</span>(iter_I) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> iter_U</span>
+<span id="cb1-48"></span>
+<span id="cb1-49">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> (<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">all</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">abs</span>(beta_new <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> beta_old) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> epsilon)) {</span>
+<span id="cb1-50">            model_parameters <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> beta_new</span>
+<span id="cb1-51">            fitted_values <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pi_i</span>(X <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> model_parameters)</span>
+<span id="cb1-52">            covariance_matrix <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">solve</span>(iter_I)</span>
+<span id="cb1-53">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">break</span></span>
+<span id="cb1-54"></span>
+<span id="cb1-55">        } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">else</span> {</span>
+<span id="cb1-56">            iter_p <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">pi_i</span>(X <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> beta_new)</span>
+<span id="cb1-57">            iter_W <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">diag</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.vector</span>(iter_p<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>iter_p)))</span>
+<span id="cb1-58">            iter_I <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">t</span>(X) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> iter_W <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> X</span>
+<span id="cb1-59">            iter_U <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">t</span>(X) <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%*%</span> (y <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> iter_p)</span>
+<span id="cb1-60">            beta_old <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> beta_new</span>
+<span id="cb1-61">        }</span>
+<span id="cb1-62">    }</span>
+<span id="cb1-63"></span>
+<span id="cb1-64">    results <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">list</span>(</span>
+<span id="cb1-65">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'model_parameters'</span><span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span>model_parameters, </span>
+<span id="cb1-66">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'covariance_matrix'</span><span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span>covariance_matrix,</span>
+<span id="cb1-67">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'fitted_values'</span><span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span>fitted_values,</span>
+<span id="cb1-68">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'number_iterations'</span><span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span>fisher_scoring_iterations</span>
+<span id="cb1-69">        )</span>
+<span id="cb1-70"></span>
+<span id="cb1-71">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">return</span>(results)</span>
+<span id="cb1-72">}</span></code></pre></div>
+<p>A quick summary of R’s matrix operators:</p>
+<ul>
+<li><code>%*%</code> is a stand-in for matrix multiplication.<br>
+</li>
+<li><code>diag</code> returns a matrix with the provided vector as the diagonal and zero off-diagonal entries.</li>
+<li><code>t</code> returns the transpose of the provided matrix.</li>
+<li><code>solve</code> returns the inverse of the provided matrix (if it exists).</li>
+</ul>
+<p>Note that in our implementation, we solve the normal equations directly. You wouldn’t see this in practice or when using optimized numerical software packages. This is because since when confronted with solving ill-conditioned systems of equations, computing <img src="https://latex.codecogs.com/png.latex?(X%5E%7BT%7DWX)%5E%7B-1%7D"> effectively squares the condition number, which results in an answer with diminished accuracy. Optimized statistical computing packages instead leverage more stable methods such as the QR decomposition or SVD. But this suffices for our purposes.</p>
+<p>We load the Challenger dataset and partition it into the design matrix and response, which will then be passed into <code>getCoefficients</code>:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1">df <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read.table</span>(</span>
+<span id="cb2-2">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">file=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Challenger.csv"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">header=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>,  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sep=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">","</span>, </span>
+<span id="cb2-3">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stringsAsFactors=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb2-4">    )</span>
+<span id="cb2-5"></span>
+<span id="cb2-6">X <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>(<span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">cbind</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'TEMPERATURE'</span>]))  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># design matrix</span></span>
+<span id="cb2-7">y <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">as.matrix</span>(df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'O_RING_FAILURE'</span>])         <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># response vector</span></span>
+<span id="cb2-8"></span>
+<span id="cb2-9"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">colnames</span>(X) <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span></span>
+<span id="cb2-10"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">colnames</span>(y) <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">NULL</span></span>
+<span id="cb2-11"></span>
+<span id="cb2-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Call `getCoefficients`, keeping epsilon at .0001.</span></span>
+<span id="cb2-13">results <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">getCoefficients</span>(X, y, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">epsilon=</span>.<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0001</span>)</span></code></pre></div>
+<p>Printing <code>results</code> displays the model’s estimated coefficients (<em>model_parameters</em>), the variance-covariance matrix of the coefficient estimates (<em>covariance_matrix</em>), fitted values (<em>fitted_values</em>) and the number of Fisher Scoring iterations (<em>number_iterations</em>):</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">print</span>(results)</span>
+<span id="cb3-2"></span>
+<span id="cb3-3"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>model_parameters</span>
+<span id="cb3-4">           [,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb3-5">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15.0429016</span></span>
+<span id="cb3-6">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2321627</span></span>
+<span id="cb3-7"></span>
+<span id="cb3-8"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>covariance_matrix</span>
+<span id="cb3-9">           [,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]        [,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]</span>
+<span id="cb3-10">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">54.4442748</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.79638682</span></span>
+<span id="cb3-11">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,] <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.7963868</span>  <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.01171514</span></span>
+<span id="cb3-12"></span>
+<span id="cb3-13"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>fitted_values</span>
+<span id="cb3-14">            [,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb3-15"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.43049313</span></span>
+<span id="cb3-16"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.22996826</span></span>
+<span id="cb3-17"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.27362105</span></span>
+<span id="cb3-18"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.32209405</span></span>
+<span id="cb3-19"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.37472428</span></span>
+<span id="cb3-20"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.15804910</span></span>
+<span id="cb3-21"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.12954602</span></span>
+<span id="cb3-22"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.22996826</span></span>
+<span id="cb3-23"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.85931657</span></span>
+<span id="cb3-24">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.60268105</span></span>
+<span id="cb3-25">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">11</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.22996826</span></span>
+<span id="cb3-26">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.04454055</span></span>
+<span id="cb3-27">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">13</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.37472428</span></span>
+<span id="cb3-28">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">14</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.93924781</span></span>
+<span id="cb3-29">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.37472428</span></span>
+<span id="cb3-30">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">16</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.08554356</span></span>
+<span id="cb3-31">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">17</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.22996826</span></span>
+<span id="cb3-32">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">18</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.02270329</span></span>
+<span id="cb3-33">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">19</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.06904407</span></span>
+<span id="cb3-34">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.03564141</span></span>
+<span id="cb3-35">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">21</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.08554356</span></span>
+<span id="cb3-36">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">22</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.06904407</span></span>
+<span id="cb3-37">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">23</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.82884484</span></span>
+<span id="cb3-38"></span>
+<span id="cb3-39"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>number_iterations</span>
+<span id="cb3-40">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span></span></code></pre></div>
+<p>For the Challenger dataset, our implementation of Fisher Scoring yields a <img src="https://latex.codecogs.com/png.latex?%5Cbeta_%7B0%7D=15.0429016"> and <img src="https://latex.codecogs.com/png.latex?%5Cbeta%7B1%7D=-0.2321627">. In order to predict new probabilities of O-ring failure based on temperature, our model relies on the following formula:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cpi%20=%20%5Cfrac%20%7Be%5E%7B15.0429016%20-0.2321627%20*%20%5Cmathrm%7BTemperature%7D%7D%7D%7B1%20+%20e%5E%7B15.0429016%20-0.2321627%20*%20%5Cmathrm%7BTemperature%7D%7D%7D%0A"></p>
+<p>Negative coefficients correspond to variables that are negatively correlated with the probability of a positive outcome, the reverse being true for positive coefficients.</p>
+<p>Lets compare the results of our implementation with the output of <code>glm</code> using the same dataset, and specifying family=“binomial” and link=“logit”:</p>
+<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1">df <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">read.table</span>(</span>
+<span id="cb4-2">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">file=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Challenger.csv"</span>, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">header=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">TRUE</span>,  <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">sep=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">","</span>, </span>
+<span id="cb4-3">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">stringsAsFactors=</span><span class="cn" style="color: #8f5902;
+background-color: null;
+font-style: inherit;">FALSE</span></span>
+<span id="cb4-4">    )</span>
+<span id="cb4-5"></span>
+<span id="cb4-6">logistic.fit <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">glm</span>(</span>
+<span id="cb4-7">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">formula=</span>O_RING_FAILURE <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span> TEMPERATURE,</span>
+<span id="cb4-8">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">family=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">binomial</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">link=</span>logit), <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data=</span>df</span>
+<span id="cb4-9">    )</span></code></pre></div>
+<p>From <code>logistic.fit</code>, we’ll extract <code>coefficients</code>, <code>fitted.values</code> and <code>iter</code>, and call <code>vcov(logistic.fit)</code> to obtain the variance-covariance matrix of the estimated coefficients:</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> logistic.fit<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>coefficients</span>
+<span id="cb5-2">(Intercept) TEMPERATURE </span>
+<span id="cb5-3"> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15.0429016</span>  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2321627</span> </span>
+<span id="cb5-4"></span>
+<span id="cb5-5"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">matrix</span>(logistic.fit<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>fitted.values)</span>
+<span id="cb5-6">      [,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb5-7"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.43049313</span></span>
+<span id="cb5-8"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.22996826</span></span>
+<span id="cb5-9"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.27362105</span></span>
+<span id="cb5-10"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.32209405</span></span>
+<span id="cb5-11"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.37472428</span></span>
+<span id="cb5-12"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.15804910</span></span>
+<span id="cb5-13"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.12954602</span></span>
+<span id="cb5-14"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.22996826</span></span>
+<span id="cb5-15"> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.85931657</span></span>
+<span id="cb5-16">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.60268105</span></span>
+<span id="cb5-17">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">11</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.22996826</span></span>
+<span id="cb5-18">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.04454055</span></span>
+<span id="cb5-19">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">13</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.37472428</span></span>
+<span id="cb5-20">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">14</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.93924781</span></span>
+<span id="cb5-21">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.37472428</span></span>
+<span id="cb5-22">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">16</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.08554356</span></span>
+<span id="cb5-23">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">17</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.22996826</span></span>
+<span id="cb5-24">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">18</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.02270329</span></span>
+<span id="cb5-25">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">19</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.06904407</span></span>
+<span id="cb5-26">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.03564141</span></span>
+<span id="cb5-27">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">21</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.08554356</span></span>
+<span id="cb5-28">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">22</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.06904407</span></span>
+<span id="cb5-29">[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">23</span>,] <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.82884484</span></span>
+<span id="cb5-30"></span>
+<span id="cb5-31"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> logistic.fit<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>fitted.iter</span>
+<span id="cb5-32"><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span></span>
+<span id="cb5-33"></span>
+<span id="cb5-34"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">vcov</span>(logistic.fit)</span>
+<span id="cb5-35">             (Intercept) TEMPERATURE</span>
+<span id="cb5-36">(Intercept)  <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">54.4441826</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.79638547</span></span>
+<span id="cb5-37">TEMPERATURE  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.7963855</span>  <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.01171512</span></span></code></pre></div>
+<p>Our coefficients match exactly with those generated by glm, and as would be expected, the fitted values are also identical.</p>
+<p>Notice there’s some discrepancy in the estimate of the variance-covariance matrix beginning with the 4th decimal (54.4442748 in our algorithm vrs. 54.4441826 for the variance of the Intercept term from glm). This may be due to rounding, or the loss of precision in floating point values when inverting matrices. Notice our implementation required one more Fisher Scoring iteration than glm (6 vrs. 5). Perhaps increasing the size of our epsilon will reduce the number of Fisher Scoring iterations, which in turn may lead to better agreement between the variance-covariance matrices.</p>
+<p>Calling <code>summary(logistic.fit)</code> prints, among other things, the standard error of the coefficient estimates:</p>
+<div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">summary</span>(logistic.fit)</span>
+<span id="cb6-2">Coefficients<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span></span>
+<span id="cb6-3">            Estimate Std. Error z value <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Pr</span>(<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">|</span>z<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">|</span>)  </span>
+<span id="cb6-4">(Intercept)  <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15.0429</span>     <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7.3786</span>   <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.039</span>   <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0415</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span></span>
+<span id="cb6-5">TEMPERATURE  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.2322</span>     <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.1082</span>  <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.145</span>   <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.0320</span> <span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span></span></code></pre></div>
+<p>The <em>Std. Error</em> values are the square root of the diagonal elements of the variance-covariance matrix, <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7B54.4441826%7D%20=%207.3786"> and <img src="https://latex.codecogs.com/png.latex?%5Csqrt%7B0.01171512%7D%20=%200.1082">.</p>
+<p><em>z value</em> is the estimated coefficient divided by <em>Std. Error</em>. In our example, <img src="https://latex.codecogs.com/png.latex?15.0429/7.3786=2.039"> and <img src="https://latex.codecogs.com/png.latex?-0.2322/0.1082%20=%20-2.145">. <em>Pr(&gt;|z|)</em> is the p-value, which tells us whether we should trust the estimated coefficient value. The standard rule of thumb is that coefficients with p-values less than 0.05 are reliable, although some tests require stricter thresholds.</p>
+<p>A feature of Logistic Regression is that the training data’s marginal probabilities are preserved. If you aggregate fitted values from the training set, that quantity will equal the number of positive outcomes in the response vector (this is true for all exponential family GLMs employing a canonical link function):</p>
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(y)</span>
+<span id="cb7-2"><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span></span>
+<span id="cb7-3"></span>
+<span id="cb7-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Checking sum for our algorithm.</span></span>
+<span id="cb7-5"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(mySummary<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>fitted_values)</span>
+<span id="cb7-6"><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span></span>
+<span id="cb7-7"></span>
+<span id="cb7-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#checking sum for glm.</span></span>
+<span id="cb7-9"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">sum</span>(logistic.fit<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">$</span>fitted.values)</span>
+<span id="cb7-10"><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span></span></code></pre></div>
+</section>
+<section id="using-the-model-to-calculate-probabilities" class="level2">
+<h2 class="anchored" data-anchor-id="using-the-model-to-calculate-probabilities">Using The Model to Calculate Probabilities</h2>
+<p>To apply the model generated by glm to a new set of explanatory variables, use the <code>predict</code> function. Pass a list or data.frame of explanatory variables to <code>predict</code>, and for logistic regression models, be sure to set <code>type="response"</code> to ensure probabilities are returned. For example:</p>
+<div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># New inputs for Logistic Regression model.</span></span>
+<span id="cb8-2"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> tempsDF <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">&lt;-</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">data.frame</span>(<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">TEMPERATURE=</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">24</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">41</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">46</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">47</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">61</span>))</span>
+<span id="cb8-3"></span>
+<span id="cb8-4"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">predict</span>(logistic.fit, tempsDF, <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">type=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"response"</span>)</span>
+<span id="cb8-5"></span>
+<span id="cb8-6">        <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>         <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>         <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>         <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>         <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span> </span>
+<span id="cb8-7"><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.9999230</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.9960269</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.9874253</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.9841912</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.7070241</span></span></code></pre></div>
+
+
+</section>
+
+ ]]></description>
+  <category>Statistical Modeling</category>
+  <category>R</category>
+  <guid>www.jtrive.com/posts/logistic-from-scratch-r/index.html</guid>
+  <pubDate>Sat, 02 Mar 2024 06:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Finding Roots of Equations in R with uniroot</title>
   <link>www.jtrive.com/posts/uniroot-r/index.html</link>
