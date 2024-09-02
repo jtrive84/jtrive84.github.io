@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2024-03-02">
+<meta name="description" content="Fitting logistic regression models with iterative reweighted least squares in R">
+
+<title>Estimating Logistic Regression coefficients From Scratch in R – The Pleasure of Finding Things Out: A blog by James Triveri</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">The Pleasure of Finding Things Out: A blog by James Triveri</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/jtrive84/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.linkedin.com/in/jamestriveri/"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://python-bloggers.com/"> <i class="bi bi-p-square" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Estimating Logistic Regression coefficients From Scratch in R</h1>
+                  <div>
+        <div class="description">
+          Fitting logistic regression models with iterative reweighted least squares in R
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">Statistical Modeling</div>
+                <div class="quarto-category">R</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">March 2, 2024</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<p>In this post, we highlight the parameter estimation routines called behind the scenes upon invocation of R’s glm function. Specifically, we’ll focus on how parameters of a logistic regression model are estimated when fit to data having a binary response.</p>
+<p>R’s glm function is used to fit generalized linear models, specified by giving a symbolic description of the linear predictor and a description of the error distribution. This function conceals a good deal of the complexity behind a simple interface, making it easy to overlook the calculations that estimate a model’s coefficients. The goal of this post is to shed some light on the mechanics of those calculations.</p>
+<section id="background" class="level3">
+<h3 class="anchored" data-anchor-id="background">Background</h3>
+<p>In a generalized linear model the response may follow any distribution from the exponential family, and rather than assuming the mean is a linear function of the explanatory variables, we assume that a function of the mean (the link function) is a linear function of the explanatory variables.</p>
+<p>Logistic regression is used for modeling data with a categorical response. Although it’s possible to model multinomial data using logistic regression, this article focuses only on fitting data having a dichotomous response (‘Yes/No’, ‘True/False’, ‘1/0’, ‘Good/Bad’).</p>
+<p>The logistic regression model is a generalized linear model whose canonical link is the logit, or log-odds:</p>
+<p><span class="math display">\[
+\mathrm{Ln} \Big(\frac{\pi_{i}}{1 - \pi_{i}} \Big) = \beta_{0} + \beta_{1}{x}_{i1} + \dots + \beta_{p}{x}_{ip}, \quad i = (1, \dots , n).
+\]</span></p>
+<p>Solving the logit for <span class="math inline">\(\pi_{i}\)</span>, which represents the predicted probability for a set of features <span class="math inline">\(x_{i}\)</span>, yields</p>
+<p><span class="math display">\[
+\pi_{i} = \frac {e^{\beta_{0} + \beta_{1}{x}_{i1} + \dots + \beta_{p}{x}_{ip}}}{1 + e^{\beta_{0} + \beta_{1}{x}_{i1} + \dots + \beta_{p}{x}_{ip}}} = \frac {1}{1 + e^{-(\beta_{0} + \beta_{1}{x}_{i1} + \dots + \beta_{p}{x}_{ip})}},
+\]</span></p>
+<p>Where <span class="math inline">\(-\infty &lt; x_{i} &lt; \infty\)</span> and <span class="math inline">\(0&lt;\pi_{i}&lt;1\)</span>.</p>
+<p>In other words, the expression for <span class="math inline">\(\pi_{i}\)</span> maps any real-valued <span class="math inline">\(x_{i}\)</span> to a positive probability between 0 and 1.</p>
+</section>
+<section id="parameter-estimation" class="level3">
+<h3 class="anchored" data-anchor-id="parameter-estimation">Parameter Estimation</h3>
+<p>Maximum Likelihood Estimation can be used to determine the parameters of a Logistic Regression model, which entails finding the set of parameters for which the probability of the observed data is greatest. The objective is to estimate the <span class="math inline">\((p+1)\)</span> unknown <span class="math inline">\(\beta_{0}, \dots, \beta_{p}\)</span>.</p>
+<p>Let <span class="math inline">\(Y_{i}\)</span> represent independent, dichotomous response values for each of <span class="math inline">\(n\)</span> observations, where <span class="math inline">\(Y_{i}=1\)</span> denotes a success and <span class="math inline">\(Y_{i}=0\)</span> denotes a failure. The density function of a single observation <span class="math inline">\(Y_{i}\)</span> can be expressed as</p>
+<p><span class="math display">\[
+p(y_{i}) = \pi_{i}^{y_{i}}(1-\pi_{i})^{1-y_{i}},
+\]</span></p>
+<p>From which we obtain the likelihood function:</p>
+<p><span class="math display">\[
+L(\beta) = \prod_{i=1}^{n} \pi_{i}^{y_{i}}(1-\pi_{i})^{1-y_{i}}.
+\]</span></p>
+<p>Taking the natural log of the maximum likelihood estimate results in the log-likelihood function:</p>
+<p><span class="math display">\[
+\begin{align*}
+l(\beta) &amp;= \mathrm{Ln}(L(\beta)) = \mathrm{Ln} \Big(\prod_{i=1}^{n} \pi_{i}^{y_{i}}(1-\pi_{i})^{1-y_{i}} \Big) \\
+&amp;= \sum_{i=1}^{n} y_{i} \mathrm{Ln}(\pi_{i}) + (1-y_{i})\mathrm{Ln}(1-\pi_{i}) \\
+&amp;= \sum_{i=1}^{n} y_{i}(\beta_{0} + \beta_{1}{x}_{i1} + \dots + \beta_{p}{x}_{ip}) - \mathrm{Ln}(1 + e^{\beta_{0} + \beta_{1}{x}_{i1} + \dots + \beta_{p}{x}_{ip}})
+\end{align*}
+\]</span></p>
+<p>The first-order partial derivatives of the log-likelihood are calculated and set to zero for each <span class="math inline">\(\beta_{k}, k = 0, 1, \dots, p\)</span>:</p>
+<p><span class="math display">\[
+\frac {\partial l(\beta)}{\partial \beta_{k}} = \sum_{i=1}^{n} y_{i}x_{ik} - \pi_{i}x_{ik} = \sum_{i=1}^{n} x_{ik}(y_{i} - \pi_{i}) = 0,
+\]</span></p>
+<p>which can be represented in matrix form as</p>
+<p><span class="math display">\[
+\frac {\partial l(\beta)}{\partial \beta} = X^{T}(y - \pi),
+\]</span></p>
+<p>Where <span class="math inline">\(X^{T}\)</span> is a (p+1)xn matrix and <span class="math inline">\((y - \pi)\)</span> a nx1 vector.</p>
+<p>The vector of first-order partial derivatives of the log-likelihood function is referred to as the score function, and is typically represented as <span class="math inline">\(U\)</span>.</p>
+<p>These <span class="math inline">\((p+1)\)</span> equations are solved simultaneously to obtain the parameter estimates <span class="math inline">\(\beta_{0}, \dots, \beta_{p}\)</span>. Each solution specifies a critical-point which will be either a maximum or a minimum. The critical point will be a maximum if the matrix of second partial derivatives is negative definite (which means every element on the diagonal of the matrix is less than zero).</p>
+<p>The matrix of second partial derivatives can be expressed as</p>
+<p><span class="math display">\[
+\frac{\partial^{2} l(\beta)}{{\partial \beta_{k}}{\partial \beta_{k}}^{T}} = - \sum_{i=1}^{n} x_{ik}\pi_{i}(1-\pi_{i}){x_{ik}}^{T},
+\]</span></p>
+<p>which can be represented as</p>
+<p><span class="math display">\[
+\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}} = -X^{T}WX,
+\]</span></p>
+<p>where <span class="math inline">\(W\)</span> is an nxn diagonal matrix of weights with each element equal to <span class="math inline">\(\pi_{i}(1 - \pi_{i})\)</span> for logistic regression models. In general, the weight matrix <span class="math inline">\(W\)</span> will have entries inversely proportional to the variance of the response.</p>
+<p>Since no closed-form solution exists for determining logistic regression coefficients, iterative techniques must be employed.</p>
+</section>
+<section id="fitting-the-model" class="level3">
+<h3 class="anchored" data-anchor-id="fitting-the-model">Fitting the Model</h3>
+<p>Two distinct but related iterative methods can be utilized in determining model coefficients: the Newton-Raphson method and Fisher Scoring. The Newton-Raphson method relies on the matrix of second partial derivatives, also known as the Hessian. The Newton-Raphson update expression is given by:</p>
+<p><span class="math display">\[
+\beta^{(t+1)} = \beta^{(t)} - (H^{(t)})^{-1}U^{(t)},
+\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(\beta^{(t+1)}\)</span> = the vector of updated coefficient estimates.<br>
+</li>
+<li><span class="math inline">\(\beta^{(t)}\)</span> = the vector of coefficient estimates from the previous iteration.</li>
+<li><span class="math inline">\((H^{(t)})^{-1}\)</span> = the inverse Hessian, <span class="math inline">\(\Big(\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\Big)^{-1}\)</span>.<br>
+</li>
+<li><span class="math inline">\(U^{(t)}\)</span> = the vector of first-order partial derivatives of the log-likelihood function, <span class="math inline">\(\frac {\partial l(\beta)}{\partial \beta} = X^{T}(y - \pi)\)</span>.</li>
+</ul>
+<p>The Newton-Raphson method starts with an initial guess for the solution, and obtains a second guess by approximating the function to be maximized in a neighborhood of the initial guess by a second-degree polynomial, and then finding the location of that polynomial’s maximum value. This process continues until it converges to the actual solution. The convergence of <span class="math inline">\(\beta^{(t)}\)</span> to <span class="math inline">\(\hat{\beta}\)</span> is usually fast, with adequate convergence usually realized in fewer than 20 iterations.</p>
+<p>Fisher Scoring utilizes the expected information, <span class="math inline">\(-E\Big(\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\Big)\)</span>. Let <span class="math inline">\(\mathcal{I}\)</span> serve as a stand-in for the expected value of the information:</p>
+<p><span class="math display">\[
+\mathcal{I} = -E\Big(\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\Big).
+\]</span></p>
+<p>The Fisher Scoring update step replaces <span class="math inline">\(-H^{(t)}\)</span> from Newton-Raphson with <span class="math inline">\(\mathcal{I}^{(t)}\)</span>:</p>
+<p><span class="math display">\[
+\begin{align*}
+\beta^{(t+1)} &amp;= \beta^{(t)} + (\mathcal{I}^{(t)})^{-1}U^{(t)} \\
+&amp;= \beta^{(t)} + (X^{T}WX)^{-1}X^{T}(y - \pi),
+\end{align*}
+\]</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">\(\beta^{(t+1)}\)</span> = the vector of updated coefficient estimates.<br>
+</li>
+<li><span class="math inline">\(\beta^{(t)}\)</span> = the vector of coefficient estimates from the previous iteration.<br>
+</li>
+<li><span class="math inline">\((\mathcal{I}^{(t)})^{-1}\)</span> = the inverse of the expected information matrix, <span class="math inline">\(-E \Big(\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\Big)^{-1}\)</span>.<br>
+</li>
+<li><span class="math inline">\(U^{(t)}\)</span> = the vector of first-order partial derivatives of the log-likelihood function, <span class="math inline">\(\frac {\partial l(\beta)}{\partial \beta} = X^{T}(y - \pi)\)</span>.</li>
+</ul>
+<p>For GLM’s with a canonical link, the observed and expected information are the same. When the response follows an exponential family distribution and the canonical link function is employed, observed and expected Information coincide so that Fisher Scoring produces the same estimates as Newton-Raphson.</p>
+<p>When the canonical link is used, the second partial derivatives of the log-likelihood do not depend on the observations <span class="math inline">\(y_{i}\)</span>, and therefore</p>
+<p><span class="math display">\[
+\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}} = E \Big(\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}} \Big).
+\]</span></p>
+<p>Fisher scoring has the advantage that it produces the asymptotic covariance matrix as a by-product. To summarize:</p>
+<ul>
+<li>The Hessian is the matrix of second partial derivatives of the log-likelihood with respect to the parameters: <span class="math inline">\(H = \frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\)</span>.<br>
+</li>
+<li>The observed information is <span class="math inline">\(-\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\)</span>.</li>
+<li>The expected information is <span class="math inline">\(\mathcal{I} = E\Big(-\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\Big)\)</span>.<br>
+</li>
+<li>The asymptotic covariance matrix is <span class="math inline">\(mathrm{Var}(\hat{\beta}) = E\Big(-\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\Big)^{-1} = (X^{T}WX)^{-1}\)</span>.</li>
+</ul>
+<p>For models employing a canonical link function:</p>
+<ul>
+<li>The observed and expected information are the same: <span class="math inline">\(\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}} = E\Big(\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\Big)\)</span>.<br>
+</li>
+<li><span class="math inline">\(H = -\mathcal{I}\)</span>, or <span class="math inline">\(\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}} = E\Big(-\frac{\partial^{2} l(\beta)}{{\partial \beta}{\partial \beta}^{T}}\Big)\)</span>.<br>
+</li>
+<li>The Newton-Raphson and Fisher Scoring algorithms yield identical results.</li>
+</ul>
+</section>
+<section id="fisher-scoring-in-r" class="level3">
+<h3 class="anchored" data-anchor-id="fisher-scoring-in-r">Fisher Scoring in R</h3>
+<p>The data used for our sample calculation can be obtained <a href="https://gist.github.com/jtrive84/835514a76f7afd552c999e4d9134baa8">here</a>. This data represents O-ring failures in the 23 pre-Challenger space shuttle missions. In this dataset, TEMPERATURE serves as the single explanatory variable which will be used to predict “O_RING_FAILURE”, which is 1 if a failure occurred, 0 otherwise.</p>
+<p>Once the parameters have been determined, the model estimate of the probability of success for a given observation can be calculated via:</p>
+<p><span class="math display">\[
+\hat\pi_{i} = \frac {e^{\hat\beta_{0} + \hat\beta_{1}{x}_{i1} + \dots + \hat\beta_{p}{x}_{ip}}}{1 + e^{\hat\beta_{0} + \hat\beta_{1}{x}_{i1} + \dots + \hat\beta_{p}{x}_{ip}}}
+\]</span></p>
+<p><code>getCoefficients</code> returns the estimated model coefficients as a (p+1)x1 matrix. In addition, the function returns the number of scoring iterations, fitted values and resulting variance-covariance matrix.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>getCoefficients <span class="ot">=</span> <span class="cf">function</span>(design_matrix, response_vector, <span class="at">epsilon=</span>.<span class="dv">0001</span>) {</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># =========================================================================</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># design_matrix      `X`     =&gt; n-by-(p+1)                                |</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># response_vector    `y`     =&gt; n-by-1                                    |</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># probability_vector `p`     =&gt; n-by-1                                    |</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># weights_matrix     `W`     =&gt; n-by-n                                    |</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># epsilon                    =&gt; threshold above which iteration continues |</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    <span class="co"># =========================================================================</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># n                          =&gt; # of observations                         |</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># (p + 1)                    =&gt; # of parameters, +1 for intercept term    |</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># =========================================================================</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># U =&gt; First derivative of Log-Likelihood with respect to                 |</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">#      each beta_i, i.e. `Score Function`: X_transpose * (y - p)          |</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">#                                                                         |</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># I =&gt; Second derivative of Log-Likelihood with respect to                |</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">#      each beta_i. The `Information Matrix`: (X_transpose * W * X)       |</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">#                                                                         |</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># X^T*W*X results in a (p+1)-by-(p+1) matrix                              |</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># X^T(y - p) results in a (p+1)-by-1 matrix                               |</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># (X^T*W*X)^-1 * X^T(y - p) results in a (p+1)-by-1 matrix                |</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ========================================================================|</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    X <span class="ot">=</span> <span class="fu">as.matrix</span>(design_matrix)</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">=</span> <span class="fu">as.matrix</span>(response_vector)</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Initialize logistic function used for Scoring calculations.</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    pi_i <span class="ot">=</span> <span class="cf">function</span>(v) <span class="fu">return</span>(<span class="fu">exp</span>(v) <span class="sc">/</span> (<span class="dv">1</span> <span class="sc">+</span> <span class="fu">exp</span>(v)))</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Initialize beta_0, p_0, W_0, I_0 &amp; U_0.</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    beta_0 <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">rep</span>(<span class="dv">0</span>, <span class="fu">ncol</span>(X)), <span class="at">nrow=</span><span class="fu">ncol</span>(X), <span class="at">ncol=</span><span class="dv">1</span>, <span class="at">byrow=</span><span class="cn">FALSE</span>, <span class="at">dimnames=</span><span class="cn">NULL</span>)</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    p_0 <span class="ot">=</span> <span class="fu">pi_i</span>(X <span class="sc">%*%</span> beta_0)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    W_0 <span class="ot">=</span> <span class="fu">diag</span>(<span class="fu">as.vector</span>(p_0<span class="sc">*</span>(<span class="dv">1</span> <span class="sc">-</span> p_0)))</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    I_0 <span class="ot">=</span> <span class="fu">t</span>(X) <span class="sc">%*%</span> W_0 <span class="sc">%*%</span> X</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    U_0 <span class="ot">=</span> <span class="fu">t</span>(X) <span class="sc">%*%</span> (y <span class="sc">-</span> p_0)</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Initialize variables for iteration.</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    beta_old <span class="ot">=</span> beta_0</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    iter_I <span class="ot">=</span> I_0</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    iter_U <span class="ot">=</span> U_0</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>    iter_p <span class="ot">=</span> p_0</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>    iter_W <span class="ot">=</span> W_0</span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>    fisher_scoring_iterations <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Iterate until difference between abs(beta_new - beta_old) &lt; epsilon.</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span>(<span class="cn">TRUE</span>) {</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>        fisher_scoring_iterations <span class="ot">=</span> fisher_scoring_iterations <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>        beta_new <span class="ot">=</span> beta_old <span class="sc">+</span> <span class="fu">solve</span>(iter_I) <span class="sc">%*%</span> iter_U</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> (<span class="fu">all</span>(<span class="fu">abs</span>(beta_new <span class="sc">-</span> beta_old) <span class="sc">&lt;</span> epsilon)) {</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>            model_parameters <span class="ot">=</span> beta_new</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>            fitted_values <span class="ot">=</span> <span class="fu">pi_i</span>(X <span class="sc">%*%</span> model_parameters)</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>            covariance_matrix <span class="ot">=</span> <span class="fu">solve</span>(iter_I)</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>        } <span class="cf">else</span> {</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>            iter_p <span class="ot">=</span> <span class="fu">pi_i</span>(X <span class="sc">%*%</span> beta_new)</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>            iter_W <span class="ot">=</span> <span class="fu">diag</span>(<span class="fu">as.vector</span>(iter_p<span class="sc">*</span>(<span class="dv">1</span><span class="sc">-</span>iter_p)))</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>            iter_I <span class="ot">=</span> <span class="fu">t</span>(X) <span class="sc">%*%</span> iter_W <span class="sc">%*%</span> X</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>            iter_U <span class="ot">=</span> <span class="fu">t</span>(X) <span class="sc">%*%</span> (y <span class="sc">-</span> iter_p)</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>            beta_old <span class="ot">=</span> beta_new</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>    results <span class="ot">=</span> <span class="fu">list</span>(</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>        <span class="st">'model_parameters'</span><span class="ot">=</span>model_parameters, </span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>        <span class="st">'covariance_matrix'</span><span class="ot">=</span>covariance_matrix,</span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>        <span class="st">'fitted_values'</span><span class="ot">=</span>fitted_values,</span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>        <span class="st">'number_iterations'</span><span class="ot">=</span>fisher_scoring_iterations</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>    <span class="fu">return</span>(results)</span>
+<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>A quick summary of R’s matrix operators:</p>
+<ul>
+<li><code>%*%</code> is a stand-in for matrix multiplication.<br>
+</li>
+<li><code>diag</code> returns a matrix with the provided vector as the diagonal and zero off-diagonal entries.</li>
+<li><code>t</code> returns the transpose of the provided matrix.</li>
+<li><code>solve</code> returns the inverse of the provided matrix (if it exists).</li>
+</ul>
+<p>Note that in our implementation, we solve the normal equations directly. You wouldn’t see this in practice or when using optimized numerical software packages. This is because since when confronted with solving ill-conditioned systems of equations, computing <span class="math inline">\((X^{T}WX)^{-1}\)</span> effectively squares the condition number, which results in an answer with diminished accuracy. Optimized statistical computing packages instead leverage more stable methods such as the QR decomposition or SVD. But this suffices for our purposes.</p>
+<p>We load the Challenger dataset and partition it into the design matrix and response, which will then be passed into <code>getCoefficients</code>:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> <span class="fu">read.table</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">file=</span><span class="st">"Challenger.csv"</span>, <span class="at">header=</span><span class="cn">TRUE</span>,  <span class="at">sep=</span><span class="st">","</span>, </span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">stringsAsFactors=</span><span class="cn">FALSE</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>X <span class="ot">=</span> <span class="fu">as.matrix</span>(<span class="fu">cbind</span>(<span class="dv">1</span>, df[<span class="st">'TEMPERATURE'</span>]))  <span class="co"># design matrix</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>y <span class="ot">=</span> <span class="fu">as.matrix</span>(df[<span class="st">'O_RING_FAILURE'</span>])         <span class="co"># response vector</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(X) <span class="ot">=</span> <span class="cn">NULL</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(y) <span class="ot">=</span> <span class="cn">NULL</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Call `getCoefficients`, keeping epsilon at .0001.</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>results <span class="ot">=</span> <span class="fu">getCoefficients</span>(X, y, <span class="at">epsilon=</span>.<span class="dv">0001</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Printing <code>results</code> displays the model’s estimated coefficients (<em>model_parameters</em>), the variance-covariance matrix of the coefficient estimates (<em>covariance_matrix</em>), fitted values (<em>fitted_values</em>) and the number of Fisher Scoring iterations (<em>number_iterations</em>):</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">print</span>(results)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>model_parameters</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>           [,<span class="dv">1</span>]</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>,] <span class="fl">15.0429016</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>[<span class="dv">2</span>,] <span class="sc">-</span><span class="fl">0.2321627</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>covariance_matrix</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>           [,<span class="dv">1</span>]        [,<span class="dv">2</span>]</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>,] <span class="fl">54.4442748</span> <span class="sc">-</span><span class="fl">0.79638682</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>[<span class="dv">2</span>,] <span class="sc">-</span><span class="fl">0.7963868</span>  <span class="fl">0.01171514</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>fitted_values</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            [,<span class="dv">1</span>]</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>,] <span class="fl">0.43049313</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a> [<span class="dv">2</span>,] <span class="fl">0.22996826</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a> [<span class="dv">3</span>,] <span class="fl">0.27362105</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a> [<span class="dv">4</span>,] <span class="fl">0.32209405</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a> [<span class="dv">5</span>,] <span class="fl">0.37472428</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a> [<span class="dv">6</span>,] <span class="fl">0.15804910</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a> [<span class="dv">7</span>,] <span class="fl">0.12954602</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a> [<span class="dv">8</span>,] <span class="fl">0.22996826</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a> [<span class="dv">9</span>,] <span class="fl">0.85931657</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>[<span class="dv">10</span>,] <span class="fl">0.60268105</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>[<span class="dv">11</span>,] <span class="fl">0.22996826</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>[<span class="dv">12</span>,] <span class="fl">0.04454055</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>[<span class="dv">13</span>,] <span class="fl">0.37472428</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>[<span class="dv">14</span>,] <span class="fl">0.93924781</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>[<span class="dv">15</span>,] <span class="fl">0.37472428</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>[<span class="dv">16</span>,] <span class="fl">0.08554356</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>[<span class="dv">17</span>,] <span class="fl">0.22996826</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>[<span class="dv">18</span>,] <span class="fl">0.02270329</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>[<span class="dv">19</span>,] <span class="fl">0.06904407</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>[<span class="dv">20</span>,] <span class="fl">0.03564141</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>[<span class="dv">21</span>,] <span class="fl">0.08554356</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>[<span class="dv">22</span>,] <span class="fl">0.06904407</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>[<span class="dv">23</span>,] <span class="fl">0.82884484</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>number_iterations</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="dv">6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>For the Challenger dataset, our implementation of Fisher Scoring yields a <span class="math inline">\(\beta_{0}=15.0429016\)</span> and <span class="math inline">\(\beta_{1}=-0.2321627\)</span>. In order to predict new probabilities of O-ring failure based on temperature, our model relies on the following formula:</p>
+<p><span class="math display">\[
+\pi = \frac {e^{15.0429016 -0.2321627 * \mathrm{Temperature}}}{1 + e^{15.0429016 -0.2321627 * \mathrm{Temperature}}}
+\]</span></p>
+<p>Negative coefficients correspond to variables that are negatively correlated with the probability of a positive outcome, the reverse being true for positive coefficients.</p>
+<p>Lets compare the results of our implementation with the output of <code>glm</code> using the same dataset, and specifying family=“binomial” and link=“logit”:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df <span class="ot">=</span> <span class="fu">read.table</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">file=</span><span class="st">"Challenger.csv"</span>, <span class="at">header=</span><span class="cn">TRUE</span>,  <span class="at">sep=</span><span class="st">","</span>, </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">stringsAsFactors=</span><span class="cn">FALSE</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>logistic.fit <span class="ot">=</span> <span class="fu">glm</span>(</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">formula=</span>O_RING_FAILURE <span class="sc">~</span> TEMPERATURE,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">family=</span><span class="fu">binomial</span>(<span class="at">link=</span>logit), <span class="at">data=</span>df</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>From <code>logistic.fit</code>, we’ll extract <code>coefficients</code>, <code>fitted.values</code> and <code>iter</code>, and call <code>vcov(logistic.fit)</code> to obtain the variance-covariance matrix of the estimated coefficients:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> logistic.fit<span class="sc">$</span>coefficients</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>(Intercept) TEMPERATURE </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a> <span class="fl">15.0429016</span>  <span class="sc">-</span><span class="fl">0.2321627</span> </span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">matrix</span>(logistic.fit<span class="sc">$</span>fitted.values)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>      [,<span class="dv">1</span>]</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a> [<span class="dv">1</span>,] <span class="fl">0.43049313</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a> [<span class="dv">2</span>,] <span class="fl">0.22996826</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a> [<span class="dv">3</span>,] <span class="fl">0.27362105</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a> [<span class="dv">4</span>,] <span class="fl">0.32209405</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a> [<span class="dv">5</span>,] <span class="fl">0.37472428</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a> [<span class="dv">6</span>,] <span class="fl">0.15804910</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a> [<span class="dv">7</span>,] <span class="fl">0.12954602</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a> [<span class="dv">8</span>,] <span class="fl">0.22996826</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a> [<span class="dv">9</span>,] <span class="fl">0.85931657</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>[<span class="dv">10</span>,] <span class="fl">0.60268105</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>[<span class="dv">11</span>,] <span class="fl">0.22996826</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>[<span class="dv">12</span>,] <span class="fl">0.04454055</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>[<span class="dv">13</span>,] <span class="fl">0.37472428</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>[<span class="dv">14</span>,] <span class="fl">0.93924781</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>[<span class="dv">15</span>,] <span class="fl">0.37472428</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>[<span class="dv">16</span>,] <span class="fl">0.08554356</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>[<span class="dv">17</span>,] <span class="fl">0.22996826</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>[<span class="dv">18</span>,] <span class="fl">0.02270329</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>[<span class="dv">19</span>,] <span class="fl">0.06904407</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>[<span class="dv">20</span>,] <span class="fl">0.03564141</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>[<span class="dv">21</span>,] <span class="fl">0.08554356</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>[<span class="dv">22</span>,] <span class="fl">0.06904407</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>[<span class="dv">23</span>,] <span class="fl">0.82884484</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> logistic.fit<span class="sc">$</span>fitted.iter</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="dv">5</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">vcov</span>(logistic.fit)</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>             (Intercept) TEMPERATURE</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>(Intercept)  <span class="fl">54.4441826</span> <span class="sc">-</span><span class="fl">0.79638547</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>TEMPERATURE  <span class="sc">-</span><span class="fl">0.7963855</span>  <span class="fl">0.01171512</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Our coefficients match exactly with those generated by glm, and as would be expected, the fitted values are also identical.</p>
+<p>Notice there’s some discrepancy in the estimate of the variance-covariance matrix beginning with the 4th decimal (54.4442748 in our algorithm vrs. 54.4441826 for the variance of the Intercept term from glm). This may be due to rounding, or the loss of precision in floating point values when inverting matrices. Notice our implementation required one more Fisher Scoring iteration than glm (6 vrs. 5). Perhaps increasing the size of our epsilon will reduce the number of Fisher Scoring iterations, which in turn may lead to better agreement between the variance-covariance matrices.</p>
+<p>Calling <code>summary(logistic.fit)</code> prints, among other things, the standard error of the coefficient estimates:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">summary</span>(logistic.fit)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Coefficients<span class="sc">:</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>            Estimate Std. Error z value <span class="fu">Pr</span>(<span class="sc">&gt;</span><span class="er">|</span>z<span class="sc">|</span>)  </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>(Intercept)  <span class="fl">15.0429</span>     <span class="fl">7.3786</span>   <span class="fl">2.039</span>   <span class="fl">0.0415</span> <span class="sc">*</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>TEMPERATURE  <span class="sc">-</span><span class="fl">0.2322</span>     <span class="fl">0.1082</span>  <span class="sc">-</span><span class="fl">2.145</span>   <span class="fl">0.0320</span> <span class="sc">*</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The <em>Std. Error</em> values are the square root of the diagonal elements of the variance-covariance matrix, <span class="math inline">\(\sqrt{54.4441826} = 7.3786\)</span> and <span class="math inline">\(\sqrt{0.01171512} = 0.1082\)</span>.</p>
+<p><em>z value</em> is the estimated coefficient divided by <em>Std. Error</em>. In our example, <span class="math inline">\(15.0429/7.3786=2.039\)</span> and <span class="math inline">\(-0.2322/0.1082 = -2.145\)</span>. <em>Pr(&gt;|z|)</em> is the p-value, which tells us whether we should trust the estimated coefficient value. The standard rule of thumb is that coefficients with p-values less than 0.05 are reliable, although some tests require stricter thresholds.</p>
+<p>A feature of Logistic Regression is that the training data’s marginal probabilities are preserved. If you aggregate fitted values from the training set, that quantity will equal the number of positive outcomes in the response vector (this is true for all exponential family GLMs employing a canonical link function):</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">sum</span>(y)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="dv">7</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Checking sum for our algorithm.</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">sum</span>(mySummary<span class="sc">$</span>fitted_values)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="dv">7</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#checking sum for glm.</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">sum</span>(logistic.fit<span class="sc">$</span>fitted.values)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="dv">7</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="using-the-model-to-calculate-probabilities" class="level2">
+<h2 class="anchored" data-anchor-id="using-the-model-to-calculate-probabilities">Using The Model to Calculate Probabilities</h2>
+<p>To apply the model generated by glm to a new set of explanatory variables, use the <code>predict</code> function. Pass a list or data.frame of explanatory variables to <code>predict</code>, and for logistic regression models, be sure to set <code>type="response"</code> to ensure probabilities are returned. For example:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># New inputs for Logistic Regression model.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> tempsDF <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">TEMPERATURE=</span><span class="fu">c</span>(<span class="dv">24</span>, <span class="dv">41</span>, <span class="dv">46</span>, <span class="dv">47</span>, <span class="dv">61</span>))</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">predict</span>(logistic.fit, tempsDF, <span class="at">type=</span><span class="st">"response"</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="dv">1</span>         <span class="dv">2</span>         <span class="dv">3</span>         <span class="dv">4</span>         <span class="dv">5</span> </span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="fl">0.9999230</span> <span class="fl">0.9960269</span> <span class="fl">0.9874253</span> <span class="fl">0.9841912</span> <span class="fl">0.7070241</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/www\.jtrive\.com");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2024-02-05">
+<meta name="description" content="Expectation maximization from scratch in R">
+
+<title>Expectation Maximization from Scratch in R – The Pleasure of Finding Things Out: A blog by James Triveri</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">The Pleasure of Finding Things Out: A blog by James Triveri</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/jtrive84/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.linkedin.com/in/jamestriveri/"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://python-bloggers.com/"> <i class="bi bi-p-square" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Expectation Maximization from Scratch in R</h1>
+                  <div>
+        <div class="description">
+          Expectation maximization from scratch in R
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">Machine Learning</div>
+                <div class="quarto-category">R</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">February 5, 2024</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<p>Lets create a dataset which appears to be a mixture of two separate distributions. Such a dataset can be created using the following code:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Creating simulated bimodal data observations.</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen=</span><span class="dv">9999</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">516</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">c</span>(</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rnorm</span>(<span class="dv">31</span>, <span class="at">mean=</span><span class="dv">75</span>, <span class="at">sd=</span><span class="fl">17.5</span>) <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">31</span>, <span class="at">mean=</span><span class="dv">0</span>, <span class="at">sd=</span><span class="fl">5.5</span>), </span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rnorm</span>(<span class="dv">23</span>, <span class="at">mean=</span><span class="dv">175</span>, <span class="at">sd=</span><span class="dv">25</span>) <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">23</span>, <span class="at">mean=</span><span class="dv">0</span>, <span class="at">sd=</span><span class="dv">10</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Running <code>plot(density(x))</code> generates a plot of the kernel density estimate:</p>
+<p><img src="em01.png" class="img-fluid"></p>
+<p>Our goal is to fit a 2-component Gaussian Mixture Model (GMM) to a dataset consisting of <span class="math inline">\(N\)</span> observations using Expectation Maximization with parameters <span class="math inline">\(\mu_{k}, \sigma_{k}, \pi_{k}\)</span> where <span class="math inline">\(k \in [1, 2]\)</span>.</p>
+<p>The probability density of a K-component GMM is given by</p>
+<p><span class="math display">\[
+f(\boldsymbol{x}) = \sum_{k=1}^{K}\pi_{k} \cdot \mathcal{N}(\boldsymbol{x}| \mu_{k}, \sigma^2_{k}),
+\]</span></p>
+<p>where in the 2 component case, <span class="math inline">\(K=2\)</span> (however, expressions will be in terms of <span class="math inline">\(K\)</span> for generality). From the density, an expression for the log-likelihood immediately follows:</p>
+<p><span class="math display">\[
+\mathrm{Ln}\hspace{.10em}f(X|\pi, \mu, \sigma) = \sum_{j=1}^{N}\mathrm{Ln}\hspace{.10em} \Big[\sum_{k=1}^{K} \pi_{k} \cdot\mathcal{N}(\boldsymbol{x}| \mu_k, \sigma^2_k)\Big].
+\]</span></p>
+<p>In the log-likelihood, <span class="math inline">\(\mu_{k}\)</span>, <span class="math inline">\(\sigma_{k}\)</span> and <span class="math inline">\(\pi_{k}\)</span> represent the mean, standard deviation and mixture coefficient respectively for component <span class="math inline">\(k\)</span>. The inner summation (indexed by <span class="math inline">\(k\)</span>) iterates over mixture components while the outer summation (indexed by <span class="math inline">\(j\)</span>) iterates over each observation in the data. Note that for each component <span class="math inline">\(k\)</span>, <span class="math inline">\(0 &lt;= \pi_{k} &lt;= 1\)</span>, and for a <span class="math inline">\(K\)</span>-component GMM, vectors <span class="math inline">\(\boldsymbol{\mu}\)</span>, <span class="math inline">\(\boldsymbol{\sigma}\)</span> and <span class="math inline">\(\boldsymbol{\pi}\)</span> will each have length <span class="math inline">\(K\)</span>.</p>
+<p>Taking the derivative of the log-likelihood w.r.t. <span class="math inline">\(\boldsymbol{\mu}\)</span>, <span class="math inline">\(\boldsymbol{\sigma}\)</span> and <span class="math inline">\(\boldsymbol{\pi}\)</span>, setting equal to zero and re-arranging yields update expressions for the parameters of interest:</p>
+<p>For the mean of component <span class="math inline">\(k\)</span>, <span class="math inline">\(\mu^{'}_{k}\)</span>:</p>
+<p><span class="math display">\[
+\mu^{'}_{k} = \sum_{j=1}^{N} \frac{x_{j} \cdot \pi_{k}  \cdot \mathcal{N}(x_{j}| \mu_{k}, \sigma^2_{k})} {\pi_{k} \cdot \mathcal{N}(x_{j}| \mu_{k}, \sigma^2_{k})}
+\]</span></p>
+<p>For the standard deviation of component <span class="math inline">\(k\)</span>, <span class="math inline">\(\sigma^{'}_{k}\)</span>:</p>
+<p><span class="math display">\[
+\sigma^{'}_{k} =  \sqrt{\sum_{j=1}^{N} \frac{(x_{j} - \mu^{'}_{k})^{2} \cdot \pi_{k} \cdot \mathcal{N}(x_{j}| \mu_{k}, \sigma^2_r)} {\pi_{k} \cdot \mathcal{N}(x_{j}| \mu_k, \sigma^2_k)}}
+\]</span></p>
+<p>For the mixture probability of component <span class="math inline">\(k\)</span>, <span class="math inline">\(\pi_{k}\)</span>, first note that the posterior probability of a single observation <span class="math inline">\(x\)</span> originating from component <span class="math inline">\(k=z\)</span> is given by</p>
+<p><span class="math display">\[
+f(z|x) = \frac{f(k=z) \cdot f(x|k=z)}{\sum f(k) \cdot f(x|k)} = \frac{\pi_{z} \cdot \mathcal{N}(x| \mu_{z}, \sigma^{2}_{z})}{\sum_{k=1}^{K} \pi_{k} \cdot \mathcal{N}(x| \mu_{k}, \sigma^{2}_{k})}.
+\]</span></p>
+<p><span class="math inline">\(\pi^{'}_{k}\)</span> is updated by aggregating the probabilities for component <span class="math inline">\(k\)</span> across all observations, then dividing by the total number of observations:</p>
+<p><span class="math display">\[
+\pi^{'}_{k} = \frac{1}{N}\sum_{j=1}^{N} f(k|x_{j}) = \frac{1}{N}\sum_{j=1}^{N} \frac{\pi_{k} \cdot \mathcal{N}(x_{j}| \mu^{'}_k, \sigma^{2*}_k)}{\sum_{r=1}^K \pi_{r} \cdot \mathcal{N}(x_{j}| \mu^{'}_{r}, \sigma^{2'}_{r})}
+\]</span></p>
+<p>We can summarize Expectation Maximization as follows:</p>
+<ol type="1">
+<li><p>(E-step): Using current parameter values <span class="math inline">\((\mu_{k}, \sigma_{k}, \pi_{k})\)</span>, estimate the posterior probabilities of each mixture component <span class="math inline">\(\pi^{'}_{k}\)</span>.</p></li>
+<li><p>(M-step): Using updated posterior probabilities, re-estimate component means and standard deviations <span class="math inline">\(\mu^{'}_{k}\)</span>, <span class="math inline">\(\sigma^{'}_{k}\)</span>.</p></li>
+</ol>
+<section id="implementation" class="level3">
+<h3 class="anchored" data-anchor-id="implementation">Implementation</h3>
+<p>The code that follows represents an implementation of the Expectation Maximization algorithm for a two-component Gaussian Mixture Model. The initial estimates of <span class="math inline">\(\mu\)</span>, <span class="math inline">\(\sigma\)</span> and <span class="math inline">\(\pi\)</span> are obtained using k-means. We create a number of data structures to which parameter estimates and log-likelihood are saved at each iteration. Finally, parameter estimates are saved to the <code>paramsDF0</code> data.table for comparison with estimates from the mixtools library:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Implementation of the Expectation Maximization algorithm. </span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"data.table"</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"foreach"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen=</span><span class="dv">9999</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">516</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate bimodal data to fit via GMM. </span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="fu">c</span>(</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rnorm</span>(<span class="dv">31</span>, <span class="at">mean=</span><span class="dv">75</span>, <span class="at">sd=</span><span class="fl">17.5</span>) <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">31</span>, <span class="at">mean=</span><span class="dv">0</span>, <span class="at">sd=</span><span class="fl">5.5</span>),</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">rnorm</span>(<span class="dv">23</span>, <span class="at">mean=</span><span class="dv">175</span>, <span class="at">sd=</span><span class="dv">25</span>) <span class="sc">+</span> <span class="fu">rnorm</span>(<span class="dv">23</span>, <span class="at">mean=</span><span class="dv">0</span>, <span class="at">sd=</span><span class="dv">10</span>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>n <span class="ot">=</span> <span class="fu">length</span>(x)  <span class="co"># Number of observations.</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>r <span class="ot">=</span> <span class="dv">2</span>          <span class="co"># Number of components in Gaussian Mixture Model.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>maxIter <span class="ot">=</span> <span class="dv">500</span>  <span class="co"># Maximum number of EM iterations.</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>tol <span class="ot">=</span> <span class="fl">1e-8</span>     <span class="co"># Log-likelihood exceedance threshold.</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Use k-means to obtain initial parameter estimates.</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>km <span class="ot">=</span> <span class="fu">kmeans</span>(x, r)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Create data.table with original observations and cluster assignments. </span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>kmeansDF <span class="ot">=</span> <span class="fu">setorder</span>(</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.table</span>(<span class="at">x=</span>x, <span class="at">group=</span>km<span class="sc">$</span>cluster, <span class="at">stringsAsFactors=</span><span class="cn">FALSE</span>),</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="st">"group"</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Bind reference to initial values for rmu, rsd and rpi.</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>rmu <span class="ot">=</span> kmeansDF[,.(<span class="at">x=</span><span class="fu">mean</span>(x)), by<span class="ot">=</span><span class="st">"group"</span>]<span class="sc">$</span>x</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>rsd <span class="ot">=</span> kmeansDF[,.(<span class="at">x=</span><span class="fu">sd</span>(x)), by<span class="ot">=</span><span class="st">"group"</span>]<span class="sc">$</span>x</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>rpi <span class="ot">=</span> kmeansDF[,.N, by<span class="ot">=</span><span class="st">"group"</span>]<span class="sc">$</span>N <span class="sc">/</span> n</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Collect log-likelihood and updated parameter estimates at each iteration.</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>llEM <span class="ot">=</span> <span class="fu">rep</span>(<span class="dv">0</span>, maxIter)</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>muEM <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">rep</span>(<span class="dv">0</span>, r <span class="sc">*</span> maxIter), <span class="at">ncol=</span>r)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>sdEM <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">rep</span>(<span class="dv">0</span>, r <span class="sc">*</span> maxIter), <span class="at">ncol=</span>r)</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>piEM <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">rep</span>(<span class="dv">0</span>, r <span class="sc">*</span> maxIter), <span class="at">ncol=</span>r)</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize muEM, sdEM and piEM.</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>muEM[<span class="dv">1</span>,] <span class="ot">=</span> rmu</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>sdEM[<span class="dv">1</span>,] <span class="ot">=</span> rsd</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>piEM[<span class="dv">1</span>,] <span class="ot">=</span> rpi</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="co"># Iteration tracker.</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>jj <span class="ot">=</span> <span class="dv">2</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a><span class="co"># Expectation Maximization iteration.</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="co"># All m-prefixed variables have dimension (n x r).</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="co"># All r-prefixed variables have length r.</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> (jj<span class="sc">&lt;=</span>maxIter) {</span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Expectation step. </span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>    mcomp <span class="ot">=</span> <span class="fu">foreach</span>(<span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span>r, <span class="at">.combine=</span><span class="st">"cbind"</span>) <span class="sc">%do%</span> {</span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>        rpi[ii] <span class="sc">*</span> <span class="fu">dnorm</span>(x, rmu[ii], rsd[ii])</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Determine likelihood contribution for each observation.</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>    <span class="co"># mcompSum is a vector of length n. </span></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>    mcompSum <span class="ot">=</span> <span class="fu">apply</span>(mcomp, <span class="at">MARGIN=</span><span class="dv">1</span>, sum, <span class="at">na.rm=</span><span class="cn">TRUE</span>)</span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Compute mixture probabilities for each observation. Summing across</span></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a>    <span class="co"># columns, each row will equal 1.0.</span></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>    mpi <span class="ot">=</span> <span class="fu">foreach</span>(<span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(mcomp), <span class="at">.combine=</span><span class="st">"cbind"</span>) <span class="sc">%do%</span> {</span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>        mcomp[,ii] <span class="sc">/</span> mcompSum</span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Maximization step.</span></span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>    rmu <span class="ot">=</span> <span class="fu">as.numeric</span>((<span class="fu">t</span>(x) <span class="sc">%*%</span> mpi) <span class="sc">/</span> <span class="fu">apply</span>(mpi, <span class="at">MARGIN=</span><span class="dv">2</span>, sum))</span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a>    rsd <span class="ot">=</span> <span class="fu">foreach</span>(<span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(rmu), <span class="at">.combine=</span><span class="st">"c"</span>) <span class="sc">%do%</span> {</span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a>        denom <span class="ot">=</span> <span class="fu">sum</span>(mpi[,ii][<span class="fu">is.finite</span>(mpi[,ii])], <span class="at">na.rm=</span><span class="cn">TRUE</span>)</span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a>        numer <span class="ot">=</span> mpi[,ii] <span class="sc">*</span> (x <span class="sc">-</span> rmu[ii])<span class="sc">^</span><span class="dv">2</span></span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a>        numer <span class="ot">=</span> <span class="fu">sum</span>(numer[<span class="fu">is.finite</span>(numer)], <span class="at">na.rm=</span><span class="cn">TRUE</span>)</span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sqrt</span>(numer <span class="sc">/</span> denom)</span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a>    rpi <span class="ot">=</span> <span class="fu">foreach</span>(<span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(mpi), <span class="at">.combine=</span><span class="st">"c"</span>) <span class="sc">%do%</span> {</span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a>        <span class="fu">sum</span>(mpi[,ii][<span class="fu">is.finite</span>(mpi[,ii])], <span class="at">na.rm=</span><span class="cn">TRUE</span>) <span class="sc">/</span> n</span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Update llEM, muEM, sdEM and piEM.</span></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a>    llEM[jj] <span class="ot">=</span> <span class="fu">sum</span>(<span class="fu">log</span>(mcompSum)); muEM[jj,] <span class="ot">=</span> rmu; sdEM[jj,] <span class="ot">=</span> rsd; piEM[jj,] <span class="ot">=</span> rpi</span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(</span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a>        <span class="st">"["</span>, jj, <span class="st">"] ll="</span>, llEM[jj], <span class="st">" (dll="</span>, <span class="fu">abs</span>(llEM[jj] <span class="sc">-</span> llEM[jj<span class="dv">-1</span>]), <span class="st">")."</span></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">abs</span>(llEM[jj] <span class="sc">-</span> llEM[jj<span class="dv">-1</span>])<span class="sc">&lt;</span>tol) {</span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>    jj <span class="ot">=</span> jj <span class="sc">+</span> <span class="dv">1</span></span>
+<span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-94"><a href="#cb2-94" aria-hidden="true" tabindex="-1"></a><span class="co"># Extract last populated row from muEM, sdEM and piEM.</span></span>
+<span id="cb2-95"><a href="#cb2-95" aria-hidden="true" tabindex="-1"></a>paramsDF0 <span class="ot">=</span> <span class="fu">rbindlist</span>(</span>
+<span id="cb2-96"><a href="#cb2-96" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(</span>
+<span id="cb2-97"><a href="#cb2-97" aria-hidden="true" tabindex="-1"></a>        <span class="fu">data.table</span>(</span>
+<span id="cb2-98"><a href="#cb2-98" aria-hidden="true" tabindex="-1"></a>            <span class="at">parameter=</span><span class="st">"mean"</span>, <span class="at">w=</span><span class="fu">seq</span>(<span class="fu">length</span>(muEM[jj,])), <span class="at">value=</span>muEM[jj,],</span>
+<span id="cb2-99"><a href="#cb2-99" aria-hidden="true" tabindex="-1"></a>            <span class="at">stringsAsFactors=</span><span class="cn">FALSE</span></span>
+<span id="cb2-100"><a href="#cb2-100" aria-hidden="true" tabindex="-1"></a>            ),</span>
+<span id="cb2-101"><a href="#cb2-101" aria-hidden="true" tabindex="-1"></a>         <span class="fu">data.table</span>(</span>
+<span id="cb2-102"><a href="#cb2-102" aria-hidden="true" tabindex="-1"></a>            <span class="at">parameter=</span><span class="st">"sd"</span>, <span class="at">w=</span><span class="fu">seq</span>(<span class="fu">length</span>(sdEM[jj,])), <span class="at">value=</span>sdEM[jj,],</span>
+<span id="cb2-103"><a href="#cb2-103" aria-hidden="true" tabindex="-1"></a>            <span class="at">stringsAsFactors=</span><span class="cn">FALSE</span></span>
+<span id="cb2-104"><a href="#cb2-104" aria-hidden="true" tabindex="-1"></a>            ),</span>
+<span id="cb2-105"><a href="#cb2-105" aria-hidden="true" tabindex="-1"></a>         <span class="fu">data.table</span>(</span>
+<span id="cb2-106"><a href="#cb2-106" aria-hidden="true" tabindex="-1"></a>            <span class="at">parameter=</span><span class="st">"w"</span>, <span class="at">w=</span><span class="fu">seq</span>(<span class="fu">length</span>(piEM[jj,])), <span class="at">value=</span>piEM[jj,],</span>
+<span id="cb2-107"><a href="#cb2-107" aria-hidden="true" tabindex="-1"></a>            <span class="at">stringsAsFactors=</span><span class="cn">FALSE</span></span>
+<span id="cb2-108"><a href="#cb2-108" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb2-109"><a href="#cb2-109" aria-hidden="true" tabindex="-1"></a>        ), <span class="at">fill=</span><span class="cn">TRUE</span></span>
+<span id="cb2-110"><a href="#cb2-110" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-111"><a href="#cb2-111" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-112"><a href="#cb2-112" aria-hidden="true" tabindex="-1"></a>paramsDF0 <span class="ot">=</span> <span class="fu">dcast</span>(</span>
+<span id="cb2-113"><a href="#cb2-113" aria-hidden="true" tabindex="-1"></a>    paramsDF0, parameter <span class="sc">~</span> <span class="fu">paste0</span>(<span class="st">"w_"</span>, w), <span class="at">fun.aggregate=</span>sum, </span>
+<span id="cb2-114"><a href="#cb2-114" aria-hidden="true" tabindex="-1"></a>    <span class="at">value.var=</span><span class="st">"value"</span>, <span class="at">fill=</span><span class="cn">NA_real_</span></span>
+<span id="cb2-115"><a href="#cb2-115" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The code generates a status message at each iteration indicating the current log-likelihood estimate (<code>ll</code>) as well as the change in log-likelihood from the previous estimate (<code>dll</code>). Results are given below.</p>
+<pre><code>[2] ll=-276.872839784171 (dll=276.872839784171).
+[3] ll=-276.8390507688 (dll=0.0337890153707576).
+[4] ll=-276.83590305353 (dll=0.0031477152705861).
+[5] ll=-276.835432239165 (dll=0.000470814365030492).
+[6] ll=-276.835356881754 (dll=0.0000753574105374355).
+[7] ll=-276.835344544138 (dll=0.0000123376157148414).
+[8] ll=-276.835342506099 (dll=0.00000203803961085214).
+[9] ll=-276.835342168222 (dll=0.000000337876826961292).
+[10] ll=-276.835342112125 (dll=0.0000000560970079277467).
+[11] ll=-276.835342102806 (dll=0.00000000931919430513517).</code></pre>
+<p><code>paramsDF0</code> reflects the final estimates of <span class="math inline">\(\mu_{i}\)</span>, <span class="math inline">\(\sigma_{i}\)</span> and <span class="math inline">\(\pi_{i}\)</span>:</p>
+<pre><code>&gt; paramsDF0
+   parameter         w_1        w_2
+1:      mean 181.2244438 81.7632674
+2:        sd  30.6704024 16.0083545
+3:         w   0.4325322  0.5674678</code></pre>
+<p><br></p>
+</section>
+<section id="comparison-with-mixtools-library" class="level3">
+<h3 class="anchored" data-anchor-id="comparison-with-mixtools-library">Comparison with mixtools Library</h3>
+<p><em>mixtools</em> is a third-party R library used to estimate Gaussian Mixture Models. Using out data and initial estimates of <span class="math inline">\(\mu\)</span>, <span class="math inline">\(\sigma\)</span> and <span class="math inline">\(\pi\)</span>, let’s compare the results of our implementation vs.&nbsp;the <code>normalmixEM</code> function provided by mixtools:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"data.table"</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"mixtools"</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>gmm <span class="ot">=</span> <span class="fu">normalmixEM</span>(</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    x, <span class="at">k=</span><span class="dv">2</span>, <span class="at">lambda=</span>piEM[<span class="dv">1</span>,], <span class="at">mu=</span>muEM[<span class="dv">1</span>,],<span class="at">sigma=</span>sdEM[<span class="dv">1</span>,]</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Create data.table containing normalmixEM parameter estimates.</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>paramsDF1 <span class="ot">=</span> <span class="fu">data.table</span>(</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">parameter=</span><span class="fu">c</span>(<span class="st">"mu"</span>, <span class="st">"sigma"</span>, <span class="st">"pi"</span>), <span class="at">stringsAsFactors=</span><span class="cn">FALSE</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (ii <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span>r) {</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    paramsDF1[[<span class="fu">paste0</span>(<span class="st">"comp"</span>, ii)]] <span class="ot">=</span> <span class="fu">c</span>(gmm<span class="sc">$</span>mu[ii], gmm<span class="sc">$</span>sigma[ii], gmm<span class="sc">$</span>lambda[ii])</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Let’s compare <code>paramsDF0</code> with <code>paramsDF1</code>:</p>
+<pre><code>&gt; paramsDF0
+   parameter        w_1         w_2
+1:        mu 81.7632674 181.2244438
+2:     sigma 16.0083545  30.6704024
+3:        pi  0.5674678   0.4325322
+
+&gt; paramsDF1
+   parameter      comp1       comp2
+1:        mu 81.7632740 181.2244778
+2:     sigma 16.0083538  30.6704046
+3:        pi  0.5674678   0.4325322</code></pre>
+<p>We find the results to be almost identical.</p>
+<p>Finally, we can create a density plot to illustrate the adequacy of the GMM fit to the data:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plot comparing empirical data with estimated mixture model.</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>exhibitPath <span class="ot">=</span> <span class="st">"C:/Users/i103455/Repos/Tutorials/Supporting/em2.png"</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">png</span>(<span class="at">file=</span>exhibitPath)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(x, <span class="at">prob=</span><span class="cn">TRUE</span>, <span class="at">breaks=</span><span class="dv">23</span>, <span class="at">xlim=</span><span class="fu">c</span>(<span class="fu">min</span>(x), <span class="fu">max</span>(x), <span class="at">main=</span><span class="st">"GMM Estimate via EM"</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="at">xx =</span> <span class="fu">seq</span>(<span class="at">from=</span><span class="fu">min</span>(x), <span class="at">to=</span><span class="fu">max</span>(x), <span class="at">length.out=</span><span class="dv">500</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="at">yy =</span> rpi[<span class="dv">1</span>] <span class="sc">*</span> <span class="fu">dnorm</span>(xx, <span class="at">mean=</span>rmu[<span class="dv">1</span>], <span class="at">sd=</span>rsd[<span class="dv">1</span>]) <span class="sc">+</span> rpi[<span class="dv">2</span>] <span class="sc">*</span> <span class="fu">dnorm</span>(xx, <span class="at">mean=</span>rmu[<span class="dv">2</span>], <span class="at">sd=</span>rsd[<span class="dv">2</span>])</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="fu">lines</span>(xx, yy, <span class="at">col=</span><span class="st">"#E02C70"</span>, <span class="at">lwd=</span><span class="dv">2</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="fu">dev.off</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Which results in:</p>
+<p><img src="em02.png" class="img-fluid"></p>
+<p>We see that the model serves as a good representation of the underlying data.</p>
+</section>
+<section id="conclusion" class="level3">
+<h3 class="anchored" data-anchor-id="conclusion">Conclusion</h3>
+<p>One final note regarding Expectation Maximization estimates: This is taken from Christopher Bishop’s <em>Pattern Recognition and Machine Learning</em>, Chapter 9:</p>
+<blockquote class="blockquote">
+<p>A K-component mixture model will have a total of <span class="math inline">\(K!\)</span> equivalent solutions corresponding to the <span class="math inline">\(K!\)</span> ways of assigning <span class="math inline">\(K\)</span> sets of parameters to <span class="math inline">\(K\)</span> components. In other words, for any given point in the space of parameter values there will be a further <span class="math inline">\(K! - 1\)</span> additional points all of which give rise to exactly the same distribution. This problem is known as <em>identifiability</em>.</p>
+</blockquote>
+<p>This means that for certain datasets, the parameters estimates from our implementation may differ from those found via mixtools, but for the purposes of finding a good density model, the difference is irrelevant since any of the equivalent solutions is as good as any other. Just be sure to perform a visual adequacy assessment to ensure the differences in parameter estimates do indeed result in identical or nearly identical probability densities.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/www\.jtrive\.com");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

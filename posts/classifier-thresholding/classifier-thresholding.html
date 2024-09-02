@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2024-04-28">
+<meta name="description" content="Hyperparameter search and classifier threshold selection">
+
+<title>Hyperparameter Search and Classifier Threshold Selection – The Pleasure of Finding Things Out: A blog by James Triveri</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">The Pleasure of Finding Things Out: A blog by James Triveri</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/jtrive84/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.linkedin.com/in/jamestriveri/"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://python-bloggers.com/"> <i class="bi bi-p-square" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Hyperparameter Search and Classifier Threshold Selection</h1>
+                  <div>
+        <div class="description">
+          Hyperparameter search and classifier threshold selection
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">Machine Learning</div>
+                <div class="quarto-category">Python</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">April 28, 2024</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<p>The following notebook demonstrates how to use <code>GridSearchCV</code> to identify optimal hyperparameters for a given model and metric, and alternatives for selecting a classifier threshold in scikit-learn.</p>
+<p>First we load the breast cancer dataset. We will forgo any pre-processing, but create separate train and validation sets:</p>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.datasets <span class="im">import</span> load_breast_cancer</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>np.set_printoptions(suppress<span class="op">=</span><span class="va">True</span>, precision<span class="op">=</span><span class="dv">8</span>, linewidth<span class="op">=</span><span class="dv">1000</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>pd.options.mode.chained_assignment <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">'display.max_columns'</span>, <span class="va">None</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">'display.width'</span>, <span class="va">None</span>)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> load_breast_cancer()</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> data[<span class="st">"data"</span>]</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> data[<span class="st">"target"</span>]</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Create train, validation and test splits. </span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>Xtrain, Xvalid, ytrain, yvalid <span class="op">=</span> train_test_split(X, y, test_size<span class="op">=</span><span class="fl">.20</span>, random_state<span class="op">=</span><span class="dv">516</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Xtrain.shape: </span><span class="sc">{</span>Xtrain<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Xvalid.shape: </span><span class="sc">{</span>Xvalid<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Xtrain.shape: (455, 30)
+Xvalid.shape: (114, 30)</code></pre>
+</div>
+</div>
+<section id="hyperparameter-search" class="level2">
+<h2 class="anchored" data-anchor-id="hyperparameter-search">Hyperparameter Search</h2>
+<p>A random forest is a meta estimator that fits a number of decision tree classifiers on various sub-samples of the dataset and uses averaging to improve the predictive accuracy and control over-fitting (see documentation <a href="https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestClassifier.html#sklearn-ensemble-randomforestclassifier">here</a>).</p>
+<p>The <code>RandomForestClassifier</code> takes a number of hyperparameters. It can be difficult to determine which values to set these to manually, so instead we can perform a cross-validated grid search over a number of candidate values to determine which hyperparmeter combination is best for our data and specified metric. <code>GridSearchCV</code>is part of scikit-learn, and is a method used to find the best possible configuration of hyperparameters for optimal performance. It works as follows:</p>
+<ol type="1">
+<li><p><strong>Define a parameter grid</strong>: The grid is a dictionary that maps parameter names to the values that should be tested. These parameters are specific to the model you are working to optimize.</p></li>
+<li><p><strong>Specify a model</strong>: Choose a model that you want to optimize using <code>GridSearchCV</code>. This model is not trained yet; it’s just passed in with it’s default parameters.</p></li>
+<li><p><strong>Cross-validation setup</strong>: <code>GridSearchCV</code> uses cross-validation to evaluate each combination of parameter values provided in the grid. You need to specify the number of folds (splits) for the cross-validation process (this is the <code>cv</code> parameter). Common choices are 5 or 10 folds, depending on the size of your dataset and how thorough you want the search to be.</p></li>
+<li><p><strong>Search Execution</strong>: With the parameter grid, model, and cross-validation setup, <code>GridSearchCV</code> systematically works through multiple combinations of parameter sets, cross-validating as it goes to determine which configuration gives the best performance based on a score function. The performance is often measured using metrics like accuracy, precision or recall for classification problems or mean squared error for regression problems.</p></li>
+<li><p><strong>Results:</strong> Finally, <code>GridSearchCV</code> provides the best parameters, allowing you to understand which parameters work best for your model. Additionally, it can provide other results like the score for each parameter combination, allowing for deeper analysis of how different parameter values impact model performance.</p></li>
+</ol>
+<p><br></p>
+<p>The documentation for <code>GridSearchCV</code> is available <a href="https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.GridSearchCV.html#sklearn.model_selection.GridSearchCV">here</a>.</p>
+<p><br></p>
+<p>In the next cell, we assess the following <code>RandomForestClassifier</code> hyperparameters:</p>
+<ul>
+<li><code>n_estimators</code>: [100, 150, 250]</li>
+<li><code>min_samples_leaf</code>: [2, 3, 4]</li>
+<li><code>ccp_alpha</code>: [0, .1, .2, .3]</li>
+</ul>
+<p>For the metric, recall is used since the cost of a false negative is high (not detecting breast cancer). This means the hyperparameter combination with the maximum average recall over the k-folds will be selected as the best parameter set.</p>
+<div id="cell-4" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">"""</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">Example using GridSearchCV to identify optimal hyperparameters w.r.t. recall.</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">Note that within GridSearchCV, cv represents the number of folds for </span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">k-Fold cross validation.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">"""</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.ensemble <span class="im">import</span> RandomForestClassifier</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> GridSearchCV</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Create parameter grid as dictionary.</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>param_grid <span class="op">=</span> {</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"n_estimators"</span>: [<span class="dv">100</span>, <span class="dv">150</span>, <span class="dv">250</span>],</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">"min_samples_leaf"</span>: [<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>],</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ccp_alpha"</span>: [<span class="dv">0</span>, <span class="fl">.1</span>, <span class="fl">.2</span>, <span class="fl">.3</span>]</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Pass model and param_grid into GridSearchCV.</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>mdl <span class="op">=</span> GridSearchCV(</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    RandomForestClassifier(random_state<span class="op">=</span><span class="dv">516</span>), </span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>    param_grid, </span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    scoring<span class="op">=</span><span class="st">"recall"</span>, </span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    cv<span class="op">=</span><span class="dv">5</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Fit model on training set. This can take a while depending on the number of </span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="co"># hyperparameter combinations in param_grid.</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>mdl.fit(Xtrain, ytrain)</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Print optimal parameters.</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"best parameters: </span><span class="sc">{</span>mdl<span class="sc">.</span>best_params_<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>best parameters: {'ccp_alpha': 0, 'min_samples_leaf': 4, 'n_estimators': 100}</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>For random forests, boosting models and other tree-based ensemble methods, we can obtain a summary of the relative importance of each of the input features. This is available in the <code>mdl.best_estimator_.feature_importances_</code> attribute. We can plot feature importances in decreasing order as follows:</p>
+<div id="cell-6" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>imp <span class="op">=</span> mdl.best_estimator_.feature_importances_</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>rf_imp <span class="op">=</span> pd.Series(imp, index<span class="op">=</span>data[<span class="st">"feature_names"</span>]).sort_values(ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="dv">5</span>), tight_layout<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>rf_imp.plot.bar(ax<span class="op">=</span>ax)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"RandomForestClassifier feature importances"</span>)</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">"mean decrease in impurity"</span>)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="classifier-thresholding_files/figure-html/cell-4-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>In terms of mean decrease in impurity, the top 7 features are assigned the highest importance, with the remaining features deemed not as relevant. For more information on how feature importance is calculated, see <a href="https://scikit-learn.org/stable/auto_examples/ensemble/plot_forest_importances.html">here</a>.</p>
+<p><br></p>
+<p>The resulting <code>mdl</code> object can be used to make predictions on the validation set (<code>mdl</code> exposes the <code>RandomForestClassifier</code> with optimal hyperparameters set). We use <code>mdl.predict_proba</code> to get probabilities on [0, 1], with values closer to 1 representing positive predicted instances of breast cancer on the validation set:</p>
+<div id="cell-9" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>ypred <span class="op">=</span> mdl.predict_proba(Xvalid)[:,<span class="dv">1</span>]</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>ypred</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>array([0.005     , 0.82743637, 0.97088095, 0.        , 0.        , 1.        , 0.98020202, 0.67380556, 0.        , 0.99333333, 0.9975    , 0.30048576, 0.9528113 , 0.99666667, 0.04102381, 0.99444444, 1.        , 0.828226  , 0.        , 0.        , 0.97916667, 1.        , 0.99607143, 0.90425163, 0.        , 0.02844156, 0.99333333, 0.98183333, 0.9975    , 0.08869769, 0.97369841, 0.        , 1.        , 0.71100866, 0.96022727, 0.        , 0.71200885, 0.06103175, 0.005     , 0.99490476, 0.1644127 , 0.        , 0.23646934, 1.        , 0.57680164, 0.64901715, 0.9975    , 0.61790818, 0.95509668, 0.99383333, 0.04570455, 0.97575758, 1.        , 0.47115815, 0.92422619, 0.77371415, 0.        , 1.        , 0.26198657, 0.        , 0.28206638, 0.95216162, 0.98761905, 0.99464286, 0.98704762, 0.85579351, 0.10036905, 0.00222222, 0.98011905, 0.99857143, 0.92285967, 0.95180556, 0.97546947, 0.84433189, 0.005     , 0.99833333, 0.83616339, 1.        , 0.9955    , 1.        , 0.99833333, 1.        ,
+       0.86399315, 0.9807381 , 0.        , 0.99833333, 0.9975    , 0.        , 0.98733333, 0.96822727, 0.23980827, 0.7914127 , 0.        , 0.98133333, 1.        , 1.        , 0.89251019, 0.9498226 , 0.18943254, 0.83494391, 0.9975    , 1.        , 0.77079113, 0.99722222, 0.30208297, 1.        , 0.92111977, 0.99428571, 0.91936508, 0.47118074, 0.98467172, 0.006     , 0.05750305, 0.96954978])</code></pre>
+</div>
+</div>
+<p>Note that scikit-learn <code>predict_proba</code> outputs an nx2 dimensional array, where the first column represents the probability of class 0 and the second column the probability of class 1 (has breast cancer). Each row will sum to 1. We will work with the probabilities of the class we’re interested in analyzing, so we extract only the values from the positive class (the second column), that’s why we call <code>mdl.predict_proba(Xvalid)[:,1]</code>.</p>
+<p><br></p>
+<section id="threshold-selection" class="level3">
+<h3 class="anchored" data-anchor-id="threshold-selection">Threshold Selection</h3>
+<p>In order to master machine learning, it is necessary to learn a variety of minor concepts that underpin these systems. One such concept is setting the optimal classification threshold.</p>
+<p>By default, for probabilistic classifiers scikit-learn uses a threshold of .50 to distinguish between positive and negative class instances. The predicted classes are obtained by calling <code>mdl.predict</code>. Here’s a side by side comparison of the model predicted probabilities and predicted classes:</p>
+<div id="cell-12" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Predicted probabilities.</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>ypred <span class="op">=</span> mdl.predict_proba(Xvalid)[:,<span class="dv">1</span>].reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Predicted classes.</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>yhat <span class="op">=</span> mdl.predict(Xvalid).reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">1</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Combine probabilities and predicted class labels.</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>preds <span class="op">=</span> np.concatenate([ypred, yhat], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>preds</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>array([[0.005     , 0.        ],
+       [0.82743637, 1.        ],
+       [0.97088095, 1.        ],
+       [0.        , 0.        ],
+       [0.        , 0.        ],
+       [1.        , 1.        ],
+       [0.98020202, 1.        ],
+       [0.67380556, 1.        ],
+       [0.        , 0.        ],
+       [0.99333333, 1.        ],
+       [0.9975    , 1.        ],
+       [0.30048576, 0.        ],
+       [0.9528113 , 1.        ],
+       [0.99666667, 1.        ],
+       [0.04102381, 0.        ],
+       [0.99444444, 1.        ],
+       [1.        , 1.        ],
+       [0.828226  , 1.        ],
+       [0.        , 0.        ],
+       [0.        , 0.        ],
+       [0.97916667, 1.        ],
+       [1.        , 1.        ],
+       [0.99607143, 1.        ],
+       [0.90425163, 1.        ],
+       [0.        , 0.        ],
+       [0.02844156, 0.        ],
+       [0.99333333, 1.        ],
+       [0.98183333, 1.        ],
+       [0.9975    , 1.        ],
+       [0.08869769, 0.        ],
+       [0.97369841, 1.        ],
+       [0.        , 0.        ],
+       [1.        , 1.        ],
+       [0.71100866, 1.        ],
+       [0.96022727, 1.        ],
+       [0.        , 0.        ],
+       [0.71200885, 1.        ],
+       [0.06103175, 0.        ],
+       [0.005     , 0.        ],
+       [0.99490476, 1.        ],
+       [0.1644127 , 0.        ],
+       [0.        , 0.        ],
+       [0.23646934, 0.        ],
+       [1.        , 1.        ],
+       [0.57680164, 1.        ],
+       [0.64901715, 1.        ],
+       [0.9975    , 1.        ],
+       [0.61790818, 1.        ],
+       [0.95509668, 1.        ],
+       [0.99383333, 1.        ],
+       [0.04570455, 0.        ],
+       [0.97575758, 1.        ],
+       [1.        , 1.        ],
+       [0.47115815, 0.        ],
+       [0.92422619, 1.        ],
+       [0.77371415, 1.        ],
+       [0.        , 0.        ],
+       [1.        , 1.        ],
+       [0.26198657, 0.        ],
+       [0.        , 0.        ],
+       [0.28206638, 0.        ],
+       [0.95216162, 1.        ],
+       [0.98761905, 1.        ],
+       [0.99464286, 1.        ],
+       [0.98704762, 1.        ],
+       [0.85579351, 1.        ],
+       [0.10036905, 0.        ],
+       [0.00222222, 0.        ],
+       [0.98011905, 1.        ],
+       [0.99857143, 1.        ],
+       [0.92285967, 1.        ],
+       [0.95180556, 1.        ],
+       [0.97546947, 1.        ],
+       [0.84433189, 1.        ],
+       [0.005     , 0.        ],
+       [0.99833333, 1.        ],
+       [0.83616339, 1.        ],
+       [1.        , 1.        ],
+       [0.9955    , 1.        ],
+       [1.        , 1.        ],
+       [0.99833333, 1.        ],
+       [1.        , 1.        ],
+       [0.86399315, 1.        ],
+       [0.9807381 , 1.        ],
+       [0.        , 0.        ],
+       [0.99833333, 1.        ],
+       [0.9975    , 1.        ],
+       [0.        , 0.        ],
+       [0.98733333, 1.        ],
+       [0.96822727, 1.        ],
+       [0.23980827, 0.        ],
+       [0.7914127 , 1.        ],
+       [0.        , 0.        ],
+       [0.98133333, 1.        ],
+       [1.        , 1.        ],
+       [1.        , 1.        ],
+       [0.89251019, 1.        ],
+       [0.9498226 , 1.        ],
+       [0.18943254, 0.        ],
+       [0.83494391, 1.        ],
+       [0.9975    , 1.        ],
+       [1.        , 1.        ],
+       [0.77079113, 1.        ],
+       [0.99722222, 1.        ],
+       [0.30208297, 0.        ],
+       [1.        , 1.        ],
+       [0.92111977, 1.        ],
+       [0.99428571, 1.        ],
+       [0.91936508, 1.        ],
+       [0.47118074, 0.        ],
+       [0.98467172, 1.        ],
+       [0.006     , 0.        ],
+       [0.05750305, 0.        ],
+       [0.96954978, 1.        ]])</code></pre>
+</div>
+</div>
+<p>Notice that when the probability is less that 0.50, the predicted class is 0. When the predicted probability is greater than 0.50, the predicted class is 1. For certain applications, the 0.50 threshold might make sense, for example when your target is balanced or close to balanced (when the number of 0s and 1s in the training set is approximately equal). But for unbalanced datasets, using the default threshold can give misleading results. In what follows, we walkthrough a few approaches that can be used to assess the optimal discrimination theshold for a classifier.</p>
+</section>
+<section id="use-0.50" class="level3">
+<h3 class="anchored" data-anchor-id="use-0.50">1. Use 0.50</h3>
+<p>The first approach is the most straightforward: Just use the default scikit-learn threshold of .50. This makes sense when your classes are balanced, but will give misleading results when classes are imbalanced.</p>
+<p><br></p>
+</section>
+<section id="use-1---the-proportion-of-positive-instances-in-the-training-data" class="level3">
+<h3 class="anchored" data-anchor-id="use-1---the-proportion-of-positive-instances-in-the-training-data">2. Use 1 - the proportion of positive instances in the training data</h3>
+<p>If we look at the number of positives (1s) vs.&nbsp;total samples in our training set, we have:</p>
+<div id="cell-16" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Proportion of positives in training set: </span><span class="sc">{</span>ytrain<span class="sc">.</span><span class="bu">sum</span>() <span class="op">/</span> ytrain<span class="sc">.</span>shape[<span class="dv">0</span>]<span class="sc">:.2f}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Proportion of positives in training set: 0.62</code></pre>
+</div>
+</div>
+<p>We see that 62% of the samples belong to class 1. This is usually not the case. In many classification scenarios, we’re dealing with 10%, 5% or even less than 1% of samples belonging to the positive class.</p>
+<p>To illustrate the approach, since 62% percent of the observations belong to the positive class, we would use a threshold of <strong>1 - .62 = .38</strong>. The predicted class labels are then created using the following code:</p>
+<div id="cell-18" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Creating predicted classes based on adjusted classifier threshold. </span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>thresh <span class="op">=</span> <span class="fl">.38</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>yhat <span class="op">=</span> np.where(ypred <span class="op">&lt;=</span> thresh, <span class="dv">0</span>, <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now any sample with a predicted probability less than or equal to .38 will be assigned to class 0, and samples with predicted probability greater than .38 are assigned to the positive class.</p>
+<p>If we’re dealing with a highly imbalanced dataset with only 1% positive instances, we would use <strong>1 - .01 = .99</strong> as the threshold using this method.</p>
+<p><br></p>
+</section>
+<section id="use-best-f1-score" class="level3">
+<h3 class="anchored" data-anchor-id="use-best-f1-score">3. Use best f1-score</h3>
+<p>The f1-score is the geometric average of precision and recall. We can compute precision and recall for a number of different thresholds then select the threshold that maximizes the f1-score. This is a suitable approach if your classification task weighs precision and recall equally. Although this isn’t the case for our breast cancer classifier (we want to maximize recall since the cost of a false negative is high), the approach is demonstrated in the next cell:</p>
+<div id="cell-20" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> precision_recall_curve</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Get precision and recall for various thresholds.</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>p, r, thresh <span class="op">=</span> precision_recall_curve(yvalid, ypred)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute f1-score for each threshold.</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>f1 <span class="op">=</span> <span class="dv">2</span> <span class="op">*</span> (p <span class="op">*</span> r) <span class="op">/</span> (p <span class="op">+</span> r)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Identify threshold that maximizes f1-score.</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>best_thresh <span class="op">=</span> thresh[np.argmax(f1)]</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Threshold using optimal f1-score: </span><span class="sc">{</span>best_thresh<span class="sc">:,.3f}</span><span class="ss">."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Threshold using optimal f1-score: 0.471.</code></pre>
+</div>
+</div>
+<p>Using this method, we would set the discrimination threshold to <strong>.471</strong>, and would obtain the predicted class labels the same way as before:</p>
+<div id="cell-22" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>thresh <span class="op">=</span> <span class="fl">.471</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>yhat <span class="op">=</span> np.where(ypred <span class="op">&lt;=</span> thresh, <span class="dv">0</span>, <span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><br></p>
+</section>
+<section id="inspection-of-roc-curve" class="level3">
+<h3 class="anchored" data-anchor-id="inspection-of-roc-curve">4. Inspection of ROC curve</h3>
+<p>The Receiver Operating Characteristic (ROC) curve plots the true positive rate (TPR) against the false positive rate (FPR) at various classification thresholds. Typically we’re interested in using a threshold that maximizes TPR while minimizing FPR, which is the point (0, 1). The curve starts with a threshold of 1 at the far left and decreases towards 0 as the x-axis increases.</p>
+<p>We can plot the ROC curve in scikit-learn using the code below. Note that <code>ypred</code> are predicted probabilities and <code>yvalid</code> are class labels (1s or 0s).</p>
+<div id="cell-24" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> RocCurveDisplay</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>roc_disp <span class="op">=</span> RocCurveDisplay.from_predictions(</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    yvalid, ypred, name<span class="op">=</span><span class="st">"RandomForestClassifier"</span>, color<span class="op">=</span><span class="st">"#191964"</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>roc_disp.ax_.set_title(<span class="st">"ROC curve"</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>roc_disp.ax_.grid(<span class="va">True</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="classifier-thresholding_files/figure-html/cell-11-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Using approach 4, the optimal threshold would be somewhere between .70-.80, which is much higher than what is indicated using the other methods so far. Ultimately it is up to you to determine which threshold makes the most sense, but intuitively, a threshold of .70-.80 seems too high when the prevalence of the positive class in the training data is 62%.</p>
+<p><br></p>
+</section>
+<section id="inspection-of-the-precision-recall-curve" class="level3">
+<h3 class="anchored" data-anchor-id="inspection-of-the-precision-recall-curve">5. Inspection of the precision-recall curve</h3>
+<p>The precision-recall curve is a graphical representation used in binary classification to evaluate the performance of a classification model at different probability thresholds. This curve shows the trade-off between precision and recall for a number of different thresholds. The curve plots recall on the x-axis and precision on the y-axis.</p>
+<p>The curve starts from the rightmost part of the graph. As the threshold for classifying positive instances decreases, recall increases, and precision can either increase or decrease, but typically it decreases because the model starts to classify more instances as positive, including both true positives and false positives.</p>
+<p>The top-right corner of the graph (high precision, high recall) represents the ideal point, where the classifier perfectly identifies all positive cases with no false positives. Generally, we’d like to select a threshold that corresponds to a point closest to top-right corner of the graph.</p>
+<p>We can plot the precision-recall curve in scikit-learn using the code below. Note that <code>ypred</code> are predicted probabilities and <code>yvalid</code> are class labels (1s or 0s).</p>
+<div id="cell-27" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> PrecisionRecallDisplay</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>pr_disp <span class="op">=</span> PrecisionRecallDisplay.from_predictions(</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    yvalid, ypred, name<span class="op">=</span><span class="st">"RandomForestClassifier"</span>, color<span class="op">=</span><span class="st">"#CD0066"</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>pr_disp.ax_.set_title(<span class="st">"Precision-Recall curve"</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>pr_disp.ax_.grid(<span class="va">True</span>)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="classifier-thresholding_files/figure-html/cell-12-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Based on the plot, would want to select the threshold that corresponds to a recall of about .95, since this is close to the point (1, 1). This can be determined using the following code:</p>
+<div id="cell-29" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> precision_recall_curve</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>p, r, thresh <span class="op">=</span> precision_recall_curve(yvalid, ypred)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>best_thresh <span class="op">=</span> thresh[np.where(r <span class="op">&gt;=</span> <span class="fl">.95</span>)[<span class="op">-</span><span class="dv">1</span>][<span class="op">-</span><span class="dv">1</span>]]</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Selected threshold using precision-recall curve: </span><span class="sc">{</span>best_thresh<span class="sc">:,.3f}</span><span class="ss">."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Selected threshold using precision-recall curve: 0.674.</code></pre>
+</div>
+</div>
+<p><br></p>
+</section>
+<section id="inspection-of-precision-and-recall-as-a-function-of-threshold" class="level3">
+<h3 class="anchored" data-anchor-id="inspection-of-precision-and-recall-as-a-function-of-threshold">6. Inspection of precision and recall as a function of threshold</h3>
+<p>It is also possible to plot precision and recall as two separate series against threshold on the x-axis. The goal is to identify a point where precision and recall intersect. Using this approach may be suitable in some scenarios.</p>
+<div id="cell-31" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> precision_recall_curve</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>p, r, thresh <span class="op">=</span> precision_recall_curve(yvalid, ypred)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>p, r <span class="op">=</span> p[:<span class="op">-</span><span class="dv">1</span>], r[:<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span>  plt.subplots(<span class="dv">1</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="fl">6.5</span>, <span class="dv">4</span>), tight_layout<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"precision &amp; recall vs. threshold"</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>ax.plot(thresh, p, color<span class="op">=</span><span class="st">"red"</span>, linewidth<span class="op">=</span><span class="fl">1.25</span>, label<span class="op">=</span><span class="st">"precision"</span>)</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>ax.plot(thresh, r, color<span class="op">=</span><span class="st">"blue"</span>, linewidth<span class="op">=</span><span class="fl">1.25</span>, label<span class="op">=</span><span class="st">"recall"</span>)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">"threshold"</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co"># ax.set_xticks(np.arange(tmax+1))</span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>ax.tick_params(axis<span class="op">=</span><span class="st">"x"</span>, which<span class="op">=</span><span class="st">"major"</span>, direction<span class="op">=</span><span class="st">"in"</span>, labelsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>ax.tick_params(axis<span class="op">=</span><span class="st">"y"</span>, which<span class="op">=</span><span class="st">"major"</span>, direction<span class="op">=</span><span class="st">"in"</span>, labelsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>ax.xaxis.set_ticks_position(<span class="st">"none"</span>)</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>ax.yaxis.set_ticks_position(<span class="st">"none"</span>)</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>ax.grid(<span class="va">True</span>)</span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">"upper right"</span>, fancybox<span class="op">=</span><span class="va">True</span>, framealpha<span class="op">=</span><span class="dv">1</span>, fontsize<span class="op">=</span><span class="st">"medium"</span>)</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="classifier-thresholding_files/figure-html/cell-14-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The precision and recall series intersect right after .60, therefore method #5 would set the threshold to roughly .60.</p>
+<p><br></p>
+</section>
+<section id="assessing-a-classifier" class="level3">
+<h3 class="anchored" data-anchor-id="assessing-a-classifier">Assessing a Classifier</h3>
+<p>Once a threshold has been selected, the predictive power of the classifier can be assessed. To do this, we will look at the confusion matrix as well as the <code>sklearn.metrics.classification_report</code>. Note that both diagnostics require actual and predicted labels. Once we’ve settled on a threshold, model assessment is performed comparing actual vs.&nbsp;predicted labels. In what follows, the 0.471 threshold obtained from method #3 will be used as the classification threshold.</p>
+<p>Technically, once we’ve decided on a threshold, we should then assess the performance of the model on a separate test set. However, for the purposes of demonstration, we are going to re-use the validation set.</p>
+<p>We start by creating the confusion matrix:</p>
+<div id="cell-33" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> ConfusionMatrixDisplay</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Determine predicted classes using the .471 threshold.</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>thresh <span class="op">=</span> <span class="fl">.471</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>yhat <span class="op">=</span> np.where(ypred <span class="op">&lt;=</span> thresh, <span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>cm_disp <span class="op">=</span> ConfusionMatrixDisplay.from_predictions(yvalid, yhat, colorbar<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>cm_disp.ax_.set_title(<span class="ss">f"mm confusion matrix (thresh=</span><span class="sc">{</span>thresh<span class="sc">:.3}</span><span class="ss">)"</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="classifier-thresholding_files/figure-html/cell-15-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The output indicates:</p>
+<ul>
+<li>There are 76 True Positives (TP).</li>
+<li>There are 34 True Negatives (TN).</li>
+<li>There are 4 False Positives (FP).</li>
+<li>There are 0 False Negatives (FN).</li>
+</ul>
+<p><br></p>
+<p>Next we inspect the classification report. This also takes actual and predicted labels, and returns a summary of common classifier metrics:</p>
+<div id="cell-35" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> classification_report</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(classification_report(yvalid, yhat))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>              precision    recall  f1-score   support
+
+           0       1.00      0.89      0.94        38
+           1       0.95      1.00      0.97        76
+
+    accuracy                           0.96       114
+   macro avg       0.97      0.95      0.96       114
+weighted avg       0.97      0.96      0.96       114
+</code></pre>
+</div>
+</div>
+<p>Overall this is very good performance.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/www\.jtrive\.com");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

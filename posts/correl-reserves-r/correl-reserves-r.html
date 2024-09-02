@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2024-02-10">
+<meta name="description" content="Generating correlated bootstrap reserve estimates with R">
+
+<title>Generating Correlated Boostrap Reserve Estimates – The Pleasure of Finding Things Out: A blog by James Triveri</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">The Pleasure of Finding Things Out: A blog by James Triveri</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/jtrive84/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.linkedin.com/in/jamestriveri/"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://python-bloggers.com/"> <i class="bi bi-p-square" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Generating Correlated Boostrap Reserve Estimates</h1>
+                  <div>
+        <div class="description">
+          Generating correlated bootstrap reserve estimates with R
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">Statistical Modeling</div>
+                <div class="quarto-category">R</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">February 10, 2024</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<p>The <a href="https://www.casact.org/publications-research/research/research-resources/loss-reserving-data-pulled-naic-schedule-p">CAS Loss Reserves Database</a> represents a set of triangles intended for use in claims reserving studies. The data includes major personal and commercial lines of business from U.S. property casualty insurers. The claims data comes from Schedule P - Analysis of Losses and Loss Expenses in the National Association of Insurance Commissioners (NAIC) database. NAIC Schedule P contains information on claims for major personal and commercial lines for all P&amp;C insurers that write business in US. The six lines included in this database are: (1) private passenger auto liability/medical; (2) commercial auto/truck liability/medical; (3) workers’ compensation; (4) medical malpractice - claims made; (5) other liability - occurrence; (6) product liability - occurrence.</p>
+<p>In this article, a technique to estimate total reserves accounting for correlation between lines of business is introduced. We focus on workers compensation, commercial auto, product liability and other liability data sourced from the CAS Loss Reserves Database. We’ll demonstrate how to account for correlation between lines, and show how changes to the correlation assumption effects the total reserve estimate.</p>
+<p>The data can be downloaded from the CAS website directly using data.table’s <code>fread</code>. We perform some preprocessing to normalize column names and assign like columns the same name in each table.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"data.table"</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"foreach"</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"ChainLadder"</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"ggplot2"</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>DF1 <span class="ot">=</span> <span class="fu">fread</span>(<span class="st">"https://www.casact.org/sites/default/files/2021-04/wkcomp_pos.csv"</span>)  <span class="co"># workers compensation</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>DF2 <span class="ot">=</span> <span class="fu">fread</span>(<span class="st">"https://www.casact.org/sites/default/files/2021-04/comauto_pos.csv"</span>)  <span class="co"># commercial auto</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>DF3 <span class="ot">=</span> <span class="fu">fread</span>(<span class="st">"https://www.casact.org/sites/default/files/2021-04/prodliab_pos.csv"</span>) <span class="co"># product liability</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>DF4 <span class="ot">=</span> <span class="fu">fread</span>(<span class="st">"https://www.casact.org/sites/default/files/2021-04/othliab_pos.csv"</span>)  <span class="co"># other liability</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(DF1) <span class="ot">=</span> <span class="fu">tolower</span>(<span class="fu">names</span>(DF1))</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(DF2) <span class="ot">=</span> <span class="fu">tolower</span>(<span class="fu">names</span>(DF2))</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(DF3) <span class="ot">=</span> <span class="fu">tolower</span>(<span class="fu">names</span>(DF3))</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(DF4) <span class="ot">=</span> <span class="fu">tolower</span>(<span class="fu">names</span>(DF4))</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="fu">setnames</span>(</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    DF1, <span class="fu">c</span>(<span class="st">"incurloss_d"</span>, <span class="st">"bulkloss_d"</span>, <span class="st">"accidentyear"</span>, <span class="st">"developmentlag"</span>),</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">"incurloss"</span>, <span class="st">"bulkloss"</span>, <span class="st">"origin"</span>, <span class="st">"dev"</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="fu">setnames</span>(</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    DF2, <span class="fu">c</span>(<span class="st">"incurloss_c"</span>, <span class="st">"bulkloss_c"</span>, <span class="st">"accidentyear"</span>, <span class="st">"developmentlag"</span>),</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">"incurloss"</span>, <span class="st">"bulkloss"</span>, <span class="st">"origin"</span>, <span class="st">"dev"</span>)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="fu">setnames</span>(</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    DF3, <span class="fu">c</span>(<span class="st">"incurloss_r1"</span>, <span class="st">"bulkloss_r1"</span>, <span class="st">"accidentyear"</span>, <span class="st">"developmentlag"</span>),</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">"incurloss"</span>, <span class="st">"bulkloss"</span>, <span class="st">"origin"</span>, <span class="st">"dev"</span>)</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="fu">setnames</span>(</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    DF4, <span class="fu">c</span>(<span class="st">"incurloss_h1"</span>, <span class="st">"bulkloss_h1"</span>, <span class="st">"accidentyear"</span>, <span class="st">"developmentlag"</span>),</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">"incurloss"</span>, <span class="st">"bulkloss"</span>, <span class="st">"origin"</span>, <span class="st">"dev"</span>)</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>dfList <span class="ot">=</span> <span class="fu">list</span>(<span class="at">wkcomp=</span>DF1, <span class="at">comauto=</span>DF2, <span class="at">prodliab=</span>DF3, <span class="at">othliab=</span>DF4) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Each dataset contains loss data indexed by grcode, which is a company id. We need to find a company with losses in DF1, DF2, DF3 and DF4. This can be accomplished with the following:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>grcodes <span class="ot">=</span> <span class="fu">Reduce</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(v1, v2) <span class="fu">intersect</span>(v1, v2),</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">lapply</span>(dfList, <span class="cf">function</span>(DF) <span class="fu">unique</span>(DF[,grcode]))</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>grnamesDF <span class="ot">=</span> <span class="fu">unique</span>(</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    DF1[grcode <span class="sc">%in%</span> grcodes, .(grcode, grname)]</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">setorderv</span>(grnamesDF, <span class="fu">c</span>(<span class="st">"grcode"</span>), <span class="fu">c</span>(<span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Which yields:</p>
+<pre class="text"><code>    grcode                              grname
+ 1:    337                  California Cas Grp
+ 2:    715               West Bend Mut Ins Grp
+ 3:   1066                  Island Ins Cos Grp
+ 4:   1538              Farmers Automobile Grp
+ 5:   1767                  State Farm Mut Grp
+ 6:   2143   Farmers Alliance Mut &amp; Affiliates
+ 7:   5185                    Grinnell Mut Grp
+ 8:   7080        New Jersey Manufacturers Grp
+ 9:   9466                      Lumber Ins Cos
+10:  10048    Hyundai Marine &amp; Fire Ins Co Ltd
+11:  11126 Yasuda Fire &amp; Marine Ins Co Of Amer
+12:  13439                 Partners Mut Ins Co
+13:  13528              Brotherhood Mut Ins Co
+14:  13587                  Chicago Mut Ins Co
+15:  14044                Goodville Mut Cas Co
+16:  14257                      IMT Ins Co Mut
+17:  14370                  Lebanon Mut Ins Co
+18:  14508         Michigan Millers Mut Ins Co
+19:  15024                Preferred Mut Ins Co
+20:  18791                 Virginia Mut Ins Co
+21:  23663            National American Ins Co
+22:  26433                   Harco Natl Ins Co
+23:  28258             Continental Natl Ind Co
+24:  35408                  Sirius Amer Ins Co
+25:  38300    Samsung Fire &amp; Marine Ins Co Ltd
+26:  38733                   Alaska Nat Ins Co
+27:  44091 Dowa Fire &amp; Marine Ins Co Ltd Us Br
+    grcode                              grname</code></pre>
+<p>Let’s go with <strong>1767</strong>, which represents State Farm. In the next code block, we subset each data.table to only those records with <code>grcode=="1767"</code>, then create runoff triangles for each line of business:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>GRCODE <span class="ot">=</span> <span class="dv">1767</span> </span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>grList <span class="ot">=</span> <span class="fu">lapply</span>(dfList, <span class="cf">function</span>(DF) DF[grcode<span class="sc">==</span>GRCODE,])</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>triData <span class="ot">=</span> <span class="fu">foreach</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(grList), <span class="at">.inorder=</span><span class="cn">TRUE</span>, <span class="at">.errorhandling=</span><span class="st">"stop"</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">.final=</span><span class="cf">function</span>(ll) <span class="fu">setNames</span>(ll, <span class="fu">names</span>(grList))</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%do%</span> {</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    currLOB <span class="ot">=</span> <span class="fu">names</span>(grList)[[ii]]</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    DFInit <span class="ot">=</span> grList[[ii]]</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    DF <span class="ot">=</span> DFInit[dev<span class="sc">&lt;=</span><span class="fu">max</span>(origin) <span class="sc">-</span> origin <span class="sc">+</span> <span class="dv">1</span>,]</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    DF[,value<span class="sc">:</span><span class="er">=</span>incurloss <span class="sc">-</span> bulkloss]</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as.triangle</span>(DF[,.(origin, dev, value)])</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Triangles for each lob are presented below:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> triData</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>wkcomp</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>      dev</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>origin      <span class="dv">1</span>      <span class="dv">2</span>      <span class="dv">3</span>      <span class="dv">4</span>      <span class="dv">5</span>      <span class="dv">6</span>      <span class="dv">7</span>      <span class="dv">8</span>      <span class="dv">9</span>     <span class="dv">10</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1988</span>  <span class="dv">50758</span>  <span class="dv">94150</span> <span class="dv">106804</span> <span class="dv">113733</span> <span class="dv">120148</span> <span class="dv">123986</span> <span class="dv">127650</span> <span class="dv">128622</span> <span class="dv">129791</span> <span class="dv">130625</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1989</span>  <span class="dv">65423</span> <span class="dv">110204</span> <span class="dv">131509</span> <span class="dv">140383</span> <span class="dv">147011</span> <span class="dv">150266</span> <span class="dv">152264</span> <span class="dv">155017</span> <span class="dv">155979</span>     <span class="cn">NA</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1990</span>  <span class="dv">68719</span> <span class="dv">141501</span> <span class="dv">165694</span> <span class="dv">181789</span> <span class="dv">189149</span> <span class="dv">194315</span> <span class="dv">196897</span> <span class="dv">201780</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1991</span>  <span class="dv">82409</span> <span class="dv">165813</span> <span class="dv">199016</span> <span class="dv">213698</span> <span class="dv">222994</span> <span class="dv">229774</span> <span class="dv">232413</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1992</span>  <span class="dv">97138</span> <span class="dv">183451</span> <span class="dv">208163</span> <span class="dv">220275</span> <span class="dv">227404</span> <span class="dv">234320</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1993</span> <span class="dv">106508</span> <span class="dv">167688</span> <span class="dv">195533</span> <span class="dv">212777</span> <span class="dv">220063</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1994</span>  <span class="dv">93736</span> <span class="dv">141067</span> <span class="dv">160848</span> <span class="dv">173457</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1995</span>  <span class="dv">81309</span> <span class="dv">116739</span> <span class="dv">135447</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1996</span>  <span class="dv">66073</span>  <span class="dv">92365</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1997</span>  <span class="dv">56003</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>prodliab</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>      dev</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>origin   <span class="dv">1</span>   <span class="dv">2</span>   <span class="dv">3</span>    <span class="dv">4</span>    <span class="dv">5</span>    <span class="dv">6</span>    <span class="dv">7</span>    <span class="dv">8</span>    <span class="dv">9</span>   <span class="dv">10</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1988</span> <span class="dv">696</span> <span class="dv">737</span> <span class="dv">881</span> <span class="dv">1002</span> <span class="dv">1379</span> <span class="dv">1451</span> <span class="dv">1741</span> <span class="dv">1814</span> <span class="dv">1818</span> <span class="dv">1850</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1989</span> <span class="dv">428</span> <span class="dv">351</span> <span class="dv">617</span>  <span class="dv">718</span>  <span class="dv">761</span>  <span class="dv">788</span>  <span class="dv">797</span>  <span class="dv">802</span>  <span class="dv">804</span>   <span class="cn">NA</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1990</span>  <span class="dv">57</span>  <span class="dv">77</span>  <span class="dv">92</span>  <span class="dv">135</span>  <span class="dv">197</span>  <span class="dv">235</span>  <span class="dv">250</span>  <span class="dv">263</span>   <span class="cn">NA</span>   <span class="cn">NA</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1991</span>  <span class="dv">23</span> <span class="dv">121</span> <span class="dv">140</span>  <span class="dv">141</span>  <span class="dv">172</span>  <span class="dv">189</span>  <span class="dv">190</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1992</span>  <span class="dv">48</span> <span class="dv">109</span> <span class="dv">101</span>  <span class="dv">107</span>  <span class="dv">131</span>  <span class="dv">130</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1993</span> <span class="dv">119</span> <span class="dv">133</span> <span class="dv">150</span>  <span class="dv">211</span>  <span class="dv">278</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1994</span>  <span class="dv">21</span>  <span class="dv">60</span>  <span class="dv">59</span>  <span class="dv">100</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1995</span>  <span class="dv">57</span>  <span class="dv">53</span>  <span class="dv">54</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1996</span>  <span class="dv">10</span>  <span class="dv">11</span>  <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1997</span>  <span class="dv">20</span>  <span class="cn">NA</span>  <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span>   <span class="cn">NA</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>comauto</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>      dev</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>origin      <span class="dv">1</span>      <span class="dv">2</span>      <span class="dv">3</span>      <span class="dv">4</span>      <span class="dv">5</span>      <span class="dv">6</span>      <span class="dv">7</span>      <span class="dv">8</span>      <span class="dv">9</span>     <span class="dv">10</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1988</span> <span class="dv">110231</span> <span class="dv">152848</span> <span class="dv">168137</span> <span class="dv">180062</span> <span class="dv">186150</span> <span class="dv">188142</span> <span class="dv">189352</span> <span class="dv">191307</span> <span class="dv">191867</span> <span class="dv">194000</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1989</span> <span class="dv">121678</span> <span class="dv">158218</span> <span class="dv">176744</span> <span class="dv">188127</span> <span class="dv">192966</span> <span class="dv">196104</span> <span class="dv">199178</span> <span class="dv">199655</span> <span class="dv">200949</span>     <span class="cn">NA</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1990</span> <span class="dv">123376</span> <span class="dv">175239</span> <span class="dv">201955</span> <span class="dv">214113</span> <span class="dv">219988</span> <span class="dv">223308</span> <span class="dv">225841</span> <span class="dv">226373</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1991</span> <span class="dv">117457</span> <span class="dv">162601</span> <span class="dv">183338</span> <span class="dv">198607</span> <span class="dv">203398</span> <span class="dv">205870</span> <span class="dv">206957</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1992</span> <span class="dv">124611</span> <span class="dv">166788</span> <span class="dv">189771</span> <span class="dv">201033</span> <span class="dv">206826</span> <span class="dv">212361</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1993</span> <span class="dv">137902</span> <span class="dv">185952</span> <span class="dv">209357</span> <span class="dv">220428</span> <span class="dv">226541</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1994</span> <span class="dv">150582</span> <span class="dv">194528</span> <span class="dv">216205</span> <span class="dv">231077</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1995</span> <span class="dv">150511</span> <span class="dv">194730</span> <span class="dv">215037</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1996</span> <span class="dv">142301</span> <span class="dv">184283</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1997</span> <span class="dv">143970</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>othliab</span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a>      dev</span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a>origin     <span class="dv">1</span>      <span class="dv">2</span>      <span class="dv">3</span>      <span class="dv">4</span>      <span class="dv">5</span>      <span class="dv">6</span>      <span class="dv">7</span>      <span class="dv">8</span>      <span class="dv">9</span>     <span class="dv">10</span></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1988</span> <span class="dv">22417</span>  <span class="dv">58806</span>  <span class="dv">77536</span> <span class="dv">103003</span> <span class="dv">112976</span> <span class="dv">120070</span> <span class="dv">124641</span> <span class="dv">126954</span> <span class="dv">127444</span> <span class="dv">128036</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1989</span> <span class="dv">24740</span>  <span class="dv">55381</span>  <span class="dv">76543</span>  <span class="dv">97608</span> <span class="dv">113777</span> <span class="dv">124341</span> <span class="dv">126171</span> <span class="dv">128952</span> <span class="dv">132618</span>     <span class="cn">NA</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1990</span> <span class="dv">19432</span>  <span class="dv">63891</span>  <span class="dv">94243</span> <span class="dv">119678</span> <span class="dv">124938</span> <span class="dv">129990</span> <span class="dv">133964</span> <span class="dv">133949</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1991</span> <span class="dv">25821</span>  <span class="dv">84453</span> <span class="dv">136275</span> <span class="dv">159204</span> <span class="dv">169820</span> <span class="dv">172446</span> <span class="dv">181744</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1992</span> <span class="dv">38377</span>  <span class="dv">98045</span> <span class="dv">138205</span> <span class="dv">154554</span> <span class="dv">171701</span> <span class="dv">177467</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1993</span> <span class="dv">53001</span> <span class="dv">150478</span> <span class="dv">196273</span> <span class="dv">224523</span> <span class="dv">232681</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1994</span> <span class="dv">50848</span> <span class="dv">127767</span> <span class="dv">187297</span> <span class="dv">233255</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1995</span> <span class="dv">59140</span> <span class="dv">149648</span> <span class="dv">215701</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1996</span> <span class="dv">71637</span> <span class="dv">159561</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
+<span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1997</span> <span class="dv">82937</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Next, for each triangle, call the <code>BootChainLadder</code> function (available in the ChainLadder library), running 5000 iterations and retaining only the total IBNR samples from each invocation (discarding IBNR simulations by accident year). We replace simulated values less than or equal to 1 with 1:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ibnrSimsDF <span class="ot">=</span> <span class="fu">foreach</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(triData), <span class="at">.inorder=</span><span class="cn">TRUE</span>, <span class="at">.errorhandling=</span><span class="st">"stop"</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">.combine=</span><span class="st">"cbind.data.frame"</span>, <span class="at">.final=</span>setDT</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%do%</span> {</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    tri <span class="ot">=</span> triData[[ii]]</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    bcl <span class="ot">=</span> <span class="fu">BootChainLadder</span>(tri, <span class="at">R=</span><span class="dv">5000</span>, <span class="at">process.distr=</span><span class="st">"gamma"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    lobSims <span class="ot">=</span> bcl<span class="sc">$</span>IBNR.Totals</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    lobSims[lobSims<span class="sc">&lt;</span><span class="dv">1</span>] <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    lobSims</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Set names of each column in simsDataDF to associated LOB.</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(ibnrSimsDF) <span class="ot">=</span> <span class="fu">names</span>(triData)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Inspecting the first 6 records of <code>ibnrSimsDF</code> yields:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(ibnrSimsDF)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>     wkcomp prodliab  comauto  othliab</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span> <span class="fl">213282.5</span> <span class="fl">309.9531</span> <span class="fl">207524.1</span> <span class="fl">836339.0</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="dv">2</span><span class="sc">:</span> <span class="fl">185281.3</span> <span class="fl">453.1356</span> <span class="fl">228032.9</span> <span class="fl">876116.3</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="dv">3</span><span class="sc">:</span> <span class="fl">178462.7</span> <span class="fl">263.7076</span> <span class="fl">246759.9</span> <span class="fl">633045.5</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="dv">4</span><span class="sc">:</span> <span class="fl">204928.1</span> <span class="fl">169.7184</span> <span class="fl">246953.0</span> <span class="fl">641145.2</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="dv">5</span><span class="sc">:</span> <span class="fl">168382.3</span> <span class="fl">408.6908</span> <span class="fl">213764.4</span> <span class="fl">717701.9</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="dv">6</span><span class="sc">:</span> <span class="fl">158486.8</span> <span class="fl">194.0509</span> <span class="fl">227606.5</span> <span class="fl">711641.2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><code>ibnrSimsDF</code> contains 5000 rows, with the value in each row representing the total simulated reserve need across all accident years for the lob in question. It is possible to produce histograms of the simulated total IBNR using ggplot2. The code that follows generates a faceted quad-plot of the sampling distribution of total IBNR for each lob, with a vertical dashed red line marking the location of the distribution mean. We first transform <code>ibnrSimsDF</code> into a ggplot2-compatible format (which is ggDF):</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create faceted quad-plot representing sampling distribution of total IBNR.</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>ggDF <span class="ot">=</span> data.table<span class="sc">::</span><span class="fu">melt</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    ibnrSimsDF, <span class="at">measure.vars=</span><span class="fu">names</span>(ibnrSimsDF), <span class="at">value.name=</span><span class="st">"ibnr"</span>, </span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">variable.name=</span><span class="st">"lob"</span>, <span class="at">variable.factor=</span><span class="cn">FALSE</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Add mean.ibnr for huistogram overlay.</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>ggDF[,mean.ibnr<span class="sc">:</span><span class="er">=</span><span class="fu">mean</span>(ibnr, <span class="at">na.rm=</span><span class="cn">TRUE</span>), by<span class="ot">=</span><span class="st">"lob"</span>]</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(ggDF, <span class="fu">aes</span>(<span class="at">x=</span>ibnr)) <span class="sc">+</span> </span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_histogram</span>(<span class="at">bins=</span><span class="dv">35</span>, <span class="at">color=</span><span class="st">"black"</span>, <span class="at">fill=</span><span class="st">"white"</span>) <span class="sc">+</span> </span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">geom_vline</span>(</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">aes</span>(<span class="at">xintercept=</span>mean.ibnr), <span class="at">color=</span><span class="st">"red"</span>, <span class="at">linetype=</span><span class="st">"dashed"</span>, <span class="at">size=</span><span class="dv">1</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y=</span><span class="fu">element_blank</span>(), <span class="at">axis.text.y=</span><span class="fu">element_blank</span>(),</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.ticks.y=</span><span class="fu">element_blank</span>(), <span class="at">axis.title.x=</span><span class="fu">element_blank</span>()</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span> </span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_x_continuous</span>(</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">labels=</span><span class="cf">function</span>(x) <span class="fu">format</span>(x, <span class="at">big.mark=</span><span class="st">","</span>, <span class="at">scientific=</span><span class="cn">FALSE</span>)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>lob, <span class="at">scales=</span><span class="st">"free"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Running the code above produces the following exhibit:</p>
+<p><img src="correlated0.png" class="img-fluid"></p>
+<section id="quantifying-total-reserve-variability" class="level3">
+<h3 class="anchored" data-anchor-id="quantifying-total-reserve-variability">Quantifying Total Reserve Variability</h3>
+<p>If all we are trying to do is determine the expected value of the reserve run-off, we can calculate the expected value for each lob separately and add all the expectations together. However, if we are trying to quantify a value other than the mean (such as the 75th percentile), we cannot simply sum across lines of business. If we do so, we will overstate the aggregate reserve need. The only time the sum of each lob’s 75th percentile would be appropriate for the aggregate reserve indication is when all lines are fully correlated with each other, which is highly unlikely.</p>
+<p>To account for correlation between lobs, we rely on the rank correlation methodology described in <a href="https://www.casact.org/sites/default/files/database/forum_02fforum_02ff211.pdf"><em>Two Approaches to Calculating Correlated Reserve Indications Across Multiple Lines of Business</em></a>. The methodology is carried out through a two-step process:</p>
+<p>In the first step, a stochastic reserving technique is used to generate N possible reserve runoffs from each data triangle being analyzed (this is what we have in ibnrSimsDF). In the second step, a correlation matrix is specified, where individual elements of the correlation matrix describe the association between different pairs of lobs. With the correlation matrix <span class="math inline">\(\Sigma\)</span>, carry out the following steps:</p>
+<ol type="1">
+<li><p>Compute the Cholesky decomposition of <span class="math inline">\(\Sigma\)</span>, that is, find the unique lower triangular matrix <span class="math inline">\(A\)</span> such that <span class="math inline">\(AA^{T} = \Sigma\)</span>.</p></li>
+<li><p>Compute <span class="math inline">\(Z = (z_{1}, \dots, z_{n})^{T}\)</span>, a vector whose components are <span class="math inline">\(n\)</span> independent standard normal variates (for our example, <span class="math inline">\(n=5000\)</span>.)</p></li>
+<li><p>Let <span class="math inline">\(X = \mu + AZ\)</span>. Since <span class="math inline">\(Z\)</span> represents independent draws from the standard normal distribution, the value of the mean vector <span class="math inline">\(\mu\)</span> is 0. Therefore correlated random draws are obtained by matrix multiplying <span class="math inline">\(A\)</span> with <span class="math inline">\(Z\)</span>.</p></li>
+</ol>
+<p>For the correlation matrix, we’ll initially assume no correlation between lobs (all off-diagonal elements=0). Later<br>
+we’ll compare estimated reserve need as a function of changing correlation.</p>
+<p>The correlation matrix can be initialized as follows:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>sigma <span class="ot">=</span> <span class="fu">matrix</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>), </span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>      <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>),</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>      <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>),</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>      <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>)),</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">nrow=</span><span class="dv">4</span>, </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">dimnames=</span><span class="fu">list</span>(<span class="fu">names</span>(ibnrSimsDF), <span class="fu">names</span>(ibnrSimsDF))</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Which looks like the following:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>         wkcomp prodliab comauto othliab</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>wkcomp        <span class="dv">1</span>        <span class="dv">0</span>       <span class="dv">0</span>       <span class="dv">0</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>prodliab      <span class="dv">0</span>        <span class="dv">1</span>       <span class="dv">0</span>       <span class="dv">0</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>comauto       <span class="dv">0</span>        <span class="dv">0</span>       <span class="dv">1</span>       <span class="dv">0</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>othliab       <span class="dv">0</span>        <span class="dv">0</span>       <span class="dv">0</span>       <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>The next code block implements steps 1-3:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>A <span class="ot">=</span> <span class="fu">t</span>(<span class="fu">chol</span>(sigma))</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>Z <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(<span class="fu">ncol</span>(A) <span class="sc">*</span> <span class="dv">5000</span>), <span class="at">nrow=</span><span class="dv">5000</span>, <span class="at">ncol=</span><span class="fu">ncol</span>(A))</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>X <span class="ot">=</span> Z <span class="sc">%*%</span> A</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Checking out the first few records of <code>X</code> yields:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(X)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>         wkcomp    prodliab    comauto    othliab</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>,]  <span class="fl">0.2256225</span>  <span class="fl">0.66492692</span>  <span class="fl">0.8239846</span> <span class="sc">-</span><span class="fl">1.5497317</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>[<span class="dv">2</span>,]  <span class="fl">0.1101583</span>  <span class="fl">0.60652201</span> <span class="sc">-</span><span class="fl">0.9572046</span> <span class="sc">-</span><span class="fl">0.5200923</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>[<span class="dv">3</span>,] <span class="sc">-</span><span class="fl">0.5961369</span>  <span class="fl">0.13732270</span> <span class="sc">-</span><span class="fl">1.5355783</span>  <span class="fl">1.0622470</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>[<span class="dv">4</span>,]  <span class="fl">0.6863108</span> <span class="sc">-</span><span class="fl">1.02719480</span>  <span class="fl">0.1086142</span> <span class="sc">-</span><span class="fl">0.4941367</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>[<span class="dv">5</span>,]  <span class="fl">1.3918400</span>  <span class="fl">0.09805293</span>  <span class="fl">0.3412182</span> <span class="sc">-</span><span class="fl">0.1409186</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>[<span class="dv">6</span>,]  <span class="fl">0.5547157</span>  <span class="fl">1.57012447</span>  <span class="fl">0.1263973</span>  <span class="fl">0.7135559</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>For each column in X, we need to obtain the rank of each correlated random draw. This can be accomplished by running:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>rankX <span class="ot">=</span> <span class="fu">foreach</span>(<span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(X), <span class="at">.combine=</span><span class="st">"cbind"</span>) <span class="sc">%do%</span> { <span class="fu">rank</span>(X[,ii]) }</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(rankX) <span class="ot">=</span> <span class="fu">colnames</span>(sigma)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Inspecting the first few records from <code>rankX</code> yields:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(rankX)</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>     wkcomp prodliab comauto othliab</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>,]   <span class="dv">2971</span>     <span class="dv">3758</span>    <span class="dv">3975</span>     <span class="dv">293</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>[<span class="dv">2</span>,]   <span class="dv">2751</span>     <span class="dv">3658</span>     <span class="dv">856</span>    <span class="dv">1493</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>[<span class="dv">3</span>,]   <span class="dv">1393</span>     <span class="dv">2759</span>     <span class="dv">288</span>    <span class="dv">4335</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>[<span class="dv">4</span>,]   <span class="dv">3785</span>      <span class="dv">782</span>    <span class="dv">2746</span>    <span class="dv">1544</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>[<span class="dv">5</span>,]   <span class="dv">4619</span>     <span class="dv">2684</span>    <span class="dv">3178</span>    <span class="dv">2221</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>[<span class="dv">6</span>,]   <span class="dv">3569</span>     <span class="dv">4687</span>    <span class="dv">2784</span>    <span class="dv">3866</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>To prepare for the rank correlation step, we need to order our total IBNR simulations from smallest to largest within each lob column:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Order total bootstrapped ibnr samples from smallest to largest. </span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>orderedSimsDF <span class="ot">=</span> <span class="fu">foreach</span>(</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(<span class="fu">names</span>(ibnrSimsDF)), <span class="at">.combine=</span><span class="st">"cbind.data.frame"</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">.final=</span>setDT</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%do%</span> {</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    currLOB <span class="ot">=</span> <span class="fu">names</span>(ibnrSimsDF)[[ii]]</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sort</span>(ibnrSimsDF[[currLOB]])</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(orderedSimsDF) <span class="ot">=</span> <span class="fu">names</span>(ibnrSimsDF)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Then for each rank in <code>rankX</code>, we lookup the corresponding position-wise element from orderedSimsDF. This ensures that the rank order correlations between lobs are the same as the correlations imposed on the random normal samples. For example, the first row of rankX is:</p>
+<pre><code>  wkcomp prodliab  comauto  othliab 
+    2971     3758     3975      293 </code></pre>
+<p>Then using orderedSimsDF, we lookup the 2971st element under wkcomp, the 3758th element under prodliab, the 3975th element under comauto and the 293rd element under othliab. This can be accomplished as follows:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get correlated IBNR samples.</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>corrIBNR <span class="ot">=</span> <span class="fu">foreach</span>(</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(<span class="fu">names</span>(orderedSimsDF)), <span class="at">.combine=</span><span class="st">"cbind"</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">%do%</span> {</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    currLOB <span class="ot">=</span> <span class="fu">names</span>(orderedSimsDF)[[ii]]</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    lobIndx <span class="ot">=</span> rankR[,currLOB]</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    orderedSimsDF[lobIndx, <span class="fu">get</span>(currLOB)]</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(corrIBNR) <span class="ot">=</span> <span class="fu">names</span>(orderedSimsDF)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Finally, we sum the correlated samples across lobs, resulting in a vector of values representing the aggregate reserve distribution:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>totalIBNR <span class="ot">=</span> <span class="fu">apply</span>(corrIBNR, <span class="at">MARGIN=</span><span class="dv">1</span>, sum)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Percentiles of the aggregate IBNR distribution can be obtained by calling:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">quantile</span>(totalIBNR, <span class="fu">c</span>(.<span class="dv">01</span>, .<span class="dv">25</span>, .<span class="dv">50</span>, .<span class="dv">75</span>, .<span class="dv">99</span>))</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>       <span class="dv">1</span><span class="sc">%       25%</span>       <span class="dv">50</span><span class="sc">%       75%</span>       <span class="dv">99</span>% </span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a> <span class="fl">962340.6</span> <span class="fl">1107900.3</span> <span class="fl">1171348.8</span> <span class="fl">1241553.0</span> <span class="fl">1428743.0</span> </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="comparing-different-values-of-sigma" class="level3">
+<h3 class="anchored" data-anchor-id="comparing-different-values-of-sigma">Comparing different values of <span class="math inline">\(\Sigma\)</span></h3>
+<p>We’ve re-run the procedure described in the previous section for 5 different correlation matrices, assuming 0, .25, .50, .75 and .99 off-diagonal correlation, and combined the results into a single data.table <code>qqDF</code>. I then estimated the 1st, 25th, 50th, 75th and 99th percentile of each aggregate reserve distribution and created an exhibit comparing the distribution of each as a function of percentile. The code used to create the exhibit is given below:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ------------------------------------------------------------------------</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Assume qqDF contains  1st, 25th, 50th, 75th and 99th percentile of the</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># aggregate IBNR distribution for off-diagonal correlation values of </span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 0, .25, .50, .75 and .99. The first few records of qqDF look like:</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co">#          rho    x         y</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co">#       1:  0% 0.00  871243.8</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co">#       2:  0% 0.25 1107900.3</span></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co">#       3:  0% 0.50 1171348.8</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co">#       4:  0% 0.75 1241553.0</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co">#       5:  0% 0.99 1428743.0</span></span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co"># </span></span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co"># ------------------------------------------------------------------------</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(qqDF, <span class="fu">aes</span>(<span class="at">x=</span>x, <span class="at">y=</span>y)) <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">color=</span>rho), <span class="at">size=</span>.<span class="dv">5</span>) <span class="sc">+</span> </span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">scale_y_continuous</span>(</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">labels=</span><span class="cf">function</span>(x) <span class="fu">format</span>(x, <span class="at">big.mark=</span><span class="st">","</span>, <span class="at">scientific=</span><span class="cn">FALSE</span>)</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span> </span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y=</span><span class="fu">element_blank</span>(), <span class="at">axis.title.x=</span><span class="fu">element_blank</span>()</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span> <span class="fu">xlim</span>(<span class="dv">0</span>, <span class="dv">1</span>) <span class="sc">+</span> </span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(<span class="st">"Aggregate reserve distribution by correlation"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Which produces the following:</p>
+<p><img src="correlated1.png" class="img-fluid"></p>
+<p>By changing <code>xlim(.50, 1)</code> in the code above, we can zoom in on the right-hand side of the distribution:</p>
+<p><img src="correlated2.png" class="img-fluid"></p>
+<p>We see that around .50 mark on the x-axis, there is essntially no difference between 0% and 25% off-diagonal correlation assumption. However, as we move right along the x-axis, there’s a greater and greater discrepancy. when x=.99, the difference in the estimated total needed reserve is ~50,000, which represents approximately a 5% difference.</p>
+<p>A few take-aways:</p>
+<ul>
+<li><p>If all we are trying to do is determine the expected value of the reserve run-off, we can calculate the expected value for each lob separately then add the expectations together.</p></li>
+<li><p>If the aim is to quantify a value other than the mean, such as the 75th percentile, we cannot simply sum across the lines of business, as this is akin to assuming full correlation between lines of business, which is unlikely and will overstate the aggregate reserve need.</p></li>
+<li><p>Off-diagonal correlation values do not need to be the same, but the matrix does need to be symmetric (identical values at <span class="math inline">\(m_{i,j}\)</span> and <span class="math inline">\(m_{j,i}\)</span>).</p></li>
+</ul>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/www\.jtrive\.com");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

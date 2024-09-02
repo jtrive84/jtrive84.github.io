@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2024-02-01">
+<meta name="description" content="Introduction to special symbols in data.table">
+
+<title>Introduction to Special Symbols in data.table – The Pleasure of Finding Things Out: A blog by James Triveri</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">The Pleasure of Finding Things Out: A blog by James Triveri</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/jtrive84/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.linkedin.com/in/jamestriveri/"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://python-bloggers.com/"> <i class="bi bi-p-square" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Introduction to Special Symbols in data.table</h1>
+                  <div>
+        <div class="description">
+          Introduction to special symbols in data.table
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">R</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">February 1, 2024</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<p>The data.table library is an R package that provides an enhanced version of R’s builtin data.frame. There are many available resources that introduce data.table’s syntax and provide examples of typical usage scenarios. In this post, we’ll cover one aspect of the data.table API: Special symbols.</p>
+<p>Before proceeding, we should highlight data.table’s general syntactical form, that when understood, can be used to translate data.table expressions of arbitrary complexity into 3 steps:</p>
+<blockquote class="blockquote">
+<p><code>DT[i, j, by]</code></p>
+</blockquote>
+<p>Which translates to:</p>
+<blockquote class="blockquote">
+<p><em>Take DT, subset rows using i, then calculate j grouped by by</em></p>
+</blockquote>
+<p>The following annotated diagram is included as part of data.table’s documentation:</p>
+<pre><code>DT[ i, j, by ] # + extra arguments
+    |  |  |
+    |  |   -------&gt; grouped by what?
+    |   -------&gt; what to do?
+     ---&gt; on which rows?</code></pre>
+<p>For those familiar with SQL, the three expressions that describe the general form can be thought of as components of a SQL query: “SELECT from j, WHERE i, GROUP BY by”. Although the SQL analog of the original interpretation may not hold for every possible data.table operation, it remains a valid proxy for many scenarios encountered in practice. Although this applies to data.table in general, a thorough understanding of the general form will be especially useful when exploring ways to leverage special symbols in your own code.</p>
+<p>The data.table special symbols covered here are defined as follows:</p>
+<ul>
+<li><p><strong>.N</strong> is an integer, length 1, containing the number of rows in the group. This may be useful when the column names are not known in advance and for convenience generally. When grouping by i, .N is the number of rows in x matched to, for each row of i, regardless of whether nomatch is NA or 0. It is renamed to N (no dot) in the result (otherwise a column called ‘.N’ could conflict with the .N variable, see FAQ 4.6 for more details and example), unless it is explicitly named; e.g., <code>DT[,list(total=.N),by=a]</code>.</p></li>
+<li><p><strong>.SD</strong> is a data.table containing the Subset of x’s data for each group, excluding any columns used in by (or keyby).</p></li>
+<li><p><strong>.BY</strong> is a list containing a length 1 vector for each item in by. This can be useful when by is not known in advance. The by variables are also available to j directly by name; useful for example for titles of graphs if j is a plot command, or to branch with <code>if()</code> depending on the value of a group variable.</p></li>
+<li><p><strong>.I</strong> is an integer vector equal to <code>seq_len(nrow(x))</code>. While grouping, it holds for each item in the group, it’s row location in x. This is useful to subset in j; e.g.&nbsp;<code>DT[, .I[which.max(somecol)], by=grp]</code>.</p></li>
+<li><p><strong>.GRP</strong> is an integer, length 1, containing a simple group counter. 1 for the 1st group, 2 for the 2nd, etc.</p></li>
+</ul>
+<section id="n" class="level2">
+<h2 class="anchored" data-anchor-id="n"><strong>.N</strong></h2>
+<p>The special symbol .N can be used to return the last row or number of rows of a data.table. Referring to the R sample dataset CO2, what follows are a few examples using .N:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(<span class="st">"data.table"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT <span class="ot">=</span> CO2; <span class="fu">setDT</span>(DT)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(DT)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>   Plant   Type  Treatment conc uptake</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span>   Qn1 Quebec nonchilled   <span class="dv">95</span>   <span class="fl">16.0</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="dv">2</span><span class="sc">:</span>   Qn1 Quebec nonchilled  <span class="dv">175</span>   <span class="fl">30.4</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="dv">3</span><span class="sc">:</span>   Qn1 Quebec nonchilled  <span class="dv">250</span>   <span class="fl">34.8</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="dv">4</span><span class="sc">:</span>   Qn1 Quebec nonchilled  <span class="dv">350</span>   <span class="fl">37.2</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="dv">5</span><span class="sc">:</span>   Qn1 Quebec nonchilled  <span class="dv">500</span>   <span class="fl">35.3</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="dv">6</span><span class="sc">:</span>   Qn1 Quebec nonchilled  <span class="dv">675</span>   <span class="fl">39.2</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="do">### Return last record of CO2 dataset.</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[.N]</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>   Plant        Type Treatment conc uptake</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span>   Mc3 Mississippi   chilled <span class="dv">1000</span>   <span class="fl">19.9</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="do">### Return the second-to-last record of CO2 dataset.</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[.N<span class="dv">-1</span>]</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>   Plant        Type Treatment conc uptake</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span>   Mc3 Mississippi   chilled  <span class="dv">675</span>   <span class="fl">18.9</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="do">### Return the number of records in CO2 dataset.</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[,.N]</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="dv">84</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="do">### Return the number of records for each unique value of Treatment.</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[, .N, by<span class="ot">=</span>Treatment]</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>    Treatment  N</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span> nonchilled <span class="dv">42</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="dv">2</span><span class="sc">:</span>    chilled <span class="dv">42</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="do">### Return the number of records for each unique combination of Treatment` &amp; Plant.</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[, .N, keyby<span class="ot">=</span><span class="st">"Treatment,Plant"</span>]</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>     Treatment Plant N</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a> <span class="dv">1</span><span class="sc">:</span> nonchilled   Qn1 <span class="dv">7</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a> <span class="dv">2</span><span class="sc">:</span> nonchilled   Qn2 <span class="dv">7</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a> <span class="dv">3</span><span class="sc">:</span> nonchilled   Qn3 <span class="dv">7</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a> <span class="dv">4</span><span class="sc">:</span> nonchilled   Mn3 <span class="dv">7</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a> <span class="dv">5</span><span class="sc">:</span> nonchilled   Mn2 <span class="dv">7</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a> <span class="dv">6</span><span class="sc">:</span> nonchilled   Mn1 <span class="dv">7</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a> <span class="dv">7</span><span class="sc">:</span>    chilled   Qc1 <span class="dv">7</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a> <span class="dv">8</span><span class="sc">:</span>    chilled   Qc3 <span class="dv">7</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a> <span class="dv">9</span><span class="sc">:</span>    chilled   Qc2 <span class="dv">7</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a><span class="dv">10</span><span class="sc">:</span>    chilled   Mc2 <span class="dv">7</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a><span class="dv">11</span><span class="sc">:</span>    chilled   Mc3 <span class="dv">7</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="dv">12</span><span class="sc">:</span>    chilled   Mc1 <span class="dv">7</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>.N can be used to enumerate records, creating a row counter field:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> (DT[,<span class="at">CNTR:=</span><span class="dv">1</span><span class="sc">:</span>.N])</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    Plant        Type  Treatment conc uptake CNTR</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a> <span class="dv">1</span><span class="sc">:</span>   Qn1      Quebec nonchilled   <span class="dv">95</span>   <span class="fl">16.0</span>    <span class="dv">1</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a> <span class="dv">2</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">175</span>   <span class="fl">30.4</span>    <span class="dv">2</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a> <span class="dv">3</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">250</span>   <span class="fl">34.8</span>    <span class="dv">3</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a> <span class="dv">4</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">350</span>   <span class="fl">37.2</span>    <span class="dv">4</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a> <span class="dv">5</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">500</span>   <span class="fl">35.3</span>    <span class="dv">5</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>                          .</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>                          .</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>                          .</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="dv">79</span><span class="sc">:</span>   Mc3 Mississippi    chilled  <span class="dv">175</span>   <span class="fl">18.0</span>   <span class="dv">79</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="dv">80</span><span class="sc">:</span>   Mc3 Mississippi    chilled  <span class="dv">250</span>   <span class="fl">17.9</span>   <span class="dv">80</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="dv">81</span><span class="sc">:</span>   Mc3 Mississippi    chilled  <span class="dv">350</span>   <span class="fl">17.9</span>   <span class="dv">81</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="dv">82</span><span class="sc">:</span>   Mc3 Mississippi    chilled  <span class="dv">500</span>   <span class="fl">17.9</span>   <span class="dv">82</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="dv">83</span><span class="sc">:</span>   Mc3 Mississippi    chilled  <span class="dv">675</span>   <span class="fl">18.9</span>   <span class="dv">83</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="dv">84</span><span class="sc">:</span>   Mc3 Mississippi    chilled <span class="dv">1000</span>   <span class="fl">19.9</span>   <span class="dv">84</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Similiarly, enumeration can be applied by group:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>(DT[,<span class="at">CNTR:=</span><span class="dv">1</span><span class="sc">:</span>.N, <span class="at">by=</span>Plant])</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    Plant        Type  Treatment conc uptake CNTR</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a> <span class="dv">1</span><span class="sc">:</span>   Qn1      Quebec nonchilled   <span class="dv">95</span>   <span class="fl">16.0</span>    <span class="dv">1</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a> <span class="dv">2</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">175</span>   <span class="fl">30.4</span>    <span class="dv">2</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a> <span class="dv">3</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">250</span>   <span class="fl">34.8</span>    <span class="dv">3</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a> <span class="dv">4</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">350</span>   <span class="fl">37.2</span>    <span class="dv">4</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a> <span class="dv">5</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">500</span>   <span class="fl">35.3</span>    <span class="dv">5</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a> <span class="dv">6</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">675</span>   <span class="fl">39.2</span>    <span class="dv">6</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a> <span class="dv">7</span><span class="sc">:</span>   Qn1      Quebec nonchilled <span class="dv">1000</span>   <span class="fl">39.7</span>    <span class="dv">7</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a> <span class="dv">8</span><span class="sc">:</span>   Qn2      Quebec nonchilled   <span class="dv">95</span>   <span class="fl">13.6</span>    <span class="dv">1</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a> <span class="dv">9</span><span class="sc">:</span>   Qn2      Quebec nonchilled  <span class="dv">175</span>   <span class="fl">27.3</span>    <span class="dv">2</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="dv">10</span><span class="sc">:</span>   Qn2      Quebec nonchilled  <span class="dv">250</span>   <span class="fl">37.1</span>    <span class="dv">3</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="dv">11</span><span class="sc">:</span>   Qn2      Quebec nonchilled  <span class="dv">350</span>   <span class="fl">41.8</span>    <span class="dv">4</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="dv">12</span><span class="sc">:</span>   Qn2      Quebec nonchilled  <span class="dv">500</span>   <span class="fl">40.6</span>    <span class="dv">5</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="dv">13</span><span class="sc">:</span>   Qn2      Quebec nonchilled  <span class="dv">675</span>   <span class="fl">41.4</span>    <span class="dv">6</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="dv">14</span><span class="sc">:</span>   Qn2      Quebec nonchilled <span class="dv">1000</span>   <span class="fl">44.3</span>    <span class="dv">7</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="sd" class="level2">
+<h2 class="anchored" data-anchor-id="sd"><strong>.SD</strong></h2>
+<p>.SD (subset of x’s data) contains all columns of the data.table except the grouping columns by default. Referring again to the CO2 dataset, we can use .SD to print the contents of a data.table:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">library</span>(<span class="st">"data.table"</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT <span class="ot">=</span> CO2; <span class="fu">setDT</span>(DT)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[,.SD]</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    Plant        Type  Treatment conc uptake</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a> <span class="dv">1</span><span class="sc">:</span>   Qn1      Quebec nonchilled   <span class="dv">95</span>   <span class="fl">16.0</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a> <span class="dv">2</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">175</span>   <span class="fl">30.4</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a> <span class="dv">3</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">250</span>   <span class="fl">34.8</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a> <span class="dv">4</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">350</span>   <span class="fl">37.2</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>                    .</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>                    .</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>                    .</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="dv">83</span><span class="sc">:</span>   Mc3 Mississippi    chilled  <span class="dv">675</span>   <span class="fl">18.9</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="dv">84</span><span class="sc">:</span>   Mc3 Mississippi    chilled <span class="dv">1000</span>   <span class="fl">19.9</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Although uncommon, .SD can be used for sub-setting columns. Next, we retrieve Treatment and conc from the CO2 dataset using three approaches, demonstrating each method returns an identical subset:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Using .SD to retrieve Treatment &amp; conc.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT1 <span class="ot">=</span> DT[, .SD, .SDcols<span class="ot">=</span><span class="fu">c</span>(<span class="st">"Treatment"</span>, <span class="st">"conc"</span>)]</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(DT1)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    Treatment conc</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span> nonchilled   <span class="dv">95</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="dv">2</span><span class="sc">:</span> nonchilled  <span class="dv">175</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="dv">3</span><span class="sc">:</span> nonchilled  <span class="dv">250</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="dv">4</span><span class="sc">:</span> nonchilled  <span class="dv">350</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="dv">5</span><span class="sc">:</span> nonchilled  <span class="dv">500</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="dv">6</span><span class="sc">:</span> nonchilled  <span class="dv">675</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT2 <span class="ot">=</span> DT[, .(Treatment, conc)]</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co"># If column names are available only as a character vector,</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co"># i.e., c("Treatment", "conc") include `with=FALSE`.</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT3 <span class="ot">=</span> DT[, <span class="fu">c</span>(<span class="st">"Treatment"</span>, <span class="st">"conc"</span>), with<span class="ot">=</span><span class="cn">FALSE</span>]</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Test for equality amongst DT1, DT2 &amp; DT3.</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">identical</span>(DT1, DT3); <span class="fu">identical</span>(DT2, DT3)</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="cn">TRUE</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="cn">TRUE</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>.SD can be used to retrieve the first 3 rows for all fields partitioned by Plant:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> (<span class="at">DT1 =</span> DT[,.SD[<span class="dv">1</span><span class="sc">:</span><span class="dv">3</span>], <span class="at">by=</span>Plant])</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    Plant        Type  Treatment conc uptake</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a> <span class="dv">1</span><span class="sc">:</span>   Qn1      Quebec nonchilled   <span class="dv">95</span>   <span class="fl">16.0</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a> <span class="dv">2</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">175</span>   <span class="fl">30.4</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a> <span class="dv">3</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">250</span>   <span class="fl">34.8</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a> <span class="dv">4</span><span class="sc">:</span>   Qn2      Quebec nonchilled   <span class="dv">95</span>   <span class="fl">13.6</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a> <span class="dv">5</span><span class="sc">:</span>   Qn2      Quebec nonchilled  <span class="dv">175</span>   <span class="fl">27.3</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a> <span class="dv">6</span><span class="sc">:</span>   Qn2      Quebec nonchilled  <span class="dv">250</span>   <span class="fl">37.1</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a> <span class="dv">7</span><span class="sc">:</span>   Qn3      Quebec nonchilled   <span class="dv">95</span>   <span class="fl">16.2</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a> <span class="dv">8</span><span class="sc">:</span>   Qn3      Quebec nonchilled  <span class="dv">175</span>   <span class="fl">32.4</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a> <span class="dv">9</span><span class="sc">:</span>   Qn3      Quebec nonchilled  <span class="dv">250</span>   <span class="fl">40.3</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>                      .</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>                      .</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>                      .</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="dv">28</span><span class="sc">:</span>   Mc1 Mississippi    chilled   <span class="dv">95</span>   <span class="fl">10.5</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="dv">29</span><span class="sc">:</span>   Mc1 Mississippi    chilled  <span class="dv">175</span>   <span class="fl">14.9</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="dv">30</span><span class="sc">:</span>   Mc1 Mississippi    chilled  <span class="dv">250</span>   <span class="fl">18.1</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="dv">31</span><span class="sc">:</span>   Mc2 Mississippi    chilled   <span class="dv">95</span>    <span class="fl">7.7</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="dv">32</span><span class="sc">:</span>   Mc2 Mississippi    chilled  <span class="dv">175</span>   <span class="fl">11.4</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="dv">33</span><span class="sc">:</span>   Mc2 Mississippi    chilled  <span class="dv">250</span>   <span class="fl">12.3</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="dv">34</span><span class="sc">:</span>   Mc3 Mississippi    chilled   <span class="dv">95</span>   <span class="fl">10.6</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="dv">35</span><span class="sc">:</span>   Mc3 Mississippi    chilled  <span class="dv">175</span>   <span class="fl">18.0</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="dv">36</span><span class="sc">:</span>   Mc3 Mississippi    chilled  <span class="dv">250</span>   <span class="fl">17.9</span>    </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>It is possible to retrieve the 1st, 2nd, second-to-last and last records for each unique value present in Type:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[, .SD[<span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, .N<span class="dv">-1</span>, .N)], by<span class="ot">=</span>Type]</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>          Type Plant  Treatment conc uptake</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span>      Quebec   Qn1 nonchilled   <span class="dv">95</span>   <span class="fl">16.0</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="dv">2</span><span class="sc">:</span>      Quebec   Qn1 nonchilled  <span class="dv">175</span>   <span class="fl">30.4</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="dv">3</span><span class="sc">:</span>      Quebec   Qc3    chilled  <span class="dv">675</span>   <span class="fl">39.6</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="dv">4</span><span class="sc">:</span>      Quebec   Qc3    chilled <span class="dv">1000</span>   <span class="fl">41.4</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="dv">5</span><span class="sc">:</span> Mississippi   Mn1 nonchilled   <span class="dv">95</span>   <span class="fl">10.6</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="dv">6</span><span class="sc">:</span> Mississippi   Mn1 nonchilled  <span class="dv">175</span>   <span class="fl">19.2</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="dv">7</span><span class="sc">:</span> Mississippi   Mc3    chilled  <span class="dv">675</span>   <span class="fl">18.9</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="dv">8</span><span class="sc">:</span> Mississippi   Mc3    chilled <span class="dv">1000</span>   <span class="fl">19.9</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>.SD can be used along with .SDcols to convert fields with a factor datatype to character type. .SDcols is frequently used with .SD to specify a subset of the columns of .SD to be used in j. If .SDcols is present, it is generally bound to a vector of field names, and the operation in j will be applied only to the fields associated with the names specified in .SDcols:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="do">### First, list original field datatypes.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">lapply</span>(DT, class)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>Plant</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"ordered"</span> <span class="st">"factor"</span> </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>Type</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"factor"</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>Treatment</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"factor"</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>conc</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"numeric"</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>uptake</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"numeric"</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="do">### Convert fields with factor datatype (Plant, Type &amp; Treatment) </span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="do">### to character type. Isolate factor fieldnames.</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> factorFieldnames <span class="ot">=</span> <span class="fu">names</span>(<span class="fu">Filter</span>(is.factor, DT))</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="do">### Convert factor datatypes to character types.</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[,(factorFieldnames)<span class="sc">:</span><span class="er">=</span><span class="fu">lapply</span>(.SD, as.character), .SDcols<span class="ot">=</span>factorFieldnames]</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a><span class="do">### Verify datatypes have been successfully coerced.</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">lapply</span>(DT, class)</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>Plant</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"character"</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>Type</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"character"</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>Treatment</span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"character"</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>conc</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"numeric"</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>uptake</span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>] <span class="st">"numeric"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Two things to note: First, because we used the assignment by reference operator, <code>:=</code>, to recast data types, it is not necessary to re-assign the result of the type-coercion back to DT. This is because when using <code>:=</code>, operations are performed in-place and by reference, therefore the result of a particular action are visible immediately in DT. Second, since <code>factorFieldnames</code> is enclosed by parentheses preceding <code>:=</code>, the result is assigned to the columns specified in <code>factorFieldnames</code>. If parentheses we left out, a new field named factorFieldnames would be added to DT, which is not the desired behavior.</p>
+<p>.SD can be used to calculate the average of any fields of interest overall or by group:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="do">### Calculate the overall average of conc &amp; uptake.</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> (<span class="at">avgDT1 =</span> DT[, <span class="fu">lapply</span>(.SD, mean), <span class="at">.SDcols=</span><span class="fu">c</span>(<span class="st">"conc"</span>, <span class="st">"uptake"</span>)])</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>   conc  uptake</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span>  <span class="dv">435</span> <span class="fl">27.2131</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="do">### Calculate the average of conc &amp; uptake by Plant.</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> (<span class="at">avgDT2 =</span> DT[, <span class="fu">lapply</span>(.SD, mean), <span class="at">.SDcols=</span><span class="fu">c</span>(<span class="st">"conc"</span>, <span class="st">"uptake"</span>), <span class="at">by=</span>Plant])</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    Plant conc   uptake</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a> <span class="dv">1</span><span class="sc">:</span>   Qn1  <span class="dv">435</span> <span class="fl">33.22857</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a> <span class="dv">2</span><span class="sc">:</span>   Qn2  <span class="dv">435</span> <span class="fl">35.15714</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a> <span class="dv">3</span><span class="sc">:</span>   Qn3  <span class="dv">435</span> <span class="fl">37.61429</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a> <span class="dv">4</span><span class="sc">:</span>   Qc1  <span class="dv">435</span> <span class="fl">29.97143</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a> <span class="dv">5</span><span class="sc">:</span>   Qc2  <span class="dv">435</span> <span class="fl">32.70000</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a> <span class="dv">6</span><span class="sc">:</span>   Qc3  <span class="dv">435</span> <span class="fl">32.58571</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a> <span class="dv">7</span><span class="sc">:</span>   Mn1  <span class="dv">435</span> <span class="fl">26.40000</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a> <span class="dv">8</span><span class="sc">:</span>   Mn2  <span class="dv">435</span> <span class="fl">27.34286</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a> <span class="dv">9</span><span class="sc">:</span>   Mn3  <span class="dv">435</span> <span class="fl">24.11429</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="dv">10</span><span class="sc">:</span>   Mc1  <span class="dv">435</span> <span class="fl">18.00000</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="dv">11</span><span class="sc">:</span>   Mc2  <span class="dv">435</span> <span class="fl">12.14286</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="dv">12</span><span class="sc">:</span>   Mc3  <span class="dv">435</span> <span class="fl">17.30000</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>One final example using .SD: As mentioned earlier in the post, .SDcols is used to specify the columns of the data.table that .SD will operate on. Alternatively, we can use .SDcols to exclude fields from the operation performed by .SD. Referring to the example in which we calculated the average of conc &amp; uptake in the CO2 dataset, we can instead specify the fields .SD should not average over. Here’s an alternative approach that results in excluding Plant, Type and Treatment from the average calculation:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>DT <span class="ot">=</span> CO2; <span class="fu">setDT</span>(DT)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate the average of conc &amp; uptake by excluding Plant, Type &amp; Treatment.</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> (<span class="at">avgDT =</span> DT[, <span class="fu">lapply</span>(.SD, mean), <span class="at">.SDcols=</span><span class="sc">!</span><span class="fu">c</span>(<span class="st">"Plant"</span>, <span class="st">"Type"</span>, <span class="st">"Treatment"</span>)])<span class="er">)</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>   conc  uptake</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span>  <span class="dv">435</span> <span class="fl">27.2131</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Clearly in this example it is not advantageous to specify the fields not included in the average, but situations do arise in which this functionality turns out to be very convenient.</p>
+</section>
+<section id="by" class="level2">
+<h2 class="anchored" data-anchor-id="by"><strong>.BY</strong></h2>
+<p>.BY is a list containing a length 1 vector for each item in by. There are few examples in which the .BY special symbol is used, so we’ll reproduce the example included in the data.table vignette:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"data.table"</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT <span class="ot">=</span> <span class="fu">data.table</span>(</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>           <span class="at">x=</span><span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">"b"</span>, <span class="st">"a"</span>, <span class="st">"c"</span>), <span class="at">each=</span><span class="dv">3</span>), </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>           <span class="at">v=</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">2</span>), </span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>           <span class="at">y=</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>, <span class="dv">6</span>), </span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">a=</span><span class="dv">1</span><span class="sc">:</span><span class="dv">9</span>, </span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>           <span class="at">b=</span><span class="dv">9</span><span class="sc">:</span><span class="dv">1</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>           )</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(DT)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>   x v y a b</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span> b <span class="dv">1</span> <span class="dv">1</span> <span class="dv">1</span> <span class="dv">9</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="dv">2</span><span class="sc">:</span> b <span class="dv">1</span> <span class="dv">3</span> <span class="dv">2</span> <span class="dv">8</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="dv">3</span><span class="sc">:</span> b <span class="dv">1</span> <span class="dv">6</span> <span class="dv">3</span> <span class="dv">7</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="dv">4</span><span class="sc">:</span> a <span class="dv">2</span> <span class="dv">1</span> <span class="dv">4</span> <span class="dv">6</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="dv">5</span><span class="sc">:</span> a <span class="dv">2</span> <span class="dv">3</span> <span class="dv">5</span> <span class="dv">5</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="dv">6</span><span class="sc">:</span> a <span class="dv">1</span> <span class="dv">6</span> <span class="dv">6</span> <span class="dv">4</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> X <span class="ot">=</span> <span class="fu">data.table</span>(</span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>      <span class="at">x=</span><span class="fu">c</span>(<span class="st">"c"</span>,<span class="st">"b"</span>), </span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>      <span class="at">v=</span><span class="dv">8</span><span class="sc">:</span><span class="dv">7</span>, </span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>      <span class="at">foo=</span><span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">2</span>)</span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(X)</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>   x v foo</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span> c <span class="dv">8</span>   <span class="dv">4</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a><span class="dv">2</span><span class="sc">:</span> b <span class="dv">7</span>   <span class="dv">2</span></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Join within each group.</span></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> X[, DT[.BY, y, on<span class="ot">=</span><span class="st">"x"</span>], by<span class="ot">=</span>x]</span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>   x V1</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span> c  <span class="dv">1</span></span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a><span class="dv">2</span><span class="sc">:</span> c  <span class="dv">3</span></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a><span class="dv">3</span><span class="sc">:</span> c  <span class="dv">6</span></span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a><span class="dv">4</span><span class="sc">:</span> b  <span class="dv">1</span></span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a><span class="dv">5</span><span class="sc">:</span> b  <span class="dv">3</span></span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a><span class="dv">6</span><span class="sc">:</span> b  <span class="dv">6</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="i" class="level2">
+<h2 class="anchored" data-anchor-id="i"><strong>.I</strong></h2>
+<p>.I is an integer vector equal to <code>seq_len(nrow(x))</code>. But we can instead use .I to return a vector containing the row indices of the records in a data.table that meet the condition specified in i. In the next example, we demonstrate how to return the row indices from CO2 having <code>conc&gt;500</code> using .I:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="do">### Return row indicies in which conc &gt; 500.</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[,.I[conc <span class="sc">&gt;</span> <span class="dv">500</span>]]</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>]  <span class="dv">6</span>  <span class="dv">7</span> <span class="dv">13</span> <span class="dv">14</span> <span class="dv">20</span> <span class="dv">21</span> <span class="dv">27</span> <span class="dv">28</span> <span class="dv">34</span> <span class="dv">35</span> <span class="dv">41</span> <span class="dv">42</span> <span class="dv">48</span> <span class="dv">49</span> <span class="dv">55</span> <span class="dv">56</span> <span class="dv">62</span> <span class="dv">63</span> <span class="dv">69</span> <span class="dv">70</span> <span class="dv">76</span> <span class="dv">77</span> <span class="dv">83</span> <span class="dv">84</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Using .I after the condition specified in i returns a vector of length equal to the number of records meeting the i’s criteria:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[conc <span class="sc">&gt;</span> <span class="dv">500</span>, .I]</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>]  <span class="dv">1</span>  <span class="dv">2</span>  <span class="dv">3</span>  <span class="dv">4</span>  <span class="dv">5</span>  <span class="dv">6</span>  <span class="dv">7</span>  <span class="dv">8</span>  <span class="dv">9</span> <span class="dv">10</span> <span class="dv">11</span> <span class="dv">12</span> <span class="dv">13</span> <span class="dv">14</span> <span class="dv">15</span> <span class="dv">16</span> <span class="dv">17</span> <span class="dv">18</span> <span class="dv">19</span> <span class="dv">20</span> <span class="dv">21</span> <span class="dv">22</span> <span class="dv">23</span> <span class="dv">24</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Note that use of .I may have been supplanted in favor of data.table’s which parameter. Instead of using .I, we can use <code>which=TRUE</code> to return the row indices of records meeting the condition specified in i:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[conc <span class="sc">&gt;</span> <span class="dv">500</span>, which<span class="ot">=</span><span class="cn">TRUE</span>]</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>[<span class="dv">1</span>]  <span class="dv">6</span>  <span class="dv">7</span> <span class="dv">13</span> <span class="dv">14</span> <span class="dv">20</span> <span class="dv">21</span> <span class="dv">27</span> <span class="dv">28</span> <span class="dv">34</span> <span class="dv">35</span> <span class="dv">41</span> <span class="dv">42</span> <span class="dv">48</span> <span class="dv">49</span> <span class="dv">55</span> <span class="dv">56</span> <span class="dv">62</span> <span class="dv">63</span> <span class="dv">69</span> <span class="dv">70</span> <span class="dv">76</span> <span class="dv">77</span> <span class="dv">83</span> <span class="dv">84</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="grp" class="level2">
+<h2 class="anchored" data-anchor-id="grp"><strong>.GRP</strong></h2>
+<p>.GRP is an integer, length 1, containing a simple group counter. If used without assignment to a new field, .GRP will return an enumerated data.table containing the unique combination of fields specified in by. If we specify the key of the CO2 dataset as “Plant”, “Type”, “Treatment”, we can return the unique combinations of these fields by referencing the data.table’s key in the by clause:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="do">### Set key on DT.</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">setkeyv</span>(DT, <span class="fu">c</span>(<span class="st">"Plant"</span>, <span class="st">"Type"</span>, <span class="st">"Treatment"</span>))</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="do">### Return enumerated data.table listing unique combinations of fields specified in by.</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> DT[, .GRP, by<span class="ot">=</span><span class="fu">key</span>(DT)]<span class="er">)</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    Plant        Type  Treatment GRP</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a> <span class="dv">1</span><span class="sc">:</span>   Qn1      Quebec nonchilled   <span class="dv">1</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a> <span class="dv">2</span><span class="sc">:</span>   Qn2      Quebec nonchilled   <span class="dv">2</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a> <span class="dv">3</span><span class="sc">:</span>   Qn3      Quebec nonchilled   <span class="dv">3</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a> <span class="dv">4</span><span class="sc">:</span>   Qc1      Quebec    chilled   <span class="dv">4</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a> <span class="dv">5</span><span class="sc">:</span>   Qc3      Quebec    chilled   <span class="dv">5</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a> <span class="dv">6</span><span class="sc">:</span>   Qc2      Quebec    chilled   <span class="dv">6</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a> <span class="dv">7</span><span class="sc">:</span>   Mn3 Mississippi nonchilled   <span class="dv">7</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a> <span class="dv">8</span><span class="sc">:</span>   Mn2 Mississippi nonchilled   <span class="dv">8</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a> <span class="dv">9</span><span class="sc">:</span>   Mn1 Mississippi nonchilled   <span class="dv">9</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="dv">10</span><span class="sc">:</span>   Mc2 Mississippi    chilled  <span class="dv">10</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="dv">11</span><span class="sc">:</span>   Mc3 Mississippi    chilled  <span class="dv">11</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="dv">12</span><span class="sc">:</span>   Mc1 Mississippi    chilled  <span class="dv">12</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Notice that fields not specified in by are omitted from the output.</p>
+<p>We can also use .GRP to indicate which unique group a record belongs to for each record in the parent data.table. We use the <code>:=</code> operator to define a new column (by reference) indicating each record’s associated group:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> (DT[,<span class="at">GROUP_ID:=</span>.GRP, <span class="at">by=</span><span class="fu">key</span>(DT)])</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    Plant        Type  Treatment conc uptake GROUP_ID</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a> <span class="dv">1</span><span class="sc">:</span>   Qn1      Quebec nonchilled   <span class="dv">95</span>   <span class="fl">16.0</span>        <span class="dv">1</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a> <span class="dv">2</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">175</span>   <span class="fl">30.4</span>        <span class="dv">1</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a> <span class="dv">3</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">250</span>   <span class="fl">34.8</span>        <span class="dv">1</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a> <span class="dv">4</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">350</span>   <span class="fl">37.2</span>        <span class="dv">1</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a> <span class="dv">5</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">500</span>   <span class="fl">35.3</span>        <span class="dv">1</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a> <span class="dv">6</span><span class="sc">:</span>   Qn1      Quebec nonchilled  <span class="dv">675</span>   <span class="fl">39.2</span>        <span class="dv">1</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a> <span class="dv">7</span><span class="sc">:</span>   Qn1      Quebec nonchilled <span class="dv">1000</span>   <span class="fl">39.7</span>        <span class="dv">1</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a> <span class="dv">8</span><span class="sc">:</span>   Qn2      Quebec nonchilled   <span class="dv">95</span>   <span class="fl">13.6</span>        <span class="dv">2</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a> <span class="dv">9</span><span class="sc">:</span>   Qn2      Quebec nonchilled  <span class="dv">175</span>   <span class="fl">27.3</span>        <span class="dv">2</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="dv">10</span><span class="sc">:</span>   Qn2      Quebec nonchilled  <span class="dv">250</span>   <span class="fl">37.1</span>        <span class="dv">2</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>                          .</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>                          .</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>                          .</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a><span class="dv">79</span><span class="sc">:</span>   Mc1 Mississippi    chilled  <span class="dv">175</span>   <span class="fl">14.9</span>       <span class="dv">12</span></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a><span class="dv">80</span><span class="sc">:</span>   Mc1 Mississippi    chilled  <span class="dv">250</span>   <span class="fl">18.1</span>       <span class="dv">12</span></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="dv">81</span><span class="sc">:</span>   Mc1 Mississippi    chilled  <span class="dv">350</span>   <span class="fl">18.9</span>       <span class="dv">12</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a><span class="dv">82</span><span class="sc">:</span>   Mc1 Mississippi    chilled  <span class="dv">500</span>   <span class="fl">19.5</span>       <span class="dv">12</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a><span class="dv">83</span><span class="sc">:</span>   Mc1 Mississippi    chilled  <span class="dv">675</span>   <span class="fl">22.2</span>       <span class="dv">12</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a><span class="dv">84</span><span class="sc">:</span>   Mc1 Mississippi    chilled <span class="dv">1000</span>   <span class="fl">21.9</span>       <span class="dv">12</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/www\.jtrive\.com");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

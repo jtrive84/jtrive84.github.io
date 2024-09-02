@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2024-02-01">
+<meta name="description" content="GeoHashing from scratch in python">
+
+<title>GeoHashing from Scratch in Python – The Pleasure of Finding Things Out: A blog by James Triveri</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">The Pleasure of Finding Things Out: A blog by James Triveri</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/jtrive84/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.linkedin.com/in/jamestriveri/"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://python-bloggers.com/"> <i class="bi bi-p-square" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">GeoHashing from Scratch in Python</h1>
+                  <div>
+        <div class="description">
+          GeoHashing from scratch in python
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">Python</div>
+                <div class="quarto-category">Geospatial</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">February 1, 2024</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<p>I recently became interested in GeoHashing, and wanted to develop an understanding of the algorithm with the goal of implementing it myself. I was surprised to find it to be quite simple and intuitive. In what follows, I’ll demonstrate how to generate GeoHashes for a given latitude and longitude and compare results against <code>pygeohash</code>, a Python library for all things GeoHash-related. I’ll also walkthrough an approach that can be used to find the neighboring cells of a given GeoHash, and render them on a map.</p>
+<p>A Geohash is a unique identifier of a specific region on the Earth. The basic idea is the Earth gets divided into rectangular regions of user-defined size, and each region is assigned a unique id which is called its Geohash. For a given location on earth, the algorithm converts an arbitrary precision latitude and longitude into a string, the idea being that regions with a similar string prefix will be closer together. Conceptually, GeoHashing reduces proximity search to string prefix matching. As each character encodes additional precision, shared prefixes denote geographic proximity. But the converse is not true: Two points may be close in terms of relative proximity, but have no common GeoHash characters (think of two points on opposite sides of the prime meridian).</p>
+<p>Geohashes also provide a degree of anonymity since it isn’t necessary to expose exact GPS coordinates. The location of an entity up to a bounding box cell at a given precision is all that is known.</p>
+<p>Before we begin, it is important to note that GeoHash libraries in the wild use a much more efficient generating mechanism than what is presented here. My goal is to demonstrate the concept with maximum clarity as opposed to maximum efficiency. If you decide to use GeoHashing in a real-world application, use an existing library.</p>
+<section id="algorithm" class="level3">
+<h3 class="anchored" data-anchor-id="algorithm">Algorithm</h3>
+<p>A GeoHash is a hierarchical spatial index: In order to represent a point, the world is recursively divided into smaller and smaller grid cells with each additional bit until the desired precision is reached. Functionally, the algorithm works by storing the intermediate results of two binary searches. In the resulting bit string, even-indexed bits represent longitude, while odd-indexed bits represent latitude. The user specifies a level of precision, usually between 1 and 12, and a GeoHash of that length is returned. The table below gives the dimensions of GeoHash cells at each level of precision (taken from <a href="https://www.movable-type.co.uk/scripts/geohash.html">here</a>):</p>
+<pre class="text"><code>Precision          Dimension     
+        1: 5,000km x 5,000km
+        2:   1,250km x 625km
+        3:     156km x 156km
+        4:   31.9km x 19.5km
+        5:   4.89km x 4.89km
+        6:   1.22km x 0.61km
+        7:       153m x 153m
+        8:     38.2m x 19.1m
+        9:     4.77m x 4.77m
+       10:    1.19m x 0.596m 
+       11:     149mm x 149mm
+       12:   37.2mm x 18.6mm</code></pre>
+<p>The values in the table represent the maximum dimension at each level of precision: As locations move away from the equator, the dimensions of each cell get smaller.</p>
+<p>For a GeoHash of length 12, the coordinate can be found in a cell having dimension 37.2mm x 18.6mm, which is an impressive level of precision for a 12 character string!</p>
+<p>The GeoHash symbol map consists of 32 characters:</p>
+<pre><code>base32 = "0123456789bcdefghjkmnpqrstuvwxyz"</code></pre>
+<p><code>base32</code> consists of digits 0 thru 9 plus all lowercase letters excluding <code>a, i, l, o</code>. As the search space is recursively partitioned, each group of 5 bits, when converted to a decimal integer, maps to one of the values in <code>base32</code> above.</p>
+<p>I’ll present the algorithm first, then walkthrough it step-by-step. What follows is a basic implementation of GeoHashing, which takes as input the latitude and longitude for a point of interest, and returns the GeoHash and bounding box to the specified level of precision:</p>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">"""</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co">Very inefficient GeoHashing subroutine. For demonstration purposes only. </span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">"""</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_geohash(lat, lon, precision<span class="op">=</span><span class="dv">12</span>):</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">    Generate GeoHash of lat/lon at specified precision.</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">    lat: float</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">        Latitude of point of interest.</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co">    lon: float</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co">        Longitude of point of interest</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co">    precision: int</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="co">        Precision of GeoHash. Higher values result in </span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="co">        smaller bounding regions.</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="co">    geohash, bbox as list</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    base32 <span class="op">=</span> <span class="st">"0123456789bcdefghjkmnpqrstuvwxyz"</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    bits <span class="op">=</span> []</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>    min_lat, max_lat <span class="op">=</span> <span class="op">-</span><span class="dv">90</span>, <span class="dv">90</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>    min_lon, max_lon <span class="op">=</span> <span class="op">-</span><span class="dv">180</span>, <span class="dv">180</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ii <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span> <span class="op">*</span> precision):</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> ii <span class="op">%</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Bisect longitude (E-W).</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>            mid_lon <span class="op">=</span> (min_lon <span class="op">+</span> max_lon) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> lon <span class="op">&gt;=</span> mid_lon:</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>                bits.append(<span class="dv">1</span>)</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a>                min_lon <span class="op">=</span> mid_lon</span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>                bits.append(<span class="dv">0</span>)</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>                max_lon <span class="op">=</span> mid_lon</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>            <span class="co"># Bisect latitude (N-S).</span></span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>            mid_lat <span class="op">=</span> (min_lat <span class="op">+</span> max_lat) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> lat <span class="op">&gt;=</span> mid_lat:</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>                bits.append(<span class="dv">1</span>)</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>                min_lat <span class="op">=</span> mid_lat</span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a>                bits.append(<span class="dv">0</span>)</span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>                max_lat <span class="op">=</span> mid_lat</span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Create single bit string from list of 0/1s. </span></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>    bitstr <span class="op">=</span> <span class="st">""</span>.join([<span class="bu">str</span>(ii) <span class="cf">for</span> ii <span class="kw">in</span> bits])</span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Partition bitstr into groups of 5 bits. </span></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a>    quints <span class="op">=</span> [bitstr[(<span class="dv">5</span> <span class="op">*</span> ii):(<span class="dv">5</span> <span class="op">*</span> (ii <span class="op">+</span> <span class="dv">1</span>))] <span class="cf">for</span> ii <span class="kw">in</span> <span class="bu">range</span>(precision)]</span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Convert binary digits to decimal digits to get indices into base32. </span></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>    indices <span class="op">=</span> [<span class="bu">int</span>(ii, base<span class="op">=</span><span class="dv">2</span>) <span class="cf">for</span> ii <span class="kw">in</span> quints]</span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Lookup characters associated with each index and concatenate.</span></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a>    geohash <span class="op">=</span> <span class="st">""</span>.join([base32[ii] <span class="cf">for</span> ii <span class="kw">in</span> indices]) </span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a>    <span class="co"># GeoHash bounding box is just the final, min_lat, min_lon, max_lat, max_lon.</span></span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a>    bbox <span class="op">=</span> [min_lat, min_lon, max_lat, max_lon]</span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(geohash, bbox)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We define <code>base32</code> and initialize <code>bits</code> to hold our 0s and 1s. The initial minimum and maximum latitudes and longitudes define the bounds of the search space.</p>
+<p>The range of iteration is specified as <code>range(5 * precision)</code>. For a GeoHash having precision=6, the <code>bits</code> list will contain 5 * 6 = 30 values. We multiply by 5 since the <code>base32</code> character map has length 32, and 2^5 bit arrangements cover each of the 32 indices.</p>
+<p>If <code>ii</code> is even, we bisect longitude. If <code>lon &gt;= mid_lon</code> we append 1 to <code>bits</code> and update <code>min_lat</code>. Otherwise we append 0 and update <code>max_lon</code>. If <code>ii</code> is odd, we execute the same logic but for latitude. In this way, the final bit string represents interleaved longitude and latitude bits.</p>
+<p>Once iteration completes, the individual elements of <code>bits</code> are concatenated into a single bit string <code>bitstr</code>. Next, we partition <code>bitstr</code> into groups of 5 bits (<code>quints</code>), which are converted to decimal integers, which are then used as indices to lookup elements from <code>base32</code>. These characters are concatenated into a single string representing the GeoHash.</p>
+<p>To demonstrate, lets find the GeoHash for the Merchandise Mart (41.88876, -87.63516) at precision = 6. Once iteration completes, <code>bits</code> will consist of 30 1s and 0s:</p>
+<pre><code>[0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1]</code></pre>
+<p>Which gets combined into a single bit string:</p>
+<pre><code>'011001010100011111001001101011'</code></pre>
+<p>Partitioned into groups of 5 bits:</p>
+<pre><code>['01100', '10101', '00011', '11100', '10011', '01011']</code></pre>
+<p>Converted to decimal integers:</p>
+<pre><code>[12, 21, 3, 28, 19, 11]</code></pre>
+<p>Which serve as indices into <code>base32</code>, whose corresponding elements and are concatenated into the GeoHash:</p>
+<pre><code>'dp3wmc'</code></pre>
+<p>Our function also returns the bounding box of the precision = 6 GeoHash:</p>
+<pre><code>[41.8853759765625, -87.637939453125, 41.890869140625, -87.626953125]</code></pre>
+<p>Let’s compare the results of our implementation against pygeohash to ensure consistency:</p>
+<div id="cell-4" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pygeohash</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>lat, lon, precision <span class="op">=</span> <span class="fl">41.88876</span>, <span class="op">-</span><span class="fl">87.63516</span>, <span class="dv">6</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>pygeohash.encode(latitude<span class="op">=</span>lat, longitude<span class="op">=</span>lon, precision<span class="op">=</span>precision)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<pre><code>'dp3wmc'</code></pre>
+</div>
+</div>
+<p>Let’s visualize the precision = 6 GeoHash using folium:</p>
+<div id="cell-6" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> folium </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> folium.features <span class="im">import</span> DivIcon</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>lat, lon, precision <span class="op">=</span> <span class="fl">41.88876</span>, <span class="op">-</span><span class="fl">87.63516</span>, <span class="dv">6</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Use our subroutine to get geohash and bounding box. </span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>geohash, bbox <span class="op">=</span> get_geohash(lat, lon, precision<span class="op">=</span>precision)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Unpack bbox.</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>min_lat, min_lon, max_lat, max_lon <span class="op">=</span> bbox</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Get mid_lat and mid_lon for GeoHash id placement. </span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>mid_lat <span class="op">=</span> (min_lat <span class="op">+</span> max_lat) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>mid_lon <span class="op">=</span> (min_lon <span class="op">+</span> max_lon) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(</span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[lat, lon], </span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">#width=900, </span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">#height=600, </span></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="dv">16</span>, </span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>    zoom_control<span class="op">=</span><span class="va">True</span>, </span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>    no_touch<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"OpenStreetMap"</span></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a><span class="co"># precision = 6 GeoHash bounding box. </span></span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>folium.Rectangle(</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    [(min_lat, min_lon), (max_lat, max_lon)], </span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>    fill_color<span class="op">=</span><span class="st">"blue"</span>, fill_opacity<span class="op">=</span><span class="fl">.15</span></span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a>    ).add_to(m)</span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a><span class="co"># Red dot at Merchandise Mart. </span></span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a>folium.CircleMarker(</span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[lat, lon], radius<span class="op">=</span><span class="dv">5</span>, color<span class="op">=</span><span class="st">"red"</span>, fill_color<span class="op">=</span><span class="st">"red"</span>, </span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a>    fill_opacity<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>    ).add_to(m)</span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a><span class="co"># precision = 6 GeoHash id.</span></span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>folium.<span class="bu">map</span>.Marker(</span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>    [mid_lat, mid_lon],</span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>    icon<span class="op">=</span>DivIcon(</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>        icon_size<span class="op">=</span>(<span class="dv">250</span>,<span class="dv">36</span>),</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>        icon_anchor<span class="op">=</span>(<span class="dv">100</span>,<span class="dv">50</span>),</span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>        html<span class="op">=</span><span class="ss">f'&lt;div style="font-size: 40pt"&gt;</span><span class="sc">{</span>geohash<span class="sc">}</span><span class="ss">&lt;/div&gt;'</span>,</span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>    ).add_to(m)</span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
+    
+        <script>
+            L_NO_TOUCH = true;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
+    <script src=&quot;https://code.jquery.com/jquery-1.12.4.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
+    
+            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
+            <style>
+                #map_d406830424c31d9f7fa29cd5a8cd1ac4 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+</head>
+<body>
+    
+    
+            <div class=&quot;folium-map&quot; id=&quot;map_d406830424c31d9f7fa29cd5a8cd1ac4&quot; ></div>
+        
+</body>
+<script>
+    
+    
+            var map_d406830424c31d9f7fa29cd5a8cd1ac4 = L.map(
+                &quot;map_d406830424c31d9f7fa29cd5a8cd1ac4&quot;,
+                {
+                    center: [41.88876, -87.63516],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 16,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_1795c636b0bbda617f294c12eb61b0c3 = L.tileLayer(
+                &quot;https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
+                {&quot;attribution&quot;: &quot;Data by \u0026copy; \u003ca target=\&quot;_blank\&quot; href=\&quot;http://openstreetmap.org\&quot;\u003eOpenStreetMap\u003c/a\u003e, under \u003ca target=\&quot;_blank\&quot; href=\&quot;http://www.openstreetmap.org/copyright\&quot;\u003eODbL\u003c/a\u003e.&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 18, &quot;maxZoom&quot;: 18, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
+            ).addTo(map_d406830424c31d9f7fa29cd5a8cd1ac4);
+        
+    
+            var rectangle_7cf6f5bc1a73d02c9d170a86d5d75f20 = L.rectangle(
+                [[41.8853759765625, -87.637939453125], [41.890869140625, -87.626953125]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;blue&quot;, &quot;fillOpacity&quot;: 0.15, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_d406830424c31d9f7fa29cd5a8cd1ac4);
+        
+    
+            var circle_marker_279afb42ab0900e900e86115810f3be2 = L.circleMarker(
+                [41.88876, -87.63516],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_d406830424c31d9f7fa29cd5a8cd1ac4);
+        
+    
+            var marker_f12d4899ed3684817b7ad4465c64a562 = L.marker(
+                [41.88812255859375, -87.6324462890625],
+                {}
+            ).addTo(map_d406830424c31d9f7fa29cd5a8cd1ac4);
+        
+    
+            var div_icon_97223cf9a4629254a8495bab6664e5da = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 40pt\&quot;\u003edp3wmc\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [100, 50], &quot;iconSize&quot;: [250, 36]});
+            marker_f12d4899ed3684817b7ad4465c64a562.setIcon(div_icon_97223cf9a4629254a8495bab6664e5da);
+        
+</script>
+</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
+</div>
+</div>
+</section>
+<section id="identify-geohash-neighboring-cells" class="level3">
+<h3 class="anchored" data-anchor-id="identify-geohash-neighboring-cells">Identify GeoHash Neighboring Cells</h3>
+<p>We can use the <code>get_geohash</code> function to help identify cells that neighbor a given GeoHash. Once the bounding box for the target GeoHash is known we simply increment those coordinates by a small amount, then lookup the GeoHash and bounding box associated with the new coordinate:</p>
+<div id="cell-8" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>lat, lon, precision <span class="op">=</span> <span class="fl">41.88876</span>, <span class="op">-</span><span class="fl">87.63516</span>, <span class="dv">6</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>eps <span class="op">=</span> <span class="fl">1e-10</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Center GeoHash id and bounding box.</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>geohash, bbox <span class="op">=</span> get_geohash(lat, lon, precision<span class="op">=</span>precision)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>min_lat, min_lon, max_lat, max_lon <span class="op">=</span> bbox</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Get GeoHash id and bounding box for Northwest cell.</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>gh_nw, bb_nw <span class="op">=</span> get_geohash(max_lat <span class="op">+</span> eps, min_lon <span class="op">-</span> eps, precision<span class="op">=</span>precision)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Get GeoHash id and bounding box for Northeast cell.</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>gh_ne, bb_ne <span class="op">=</span> get_geohash(max_lat <span class="op">+</span> eps, max_lon <span class="op">+</span> eps, precision<span class="op">=</span>precision)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Get GeoHash id and bounding box for Southeast cell.</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>gh_se, bb_se <span class="op">=</span> get_geohash(min_lat <span class="op">-</span> eps, max_lon <span class="op">+</span> eps, precision<span class="op">=</span>precision)</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Get GeoHash id and bounding box for Southwest cell.</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>gh_sw, bb_sw <span class="op">=</span> get_geohash(min_lat <span class="op">-</span> eps, min_lon <span class="op">-</span> eps, precision<span class="op">=</span>precision)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Which gives us the bounding boxes in NW, NE, SE and SW directions. Notice that all 5 boxes share the same prefix out to 4 characters:</p>
+<p><img src="geohash03.png" class="img-fluid"></p>
+<p>Using the results from the NW, NE, SE and SW directions, we obtain the GeoHashes in the N, S, E and W directions:</p>
+<div id="cell-11" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># For N, get mid point between NE and NW cells.</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>min_lat_nw, min_lon_nw, max_lat_nw, max_lon_nw <span class="op">=</span> bb_nw</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>min_lat_ne, min_lon_ne, max_lat_ne, max_lon_ne <span class="op">=</span> bb_ne</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>n_lat <span class="op">=</span> (min_lat_nw <span class="op">+</span> max_lat_nw) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>n_lon <span class="op">=</span> (min_lon_nw <span class="op">+</span> max_lon_ne) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="co"># For S, get mid point between SE and SW cells.</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>min_lat_sw, min_lon_sw, max_lat_sw, max_lon_sw <span class="op">=</span> bb_sw</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>min_lat_se, min_lon_se, max_lat_se, max_lon_se <span class="op">=</span> bb_se</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>s_lat <span class="op">=</span> (min_lat_sw <span class="op">+</span> max_lat_sw) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>s_lon <span class="op">=</span> (min_lon_sw <span class="op">+</span> max_lon_se) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="co"># For E, get mid point between SE and NE cells.</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>min_lat_ne, min_lon_ne, max_lat_ne, max_lon_ne <span class="op">=</span> bb_ne</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>min_lat_se, min_lon_se, max_lat_se, max_lon_se <span class="op">=</span> bb_se</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>e_lat <span class="op">=</span> (max_lat_ne <span class="op">+</span> min_lat_se) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>e_lon <span class="op">=</span> (min_lon_se <span class="op">+</span> max_lon_se) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="co"># For W, get mid point between SW and NW cells.</span></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>min_lat_nw, min_lon_nw, max_lat_nw, max_lon_nw <span class="op">=</span> bb_nw</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>min_lat_sw, min_lon_sw, max_lat_sw, max_lon_sw <span class="op">=</span> bb_sw</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>w_lat <span class="op">=</span> (max_lat_nw <span class="op">+</span> min_lat_sw) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>w_lon <span class="op">=</span> (min_lon_sw <span class="op">+</span> max_lon_sw) <span class="op">/</span> <span class="dv">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Which we can visualize using folium, resulting in:</p>
+<p><img src="geohash04.png" class="img-fluid"></p>
+<p>We can encapsulate this logic within a function we’ll call <code>get_neighbors</code>:</p>
+<div id="cell-14" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_neighbors(lat, lon, precision<span class="op">=</span><span class="dv">12</span>):</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">    Find 8 adjacent neighbors to GeoHash associated</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="co">    with (lat, lon) at specified precision.</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="co">    lat: float</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="co">        Latitude of point of interest.</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co">    lon: float</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="co">        Longitude of point of interest</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co">    precision: int</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="co">        Precision of GeoHash. Higher values result in </span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="co">        smaller bounding regions.</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a><span class="co">    dict</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    dneighbors <span class="op">=</span> {}</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    eps <span class="op">=</span> <span class="fl">1e-10</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Center GeoHash id and bounding box.</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    geohash, bbox <span class="op">=</span> get_geohash(lat, lon, precision<span class="op">=</span>precision)</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    min_lat, min_lon, max_lat, max_lon <span class="op">=</span> bbox</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    dneighbors[<span class="st">"center"</span>] <span class="op">=</span> {<span class="st">"geohash"</span>: geohash, <span class="st">"bbox"</span>: bbox}</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>    dcorners <span class="op">=</span> {</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>        <span class="st">"nw"</span>: {<span class="st">"lat"</span>: max_lat <span class="op">+</span> eps, <span class="st">"lon"</span>: min_lon <span class="op">-</span> eps},</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>        <span class="st">"ne"</span>: {<span class="st">"lat"</span>: max_lat <span class="op">+</span> eps, <span class="st">"lon"</span>: max_lon <span class="op">+</span> eps},</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>        <span class="st">"sw"</span>: {<span class="st">"lat"</span>: min_lat <span class="op">-</span> eps, <span class="st">"lon"</span>: min_lon <span class="op">-</span> eps},</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>        <span class="st">"se"</span>: {<span class="st">"lat"</span>: min_lat <span class="op">-</span> eps, <span class="st">"lon"</span>: max_lon <span class="op">+</span> eps},</span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> kk <span class="kw">in</span> dcorners:</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>        lat_, lon_ <span class="op">=</span> dcorners[kk][<span class="st">"lat"</span>], dcorners[kk][<span class="st">"lon"</span>]</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>        gh, bb <span class="op">=</span> get_geohash(lat_, lon_, precision<span class="op">=</span>precision)</span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>        dneighbors[kk] <span class="op">=</span> {<span class="st">"geohash"</span>: gh, <span class="st">"bbox"</span>: bb}</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Find GeoHash for N, S, E and W directions.</span></span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>    min_lat_nw, min_lon_nw, max_lat_nw, max_lon_nw <span class="op">=</span> dneighbors[<span class="st">"nw"</span>][<span class="st">"bbox"</span>]</span>
+<span id="cb15-47"><a href="#cb15-47" aria-hidden="true" tabindex="-1"></a>    min_lat_ne, min_lon_ne, max_lat_ne, max_lon_ne <span class="op">=</span> dneighbors[<span class="st">"ne"</span>][<span class="st">"bbox"</span>]</span>
+<span id="cb15-48"><a href="#cb15-48" aria-hidden="true" tabindex="-1"></a>    n_lat <span class="op">=</span> (min_lat_nw <span class="op">+</span> max_lat_nw) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb15-49"><a href="#cb15-49" aria-hidden="true" tabindex="-1"></a>    n_lon <span class="op">=</span> (min_lon_nw <span class="op">+</span> max_lon_ne) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb15-50"><a href="#cb15-50" aria-hidden="true" tabindex="-1"></a>    n_gh, n_bb <span class="op">=</span> get_geohash(n_lat, n_lon, precision<span class="op">=</span>precision)</span>
+<span id="cb15-51"><a href="#cb15-51" aria-hidden="true" tabindex="-1"></a>    dneighbors[<span class="st">"n"</span>] <span class="op">=</span> {<span class="st">"geohash"</span>: n_gh, <span class="st">"bbox"</span>: n_bb}</span>
+<span id="cb15-52"><a href="#cb15-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-53"><a href="#cb15-53" aria-hidden="true" tabindex="-1"></a>    min_lat_sw, min_lon_sw, max_lat_sw, max_lon_sw <span class="op">=</span> dneighbors[<span class="st">"sw"</span>][<span class="st">"bbox"</span>]</span>
+<span id="cb15-54"><a href="#cb15-54" aria-hidden="true" tabindex="-1"></a>    min_lat_se, min_lon_se, max_lat_se, max_lon_se <span class="op">=</span> dneighbors[<span class="st">"se"</span>][<span class="st">"bbox"</span>]</span>
+<span id="cb15-55"><a href="#cb15-55" aria-hidden="true" tabindex="-1"></a>    s_lat <span class="op">=</span> (min_lat_sw <span class="op">+</span> max_lat_sw) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb15-56"><a href="#cb15-56" aria-hidden="true" tabindex="-1"></a>    s_lon <span class="op">=</span> (min_lon_sw <span class="op">+</span> max_lon_se) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb15-57"><a href="#cb15-57" aria-hidden="true" tabindex="-1"></a>    s_gh, s_bb <span class="op">=</span> get_geohash(s_lat, s_lon, precision<span class="op">=</span>precision)</span>
+<span id="cb15-58"><a href="#cb15-58" aria-hidden="true" tabindex="-1"></a>    dneighbors[<span class="st">"s"</span>] <span class="op">=</span> {<span class="st">"geohash"</span>: s_gh, <span class="st">"bbox"</span>: s_bb}</span>
+<span id="cb15-59"><a href="#cb15-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-60"><a href="#cb15-60" aria-hidden="true" tabindex="-1"></a>    min_lat_ne, min_lon_ne, max_lat_ne, max_lon_ne <span class="op">=</span> dneighbors[<span class="st">"ne"</span>][<span class="st">"bbox"</span>]</span>
+<span id="cb15-61"><a href="#cb15-61" aria-hidden="true" tabindex="-1"></a>    min_lat_se, min_lon_se, max_lat_se, max_lon_se <span class="op">=</span> dneighbors[<span class="st">"se"</span>][<span class="st">"bbox"</span>]</span>
+<span id="cb15-62"><a href="#cb15-62" aria-hidden="true" tabindex="-1"></a>    e_lat <span class="op">=</span> (max_lat_ne <span class="op">+</span> min_lat_se) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb15-63"><a href="#cb15-63" aria-hidden="true" tabindex="-1"></a>    e_lon <span class="op">=</span> (min_lon_se <span class="op">+</span> max_lon_se) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb15-64"><a href="#cb15-64" aria-hidden="true" tabindex="-1"></a>    e_gh, e_bb <span class="op">=</span> get_geohash(e_lat, e_lon, precision<span class="op">=</span>precision)</span>
+<span id="cb15-65"><a href="#cb15-65" aria-hidden="true" tabindex="-1"></a>    dneighbors[<span class="st">"e"</span>] <span class="op">=</span> {<span class="st">"geohash"</span>: e_gh, <span class="st">"bbox"</span>: e_bb}</span>
+<span id="cb15-66"><a href="#cb15-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-67"><a href="#cb15-67" aria-hidden="true" tabindex="-1"></a>    min_lat_nw, min_lon_nw, max_lat_nw, max_lon_nw <span class="op">=</span> dneighbors[<span class="st">"nw"</span>][<span class="st">"bbox"</span>]</span>
+<span id="cb15-68"><a href="#cb15-68" aria-hidden="true" tabindex="-1"></a>    min_lat_sw, min_lon_sw, max_lat_sw, max_lon_sw <span class="op">=</span> dneighbors[<span class="st">"sw"</span>][<span class="st">"bbox"</span>]</span>
+<span id="cb15-69"><a href="#cb15-69" aria-hidden="true" tabindex="-1"></a>    w_lat <span class="op">=</span> (max_lat_nw <span class="op">+</span> min_lat_sw) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb15-70"><a href="#cb15-70" aria-hidden="true" tabindex="-1"></a>    w_lon <span class="op">=</span> (min_lon_sw <span class="op">+</span> max_lon_sw) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb15-71"><a href="#cb15-71" aria-hidden="true" tabindex="-1"></a>    w_gh, w_bb <span class="op">=</span> get_geohash(w_lat, w_lon, precision<span class="op">=</span>precision)</span>
+<span id="cb15-72"><a href="#cb15-72" aria-hidden="true" tabindex="-1"></a>    dneighbors[<span class="st">"w"</span>] <span class="op">=</span> {<span class="st">"geohash"</span>: w_gh, <span class="st">"bbox"</span>: w_bb}</span>
+<span id="cb15-73"><a href="#cb15-73" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-74"><a href="#cb15-74" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(dneighbors)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Running <code>get_neighbors</code> and iterating over the results yields:</p>
+<div id="cell-16" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>lat, lon, precision <span class="op">=</span> <span class="fl">41.88876</span>, <span class="op">-</span><span class="fl">87.63516</span>, <span class="dv">6</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>dn <span class="op">=</span> get_neighbors(lat, lon, precision<span class="op">=</span>precision)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> kk <span class="kw">in</span> dn:</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    gh, bb <span class="op">=</span> dn[kk][<span class="st">"geohash"</span>], dn[kk][<span class="st">"bbox"</span>]</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>[kk]<span class="sc">}</span><span class="ss">: geohash=</span><span class="sc">{</span>gh<span class="sc">}</span><span class="ss">, bbox=</span><span class="sc">{</span>bb<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>['center']: geohash=dp3wmc, bbox=[41.8853759765625, -87.637939453125, 41.890869140625, -87.626953125]
+['nw']: geohash=dp3wmd, bbox=[41.890869140625, -87.64892578125, 41.8963623046875, -87.637939453125]
+['ne']: geohash=dp3wq4, bbox=[41.890869140625, -87.626953125, 41.8963623046875, -87.615966796875]
+['sw']: geohash=dp3wm8, bbox=[41.8798828125, -87.64892578125, 41.8853759765625, -87.637939453125]
+['se']: geohash=dp3wq0, bbox=[41.8798828125, -87.626953125, 41.8853759765625, -87.615966796875]
+['n']: geohash=dp3wmf, bbox=[41.890869140625, -87.637939453125, 41.8963623046875, -87.626953125]
+['s']: geohash=dp3wmb, bbox=[41.8798828125, -87.637939453125, 41.8853759765625, -87.626953125]
+['e']: geohash=dp3wq1, bbox=[41.8853759765625, -87.626953125, 41.890869140625, -87.615966796875]
+['w']: geohash=dp3wm9, bbox=[41.8853759765625, -87.64892578125, 41.890869140625, -87.637939453125]</code></pre>
+</div>
+</div>
+<p>Finally, we demonstrate how to recreate the previous figure (target GeoHash cell with eight adjacent neighbors):</p>
+<div id="cell-18" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> folium </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> folium.features <span class="im">import</span> DivIcon</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib <span class="im">as</span> mpl</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>lat, lon, precision <span class="op">=</span> <span class="fl">41.88876</span>, <span class="op">-</span><span class="fl">87.63516</span>, <span class="dv">6</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Get  GeoHashes and bounding boxes. </span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>dn <span class="op">=</span> get_neighbors(lat, lon, precision<span class="op">=</span><span class="dv">6</span>)</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Separate color for each cell.</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>fcolors <span class="op">=</span> mpl.colormaps[<span class="st">"gist_rainbow"</span>]</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>colors_rgba <span class="op">=</span> [fcolors(ii) <span class="cf">for</span> ii <span class="kw">in</span> np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="bu">len</span>(dn))]</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>colors_hex <span class="op">=</span> [mpl.colors.to_hex(ii, keep_alpha<span class="op">=</span><span class="va">False</span>) <span class="cf">for</span> ii <span class="kw">in</span> colors_rgba]</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[lat, lon], </span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># width=900, </span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># height=600, </span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="dv">16</span>, </span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    zoom_control<span class="op">=</span><span class="va">True</span>, </span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    no_touch<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"OpenStreetMap"</span></span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ii, kk <span class="kw">in</span> <span class="bu">enumerate</span>(dn.keys()):</span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>    color <span class="op">=</span> colors_hex[ii]</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>    geohash, bbox <span class="op">=</span> dn[kk][<span class="st">"geohash"</span>], dn[kk][<span class="st">"bbox"</span>]</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>    min_lat, min_lon, max_lat, max_lon <span class="op">=</span> bbox</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>    mid_lat <span class="op">=</span> (min_lat <span class="op">+</span> max_lat) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>    mid_lon <span class="op">=</span> (min_lon <span class="op">+</span> max_lon) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>    <span class="co"># GeoHash bounding box. </span></span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>    folium.Rectangle(</span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>        [(min_lat, min_lon), (max_lat, max_lon)], </span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span>color, fill_opacity<span class="op">=</span><span class="fl">.25</span></span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>    folium.<span class="bu">map</span>.Marker(</span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>        [mid_lat, mid_lon],</span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>        icon<span class="op">=</span>DivIcon(</span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>            icon_size<span class="op">=</span>(<span class="dv">250</span>,<span class="dv">36</span>),</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>            icon_anchor<span class="op">=</span>(<span class="dv">75</span>,<span class="dv">25</span>),</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>            html<span class="op">=</span><span class="ss">f'&lt;div style="font-size: 30pt"&gt;</span><span class="sc">{</span>geohash<span class="sc">}</span><span class="ss">&lt;/div&gt;'</span>,</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
+    
+        <script>
+            L_NO_TOUCH = true;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
+    <script src=&quot;https://code.jquery.com/jquery-1.12.4.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
+    
+            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
+            <style>
+                #map_7609c16d3f5e82169a8f210a7357fa0e {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+</head>
+<body>
+    
+    
+            <div class=&quot;folium-map&quot; id=&quot;map_7609c16d3f5e82169a8f210a7357fa0e&quot; ></div>
+        
+</body>
+<script>
+    
+    
+            var map_7609c16d3f5e82169a8f210a7357fa0e = L.map(
+                &quot;map_7609c16d3f5e82169a8f210a7357fa0e&quot;,
+                {
+                    center: [41.88876, -87.63516],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 16,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_9ca7531826c6a63d8eba727121a56998 = L.tileLayer(
+                &quot;https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
+                {&quot;attribution&quot;: &quot;Data by \u0026copy; \u003ca target=\&quot;_blank\&quot; href=\&quot;http://openstreetmap.org\&quot;\u003eOpenStreetMap\u003c/a\u003e, under \u003ca target=\&quot;_blank\&quot; href=\&quot;http://www.openstreetmap.org/copyright\&quot;\u003eODbL\u003c/a\u003e.&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 18, &quot;maxZoom&quot;: 18, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var rectangle_d2cd1bc853ff4dd57e01352f87e3f5fd = L.rectangle(
+                [[41.8853759765625, -87.637939453125], [41.890869140625, -87.626953125]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff0029&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var marker_c58a6d95cfb912f1fb9577ddb99d1a75 = L.marker(
+                [41.88812255859375, -87.6324462890625],
+                {}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var div_icon_d4ffaad28ff46c1535a90764ac975199 = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003edp3wmc\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
+            marker_c58a6d95cfb912f1fb9577ddb99d1a75.setIcon(div_icon_d4ffaad28ff46c1535a90764ac975199);
+        
+    
+            var rectangle_5a1ab71b79989c9e16c6115131f61a7d = L.rectangle(
+                [[41.890869140625, -87.64892578125], [41.8963623046875, -87.637939453125]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff8400&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var marker_9e79bad9da2c2d2257fbcdd552034fd2 = L.marker(
+                [41.89361572265625, -87.6434326171875],
+                {}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var div_icon_3255fb0f152dd09dd81d50347dfc30bb = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003edp3wmd\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
+            marker_9e79bad9da2c2d2257fbcdd552034fd2.setIcon(div_icon_3255fb0f152dd09dd81d50347dfc30bb);
+        
+    
+            var rectangle_26e73ecd278d440bc3db94c13b903e7e = L.rectangle(
+                [[41.890869140625, -87.626953125], [41.8963623046875, -87.615966796875]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#cdff00&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var marker_cafc1c02fce8a6401bd062139e257a6c = L.marker(
+                [41.89361572265625, -87.6214599609375],
+                {}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var div_icon_fe83083374732c5751b8af0a971b785d = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003edp3wq4\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
+            marker_cafc1c02fce8a6401bd062139e257a6c.setIcon(div_icon_fe83083374732c5751b8af0a971b785d);
+        
+    
+            var rectangle_4ebc5c7bad4eab49bb88cd4f11f7d4e4 = L.rectangle(
+                [[41.8798828125, -87.64892578125], [41.8853759765625, -87.637939453125]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#20ff00&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var marker_f07946b5c3990bb58ff9f9ecd888a41e = L.marker(
+                [41.88262939453125, -87.6434326171875],
+                {}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var div_icon_201904927cb7eb8596943e263fdbc1ff = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003edp3wm8\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
+            marker_f07946b5c3990bb58ff9f9ecd888a41e.setIcon(div_icon_201904927cb7eb8596943e263fdbc1ff);
+        
+    
+            var rectangle_2d085c45c89a83aac01a5544393efea8 = L.rectangle(
+                [[41.8798828125, -87.626953125], [41.8853759765625, -87.615966796875]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#00ff8c&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var marker_97915d64e3cfc03dc46356ad58389fc0 = L.marker(
+                [41.88262939453125, -87.6214599609375],
+                {}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var div_icon_dc67c82a01a1835d7ca19731d53d3c75 = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003edp3wq0\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
+            marker_97915d64e3cfc03dc46356ad58389fc0.setIcon(div_icon_dc67c82a01a1835d7ca19731d53d3c75);
+        
+    
+            var rectangle_850a945eaf0f8e17da246dc7b3252ee9 = L.rectangle(
+                [[41.890869140625, -87.637939453125], [41.8963623046875, -87.626953125]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#00c6ff&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var marker_1b2009ed20dc695823d641b3970752d5 = L.marker(
+                [41.89361572265625, -87.6324462890625],
+                {}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var div_icon_ccdaa85db053fd09921a611cce2caa6a = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003edp3wmf\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
+            marker_1b2009ed20dc695823d641b3970752d5.setIcon(div_icon_ccdaa85db053fd09921a611cce2caa6a);
+        
+    
+            var rectangle_2a26638a179246e389ffa998457928ec = L.rectangle(
+                [[41.8798828125, -87.637939453125], [41.8853759765625, -87.626953125]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#0018ff&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var marker_6968907376b71d05774c6f35151adf0a = L.marker(
+                [41.88262939453125, -87.6324462890625],
+                {}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var div_icon_f3375c7f8f2f56c2e7fda754a563ae09 = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003edp3wmb\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
+            marker_6968907376b71d05774c6f35151adf0a.setIcon(div_icon_f3375c7f8f2f56c2e7fda754a563ae09);
+        
+    
+            var rectangle_071bbf9a3a0f791be9e5dab51f0f46e5 = L.rectangle(
+                [[41.8853759765625, -87.626953125], [41.890869140625, -87.615966796875]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#9600ff&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var marker_ae7d49a17d84562c079efd6a360e727a = L.marker(
+                [41.88812255859375, -87.6214599609375],
+                {}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var div_icon_1bdaea4844f066647cc5cdc248dcb93d = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003edp3wq1\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
+            marker_ae7d49a17d84562c079efd6a360e727a.setIcon(div_icon_1bdaea4844f066647cc5cdc248dcb93d);
+        
+    
+            var rectangle_91acb0e9f937275047501d32d4cf770a = L.rectangle(
+                [[41.8853759765625, -87.64892578125], [41.890869140625, -87.637939453125]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff00bf&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var marker_9f59a0be747ce0839b874787eacd44d8 = L.marker(
+                [41.88812255859375, -87.6434326171875],
+                {}
+            ).addTo(map_7609c16d3f5e82169a8f210a7357fa0e);
+        
+    
+            var div_icon_bb89b29e69ec5307441217738fb9837e = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003edp3wm9\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
+            marker_9f59a0be747ce0839b874787eacd44d8.setIcon(div_icon_bb89b29e69ec5307441217738fb9837e);
+        
+</script>
+</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/www\.jtrive\.com");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
