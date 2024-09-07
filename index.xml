@@ -10,7 +10,197 @@
 <atom:link href="https://www.jtrive.com/index.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Sun, 01 Sep 2024 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Tue, 03 Sep 2024 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Creating a Blog with Quarto and Hosting via GitHub Pages</title>
+  <link>https://www.jtrive.com/posts/creating-gh-pages-blog-with-quarto/creating-gh-pages-blog-with-quarto.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Quarto is a publishing system that allows for the creation of reproducible documents, presentations and websites using both R and Python. Quarto supports Jupyter Notebooks, making it possible to write content in Jupyter notebooks which can then converted to HTML. The static HTML files can be hosted free of charge on GitHub. itHub Pages is a feature provided by GitHub that allows you to host static websites directly from a GitHub repository. In what follows, we walkthrough the setup and configuration of a technical blog managed by Quarto and hosted on GitHub Pages.</p>
+<section id="create-new-quarto-project" class="level3">
+<h3 class="anchored" data-anchor-id="create-new-quarto-project">Create new Quarto project</h3>
+<p>Once quarto has been installed, we create a new project using the Quarto CLI. For the purposes of demonstration, we will refer to this as <em>dat303-blog</em>, but you can name it anything (just don’t include whitespace in the name). A folder with that name will be created in the Git client’s current working directory. I like to keep all my repositories in a <em>Repos</em> folder, so I’ll first navigate to <em>Repos</em> using the <code>cd</code> command (note that in the examples that follow, lines starting with <code>#</code> are comments and should not be run. Lines starting with <code>$</code> represent the command line prompt and should be run from the Git client):</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Switch into desired directory to create dat303-blog folder.</span></span>
+<span id="cb1-2"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">$</span> cd T:/Repos</span></code></pre></div>
+<p><br></p>
+<p>Next, we run the quarto <code>create-project</code> command, which will create a folder named <em>dat303-blog</em> located at <em>T:/Repos/at303-blog</em>:</p>
+<pre><code>$ quarto create-project dat303-blog --type website:blog</code></pre>
+<p><br></p>
+<p>This folder will contain a <em>posts</em> folder which will eventually contain our blog content, and a number of additional files:</p>
+<ul>
+<li><p>*_quarto.yaml<em>: Contains the title of our blog, links to our GitHub/social media accounts and styling options. By default, </em>_quarto.yaml* looks like:</p>
+<pre><code># contents of _quarto.yaml.
+project:
+type: website
+
+website:
+title: "dat303-blog"
+navbar:
+    right:
+    - about.qmd
+    - icon: github
+        href: https://github.com/
+    - icon: twitter
+        href: https://twitter.com
+format:
+html:
+    theme: cosmo
+    css: styles.css</code></pre>
+<p><br></p>
+<p>The theme is initially set to “cosmo”. It can be changed to any valid bootswatch theme. The full list of available themes can be found <a href="https://bootswatch.com/">here</a>.</p></li>
+<li><p><em>about.qmd</em>: File to provide information about yourself.</p></li>
+<li><p><em>profile.jpg</em>: Replace this with a personal photo with the same name (<em>profile.jpg</em>), or update the name of the photo in <em>about.qmd</em> for the image key-value pair.</p></li>
+</ul>
+<p><br></p>
+</section>
+<section id="create-.gitignore" class="level3">
+<h3 class="anchored" data-anchor-id="create-.gitignore">Create <em>.gitignore</em></h3>
+<p>A <code>.gitignore</code> file is used in Git to specify which files or directories should be ignored by Git when you make a commit. This means that any files or directories listed in the <code>.gitignore</code> file won’t be tracked by Git, which is useful for excluding files that are not necessary for version control. From VSCode, create a file named <em>.gitignore</em> and save it to the <em>dat303-blog</em> folder. Add the following lines to the <em>.gitignore</em>:</p>
+<pre><code>/.quarto/
+/_site/
+.*</code></pre>
+<p>Save your changes.</p>
+<p><br></p>
+</section>
+<section id="initialize-git-project-in-dat303-blog-directory" class="level3">
+<h3 class="anchored" data-anchor-id="initialize-git-project-in-dat303-blog-directory">Initialize Git project in <em>dat303-blog</em> directory</h3>
+<p>Ensure that the current working directory of the Git client is <em>dat303-blog</em>, then run <code>git init</code>:</p>
+<pre><code>$ cd T:/Repos/dat303-blog
+$ git init</code></pre>
+<p><br></p>
+</section>
+<section id="adding-new-content" class="level3">
+<h3 class="anchored" data-anchor-id="adding-new-content">Adding new content</h3>
+<p>In the <em>posts</em> directory, we will create a new subdirectory for each post. We use all lowercase with words separated by dashes to make it easy to navigate between pages.</p>
+<p>For example, I might create a <em>solving-normal-equations</em> directory under <em>posts</em>. Within the directory, I would create a new jupyter notebook named <em>solving-normal-equations.ipynb</em>.</p>
+<p>In the very first cell of <em>solving-normal-equations.ipynb</em>, change the cell type to raw (click on the lower right of the cell and change “Python” to “raw”), and add the following header detail:</p>
+<pre><code>---
+title: Solving the Normal Equations
+date: 2024-09-02
+description: An investigation into solving the normal equations with Python
+categories: [Python]
+---</code></pre>
+<p><br></p>
+<p>Be sure to include the three dashes at the top and bottom of the cell as in the example above.</p>
+<p>Populate the remaining cells of your notebook with your inline commentary, code and plots, etc. Be sure to save your changes.</p>
+<p><br></p>
+</section>
+<section id="committing-changes-locally" class="level3">
+<h3 class="anchored" data-anchor-id="committing-changes-locally">Committing changes locally</h3>
+<p>Saving our changes with Git is a two-step process: We first stage any changes via <code>git add</code>, then commit them using <code>git commit</code>. Whenever running <code>git commit</code>, you are required to include a commit message, which comes after the <code>-m</code> flag. Assuming the notebook has been saved locally, run:</p>
+<pre><code>$ git add --all
+$ git commit -m "Added solving-normal-equations article."</code></pre>
+<p><br></p>
+</section>
+<section id="creating-repository-on-github" class="level3">
+<h3 class="anchored" data-anchor-id="creating-repository-on-github">Creating repository on GitHub</h3>
+<p>From GitHub, click on the <code>+</code> and select <em>New Repository</em>. In the Repository name field, enter <em>[username].github.io</em>. In this example, it would be <em>jtrive.github.io</em>:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/creating-gh-pages-blog-with-quarto/new-repo.png" class="img-fluid figure-img"></p>
+<figcaption>new-repo</figcaption>
+</figure>
+</div>
+<p><br></p>
+<p>Add a description and be sure to keep the repository Public. Do not add a README or a <em>.gitignore</em> (we already created this). Click on <em>Create Repository</em>.</p>
+<p>In the next window, be sure to click on SSH at the top. You’ll see something similar to:</p>
+<p><img src="https://www.jtrive.com/posts/creating-gh-pages-blog-with-quarto/set-origin.png" class="img-fluid"></p>
+<p><br></p>
+<p>Since we already created our repository locally and committed our first change, we are going to focus on the second box, <em>…or push an existing repository from the command line</em>. Copy the first line starting with <code>git remote add origin ...</code> and paste it into the Git client and hit enter. In my case, it looked like:</p>
+<pre><code>$ git remote add origin git@github.com:jtrive/jtrive.github.io.git</code></pre>
+<p>Don’t worry about the other two commands: We have to do things a little different since we’re using Quarto.</p>
+<p><br></p>
+</section>
+<section id="create-gh-pages-branch" class="level3">
+<h3 class="anchored" data-anchor-id="create-gh-pages-branch">Create <code>gh-pages</code> branch</h3>
+<p>Verify that no changes are pending in your blog directory by running <code>git status</code>:</p>
+<pre><code>$ git status
+On branch master
+nothing to commit, working tree clean</code></pre>
+<p><br></p>
+<p>We need to create a separate <code>gh-pages</code> branch to host our blog. Note that this is a one-time action. From the <em>dat303-blog</em> directory, run the following commands (<strong>make sure all changes are committed before running this!</strong>):</p>
+<div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">$</span> git checkout <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--orphan</span> gh-pages</span>
+<span id="cb10-2"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">$</span> git reset <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--hard</span></span>
+<span id="cb10-3"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">$</span> git commit <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--allow-empty</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-m</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Initializing gh-pages branch."</span></span>
+<span id="cb10-4"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">$</span> git push origin gh-pages</span></code></pre></div>
+<p><br></p>
+</section>
+<section id="publishing-content-with-quarto" class="level3">
+<h3 class="anchored" data-anchor-id="publishing-content-with-quarto">Publishing content with Quarto</h3>
+<p>From the Git client, checkout the master branch, then run <code>quarto publish gh-pages</code>:</p>
+<pre><code>$ git checkout master
+$ quarto publish gh-pages</code></pre>
+<p><br></p>
+<p>Type <code>Y</code> when prompted:</p>
+<pre class="ssh"><code>$ quarto publish gh-pages
+? Update site at git@github.com-jtrive:jtrive/jtrive.github.io.git? (Y/n) » Y</code></pre>
+<p><br></p>
+<p>Upon completion, navigate to <code>jtrive.github.io</code>. You’ll see something like:</p>
+<p><img src="https://www.jtrive.com/posts/creating-gh-pages-blog-with-quarto/blog-1.png" class="img-fluid"></p>
+<p><br></p>
+<p>You can remove the <em>Post With Code</em> and <em>Welcome to My Blog</em> subdirectories under <em>posts</em> to drop those entries. Navigating to <em>Solving the Normal Equations</em>, we see:</p>
+<p><img src="https://www.jtrive.com/posts/creating-gh-pages-blog-with-quarto/blog-2.png" class="img-fluid"></p>
+<p>Looks pretty good!</p>
+<p><br></p>
+</section>
+<section id="steady-state-workflow" class="level3">
+<h3 class="anchored" data-anchor-id="steady-state-workflow">Steady-State Workflow</h3>
+<p>Many of the initial configuration steps are one-time actions. Once you’ve setup your blog as described, the typical workflow will be the following:</p>
+<ol type="1">
+<li><p>Create a new folder in the <em>posts</em> directory, using lowercase letters/numbers with words separated by dashes.</p></li>
+<li><p>Create a Jupyter notebook in this directory with the same name and .ipynb extension.</p></li>
+<li><p>Change the first cell of the notebook to raw, and add title information as shown below. Be sure the first and last lines are three dashes, <code>---</code>:</p>
+<pre><code> ---
+ title: Solving the Normal Equations
+ date: 2024-02-09
+ description: An investigation into solving the normal equations with Python
+ categories: [Python]
+ ---</code></pre></li>
+<li><p>Create your blog post (narrative text, code, plots, equations, etc.). Save your changes.</p></li>
+<li><p>From the Git client, navigate to the blog directory, then add and commit your changes:</p>
+<pre><code> $ cd /path/to/blog
+ $ git add --all
+ $ git commit -m "Added second blog post."</code></pre></li>
+<li><p>Ensure master branch is checkout (it should already be), then run the following two commands:</p>
+<pre><code> $ git checkout master
+ $ quarto publish gh-pages</code></pre></li>
+<li><p>View your published content at [username].github.io. If my username is jtrive, my content will be available at <em>jtrive.github.io</em>.</p></li>
+</ol>
+
+
+</section>
+
+ ]]></description>
+  <category>Other</category>
+  <guid>https://www.jtrive.com/posts/creating-gh-pages-blog-with-quarto/creating-gh-pages-blog-with-quarto.html</guid>
+  <pubDate>Tue, 03 Sep 2024 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Introduction to Folium</title>
   <link>https://www.jtrive.com/posts/getting-started-with-folium/getting-started-with-folium.html</link>
@@ -21,17 +211,14 @@
 
 
 <p>Learning geospatial data science is crucial in today’s data-driven world for several reasons. Geospatial data science enables individuals to understand and analyze complex spatial phenomena, including natural disasters, urbanization, climate change, and environmental degradation. By gaining familiarity with geospatial analysis techniques, individuals can gain insights into spatial patterns, relationships and processes, which is essential for making informed decisions.</p>
-<p>Moreover, geospatial data science provides valuable skills and knowledge that are highly relevant across various domains and industries. From urban planning and environmental management to public health and disaster response, proficiency in geospatial data science opens up diverse career opportunities and enhances professional development prospects.</p>
-<p>Additionally, learning geospatial data science fosters critical thinking, problem-solving, and interdisciplinary collaboration skills. It requires learners to integrate spatial data from multiple sources, apply statistical and computational methods, and communicate findings effectively to diverse stakeholders.</p>
-<p>Furthermore, as the availability and complexity of geospatial data continue to grow with advancements in technology and data collection methods, the demand for skilled geospatial data scientists is expected to rise. Therefore, investing in learning geospatial data science equips individuals with valuable skills that are not only relevant today but also increasingly essential for future career success.</p>
+<p>As the availability and complexity of geospatial data continue to grow with advancements in technology and data collection methods, the demand for skilled geospatial data scientists is expected to rise. Therefore, investing in learning geospatial data science equips individuals with valuable skills that are not only relevant today but also increasingly essential for future career success.</p>
 <section id="folium" class="level2">
 <h2 class="anchored" data-anchor-id="folium">Folium</h2>
 <p>Folium is a Python library used for visualizing geospatial data interactively on web maps. Leveraging the capabilities of Leaflet.js, Folium allows users to create maps directly within Python code, making it an accessible and powerful tool for geospatial visualization and analysis.</p>
 <p>With Folium, users can create various types of interactive maps, including point maps, choropleth maps, heatmaps, and vector overlays, by simply specifying geographic coordinates and map styling options. The library provides intuitive APIs for customizing map features such as markers, popups, tooltips, legends, and map layers, enabling users to create visually appealing and informative maps with ease.</p>
 <p>Folium integrates with other popular Python libraries such as Pandas and Matplotlib, allowing users to visualize geospatial data stored in DataFrame objects or plot data directly onto Folium maps. It also supports various tile providers and basemaps, enabling users to choose from a wide range of map styles and sources.</p>
-</section>
-<section id="creating-interactive-maps-in-folium" class="level2">
-<h2 class="anchored" data-anchor-id="creating-interactive-maps-in-folium">Creating Interactive Maps in Folium</h2>
+<section id="creating-interactive-maps-in-folium" class="level3">
+<h3 class="anchored" data-anchor-id="creating-interactive-maps-in-folium">Creating Interactive Maps in Folium</h3>
 <p>Creating maps with folium is straightforward. We simply pass the latitude and longitude of the point of interest (POI) and specify a zoom level. We can then drop a marker on the point of interest, and interact with the map however we’d like.</p>
 <p>We can get the latitude and longitude for a given POI by performing a google search. Latitude ranges from -90 to 90 degrees, longitude from -180 to 180 degrees. The latitude and longitude for the DMACC Ankeny campus is <strong>(41.5996, -93.6276)</strong>, which is <strong>(latitude, longitude)</strong>. Note that for US coordinates, the longitude will always be negative. An illustration is provided below:</p>
 <div class="quarto-figure quarto-figure-center">
@@ -40,6 +227,7 @@
 <figcaption>img01</figcaption>
 </figure>
 </div>
+<p><br></p>
 <p>To illustrate, let’s render a map over the park I used to play at as a child (Durkin Park on the southwest side of Chicago). Note that zoom level provides more detail as the number gets larger. A zoom level of 4 would show the entire US; a zoom level of 17 would render roughly a city block:</p>
 <div id="cell-3" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
@@ -161,6 +349,7 @@ font-style: inherit;">=</span>[lat, lon]).add_to(m)</span>
 </html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
 </div>
 </div>
+<p><br></p>
 <p>A few things to note about the code used to render the map:</p>
 <ul>
 <li>We start by importing the folium library.</li>
@@ -1309,6 +1498,7 @@ font-style: inherit;">"5"</span>).add_to(m)</span>
 </div>
 
 
+</section>
 </section>
 
  ]]></description>
@@ -17988,191 +18178,6 @@ font-style: inherit;">element_blank</span>()</span>
   <category>R</category>
   <guid>https://www.jtrive.com/posts/spline-smoothing-r/spline-smoothing-r.html</guid>
   <pubDate>Sat, 10 Feb 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>The Beta Function and its Variants</title>
-  <link>https://www.jtrive.com/posts/beta-function/beta-function.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>This post highlights variants of the beta function and includes an implementation that reproduces CDF output from <code>scipy.stats.nbinom</code> for a given parameterization.</p>
-<p>No discussion of the beta function would be complete without first introducing the gamma function. The gamma function is an extension of the factorial function, with its argument shifted down by 1, to real and complex numbers:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5CGamma(x)%20=%20%5Cint_%7B0%7D%5E%7B%5Cinfty%7D%20t%5E%7Bx-1%7D%20e%5E%7B-t%7D%20dt%0A"></p>
-<p>If <img src="https://latex.codecogs.com/png.latex?n"> is a positive integer, the gamma function reduces to:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5CGamma(n)%20=%20(n-1)!.%0A"></p>
-<p>The beta function is given by:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AB(a,%20b)%20=%20%5Cint_%7B0%7D%5E%7B1%7D%20t%5E%7Ba-1%7D%20(1-t)%5E%7Bb-1%7D%20dt,%20%5Cquad%20a,%20b%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B%5Cgeq%7D.%0A"></p>
-<p>The beta function can be represented in terms of the gamma function as follows:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AB(a,%20b)%20=%20%5Cfrac%7B%5CGamma(a)%5CGamma(b)%7D%7B%5CGamma(a+b)%7D%0A"></p>
-<p>When <img src="https://latex.codecogs.com/png.latex?a,%20b%20%5Cin%20%5Cmathbb%7BZ%7D%5E%7B%5Cgeq%7D">, the expression simplifies to:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AB(a,%20b)%20=%20%5Cfrac%7B(a-1)!(b-1)!%7D%7B(a+b-1)!%7D.%0A"></p>
-<p>In the first beta function expression, the limits of integration were <img src="https://latex.codecogs.com/png.latex?(0,1)">. The <em>incomplete beta function</em> is a generalization of the beta function which allows the upper limit of integration to take on values within the range <img src="https://latex.codecogs.com/png.latex?%5B0,x%5D">. Symbolically, the incomplete beta function is represented as:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AB(x;%20a,%20b)%20=%20%5Cint_%7B0%7D%5E%7Bx%7D%20t%5E%7Ba-1%7D%20(1-t)%5E%7Bb-1%7D%20dt.%0A"></p>
-<p>When <img src="https://latex.codecogs.com/png.latex?x=1">, <em>the incomplete beta function and the beta function are equivalent</em>. Put another way, the beta function is the incomplete beta function evaluated at <img src="https://latex.codecogs.com/png.latex?x=1">. Having described the beta function and the incomplete beta function, the regularized incomplete beta function is introduced, which is also referred to as the <em>regularized beta function</em>. It is defined as the ratio of the incomplete beta function to the beta function, evaluated at <img src="https://latex.codecogs.com/png.latex?x">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AI_%7Bx%7D(a,b)%20=%20%5Cfrac%7BB(x;%20a,b)%7D%7BB(a,b)%7D%0A"></p>
-<p>The regularized beta function is the cumulative distribution function for the beta distribution, which can be used to calculate the CDF for both the negative binomial and binomial distributions. For a binomial random variable <img src="https://latex.codecogs.com/png.latex?X">, to determine the probability of <img src="https://latex.codecogs.com/png.latex?k"> or fewer successes in <img src="https://latex.codecogs.com/png.latex?n"> independent trials, <img src="https://latex.codecogs.com/png.latex?k%20%5Cleq%20n">, the CDF can be expressed by:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AF(x)%20=%20%5Csum_%7Bi=0%7D%5E%7Bn%7D%20%5Cbinom%7Bn%7D%7Bi%7D%20p%5E%7Bi%7D%20(1-p)%5E%7Bn-i%7D%20=%20I_%7B1-p%7D(n-k,1+k).%0A"></p>
-<p>To demonstrate, assume <img src="https://latex.codecogs.com/png.latex?p=.25">, <img src="https://latex.codecogs.com/png.latex?n=5">. The probability of 3 or fewer successes is conventionally computed via binomial expansion as:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AP%5BX%20%5Cleq%203%5D%20=%20%5Cbinom%7B5%7D%7B0%7D%20.25%5E%7B0%7D%20.75%5E%7B5%7D%20+%20%5Cbinom%7B5%7D%7B1%7D%20.25%5E%7B1%7D%20.75%5E%7B4%7D%20+%20%5Cbinom%7B5%7D%7B2%7D%20.25%5E%7B2%7D%20.75%5E%7B3%7D%20+%20%5Cbinom%7B5%7D%7B3%7D%20.25%5E%7B3%7D%20.75%5E%7B2%7D%20=%20%5Cmathbf%7B0.984375%7D.%0A"></p>
-<p>Equivalently, leveraging the regularized incomplete beta function yields:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AP%5BX%20%5Cleq%203%5D%20=%20I_%7B.75%7D(2,%204)%20=%20%5Cmathbf%7B0.984375%7D.%0A"></p>
-<p>For the negative binomial distribution, assuming the common <img src="https://latex.codecogs.com/png.latex?r,k"> parameterization in which the PDF is given by</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AP(X=k)%20=%20%5Cbinom%7Bk+r-1%7D%7Bk%7D%20p%5E%7Bk%7D%20(1-p)%5E%7Br%7D%20%5Cquad%20%5Ctext%7Bfor%7D%20k%20=%200,%201,%202,%20%5Ccdots.%0A"></p>
-<p>The negative binomial CDF can be computed using the regularized incomplete beta function:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AP(X%20%5Cleq%20k)%20=%201%20-%20I_%7Bp%7D(k+1,%20r).%0A"></p>
-<section id="implementation" class="level3">
-<h3 class="anchored" data-anchor-id="implementation">Implementation</h3>
-<p>In what follows, a function to compute the CDF of the negative binomial distribution using functions available in <code>scipy.special</code> is demonstrated. Results will be compared to <code>scipy.stats.nbinom.cdf</code> for a set of inputs to assess the correctness of the implementation.</p>
-<div id="cell-2" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Calculation of negative binomial CDF using regularized incomplete </span></span>
-<span id="cb1-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">beta function. Note that the call signature for nbinom.cdf is:</span></span>
-<span id="cb1-4"></span>
-<span id="cb1-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    nbinom.cdf(&lt;nbr_failures&gt;, &lt;nbr_successes&gt;, &lt;prob_success&gt;)</span></span>
-<span id="cb1-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-7"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> scipy.special <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> betainc</span>
-<span id="cb1-8"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> scipy.stats <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> nbinom</span>
-<span id="cb1-9"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb1-10"></span>
-<span id="cb1-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Vectorization of nbinom.pmf.</span></span>
-<span id="cb1-12">nb_pdfs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.vectorize(nbinom.pmf)</span>
-<span id="cb1-13"></span>
-<span id="cb1-14"></span>
-<span id="cb1-15"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> nb_cdf(k, n,  p):</span>
-<span id="cb1-16">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Negative binomial CDF using the regularized incomplete beta function.</span></span>
-<span id="cb1-18"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-19">    I <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> betainc(n <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, k, p)</span>
-<span id="cb1-20">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> I)</span>
-<span id="cb1-21"></span></code></pre></div>
-</div>
-<p>We test the implementation against the actual negative binomial CDF:</p>
-<div id="cell-4" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
-<span id="cb2-2">nbr_successes, nbr_failures, prob_success <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span></span>
-<span id="cb2-3">sum_pdfs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nb_pdfs(np.arange(nbr_failures <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), nbr_successes, prob_success).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()</span>
-<span id="cb2-4">actual_cdf <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nbinom.cdf(nbr_failures, nbr_successes, prob_success)</span>
-<span id="cb2-5">new_cdf <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nb_cdf(nbr_failures, nbr_successes, prob_success)</span>
-<span id="cb2-6"></span>
-<span id="cb2-7"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"sum_pdfs: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>sum_pdfs<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb2-8"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"actual_cdf: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>actual_cdf<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb2-9"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"new_cdf: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>new_cdf<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.6f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>sum_pdfs: 0.588099
-actual_cdf: 0.588099
-new_cdf: 0.588099</code></pre>
-</div>
-</div>
-<p>As expected, all three approaches arrive at the same value for the negative binomial CDF.</p>
-
-
-</section>
-
- ]]></description>
-  <category>Statistical Modeling</category>
-  <guid>https://www.jtrive.com/posts/beta-function/beta-function.html</guid>
-  <pubDate>Fri, 09 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
