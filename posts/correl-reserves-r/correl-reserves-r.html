@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2024-02-10">
+<meta name="dcterms.date" content="2024-09-26">
 <meta name="description" content="Generating correlated bootstrap reserve estimates with R">
 
 <title>Generating Correlated Boostrap Reserve Estimates – The Pleasure of Finding Things Out: A blog by James Triveri</title>
@@ -208,7 +208,7 @@ window.Quarto = {
       <div>
       <div class="quarto-title-meta-heading">Published</div>
       <div class="quarto-title-meta-contents">
-        <p class="date">February 10, 2024</p>
+        <p class="date">September 26, 2024</p>
       </div>
     </div>
     
@@ -227,15 +227,15 @@ window.Quarto = {
 
 
 
-<p>The <a href="https://www.casact.org/publications-research/research/research-resources/loss-reserving-data-pulled-naic-schedule-p">CAS Loss Reserves Database</a> represents a set of triangles intended for use in claims reserving studies. The data includes major personal and commercial lines of business from U.S. property casualty insurers. The claims data comes from Schedule P - Analysis of Losses and Loss Expenses in the National Association of Insurance Commissioners (NAIC) database. NAIC Schedule P contains information on claims for major personal and commercial lines for all P&amp;C insurers that write business in US. The six lines included in this database are: (1) private passenger auto liability/medical; (2) commercial auto/truck liability/medical; (3) workers’ compensation; (4) medical malpractice - claims made; (5) other liability - occurrence; (6) product liability - occurrence.</p>
-<p>In this article, a technique to estimate total reserves accounting for correlation between lines of business is introduced. We focus on workers compensation, commercial auto, product liability and other liability data sourced from the CAS Loss Reserves Database. We’ll demonstrate how to account for correlation between lines, and show how changes to the correlation assumption effects the total reserve estimate.</p>
+<p>In this post, a technique to estimate total reserves accounting for correlation between lines of business is introduced. We focus on workers compensation, commercial auto, product liability and other liability data sourced from the CAS Loss Reserves Database. We’ll demonstrate how to account for correlation between lines, and show how changes to the correlation assumption affects the total reserve estimate.</p>
+<p>The <a href="https://www.casact.org/publications-research/research/research-resources/loss-reserving-data-pulled-naic-schedule-p">CAS Loss Reserves Database</a> represents a set of triangles intended for use in claims reserving studies. The data includes major personal and commercial lines of business from U.S. property casualty insurers. The claims data comes from Schedule P in the National Association of Insurance Commissioners (NAIC) database. NAIC Schedule P contains information on claims for major personal and commercial lines for all P&amp;C insurers that write business in US.</p>
 <p>The data can be downloaded from the CAS website directly using data.table’s <code>fread</code>. We perform some preprocessing to normalize column names and assign like columns the same name in each table.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"data.table"</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"foreach"</span>)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"ChainLadder"</span>)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(<span class="st">"ggplot2"</span>)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>DF1 <span class="ot">=</span> <span class="fu">fread</span>(<span class="st">"https://www.casact.org/sites/default/files/2021-04/wkcomp_pos.csv"</span>)  <span class="co"># workers compensation</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>DF1 <span class="ot">=</span> <span class="fu">fread</span>(<span class="st">"https://www.casact.org/sites/default/files/2021-04/wkcomp_pos.csv"</span>)   <span class="co"># workers compensation</span></span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>DF2 <span class="ot">=</span> <span class="fu">fread</span>(<span class="st">"https://www.casact.org/sites/default/files/2021-04/comauto_pos.csv"</span>)  <span class="co"># commercial auto</span></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>DF3 <span class="ot">=</span> <span class="fu">fread</span>(<span class="st">"https://www.casact.org/sites/default/files/2021-04/prodliab_pos.csv"</span>) <span class="co"># product liability</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>DF4 <span class="ot">=</span> <span class="fu">fread</span>(<span class="st">"https://www.casact.org/sites/default/files/2021-04/othliab_pos.csv"</span>)  <span class="co"># other liability</span></span>
@@ -261,7 +261,9 @@ window.Quarto = {
 <span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    DF4, <span class="fu">c</span>(<span class="st">"incurloss_h1"</span>, <span class="st">"bulkloss_h1"</span>, <span class="st">"accidentyear"</span>, <span class="st">"developmentlag"</span>),</span>
 <span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">"incurloss"</span>, <span class="st">"bulkloss"</span>, <span class="st">"origin"</span>, <span class="st">"dev"</span>)</span>
 <span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>dfList <span class="ot">=</span> <span class="fu">list</span>(<span class="at">wkcomp=</span>DF1, <span class="at">comauto=</span>DF2, <span class="at">prodliab=</span>DF3, <span class="at">othliab=</span>DF4) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>dfList <span class="ot">=</span> <span class="fu">list</span>(<span class="at">wkcomp=</span>DF1, <span class="at">comauto=</span>DF2, <span class="at">prodliab=</span>DF3, <span class="at">othliab=</span>DF4) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 <p>Each dataset contains loss data indexed by grcode, which is a company id. We need to find a company with losses in DF1, DF2, DF3 and DF4. This can be accomplished with the following:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>grcodes <span class="ot">=</span> <span class="fu">Reduce</span>(</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">function</span>(v1, v2) <span class="fu">intersect</span>(v1, v2),</span>
@@ -271,6 +273,7 @@ window.Quarto = {
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    DF1[grcode <span class="sc">%in%</span> grcodes, .(grcode, grname)]</span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">setorderv</span>(grnamesDF, <span class="fu">c</span>(<span class="st">"grcode"</span>), <span class="fu">c</span>(<span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 <p>Which yields:</p>
 <pre class="text"><code>    grcode                              grname
  1:    337                  California Cas Grp
@@ -301,6 +304,7 @@ window.Quarto = {
 26:  38733                   Alaska Nat Ins Co
 27:  44091 Dowa Fire &amp; Marine Ins Co Ltd Us Br
     grcode                              grname</code></pre>
+<p><br></p>
 <p>Let’s go with <strong>1767</strong>, which represents State Farm. In the next code block, we subset each data.table to only those records with <code>grcode=="1767"</code>, then create runoff triangles for each line of business:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>GRCODE <span class="ot">=</span> <span class="dv">1767</span> </span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>grList <span class="ot">=</span> <span class="fu">lapply</span>(dfList, <span class="cf">function</span>(DF) DF[grcode<span class="sc">==</span>GRCODE,])</span>
@@ -315,6 +319,7 @@ window.Quarto = {
 <span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    DF[,value<span class="sc">:</span><span class="er">=</span>incurloss <span class="sc">-</span> bulkloss]</span>
 <span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">as.triangle</span>(DF[,.(origin, dev, value)])</span>
 <span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 <p>Triangles for each lob are presented below:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> triData</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="sc">$</span>wkcomp</span>
@@ -372,7 +377,8 @@ window.Quarto = {
 <span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1995</span> <span class="dv">59140</span> <span class="dv">149648</span> <span class="dv">215701</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
 <span id="cb5-55"><a href="#cb5-55" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1996</span> <span class="dv">71637</span> <span class="dv">159561</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span>
 <span id="cb5-56"><a href="#cb5-56" aria-hidden="true" tabindex="-1"></a>  <span class="dv">1997</span> <span class="dv">82937</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span>     <span class="cn">NA</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Next, for each triangle, call the <code>BootChainLadder</code> function (available in the ChainLadder library), running 5000 iterations and retaining only the total IBNR samples from each invocation (discarding IBNR simulations by accident year). We replace simulated values less than or equal to 1 with 1:</p>
+<p><br></p>
+<p>Next, for each triangle call the <code>BootChainLadder</code> function (available in the ChainLadder library), running 5000 iterations and retaining only the total IBNR samples (discarding IBNR simulations by accident year). We replace simulated values less than or equal to 1 with 1:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ibnrSimsDF <span class="ot">=</span> <span class="fu">foreach</span>(</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(triData), <span class="at">.inorder=</span><span class="cn">TRUE</span>, <span class="at">.errorhandling=</span><span class="st">"stop"</span>,</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">.combine=</span><span class="st">"cbind.data.frame"</span>, <span class="at">.final=</span>setDT</span>
@@ -386,7 +392,8 @@ window.Quarto = {
 <span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Set names of each column in simsDataDF to associated LOB.</span></span>
 <span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(ibnrSimsDF) <span class="ot">=</span> <span class="fu">names</span>(triData)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Inspecting the first 6 records of <code>ibnrSimsDF</code> yields:</p>
+<p><br></p>
+<p>Inspecting <code>ibnrSimsDF</code> yields:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(ibnrSimsDF)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>     wkcomp prodliab  comauto  othliab</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span><span class="sc">:</span> <span class="fl">213282.5</span> <span class="fl">309.9531</span> <span class="fl">207524.1</span> <span class="fl">836339.0</span></span>
@@ -395,7 +402,8 @@ window.Quarto = {
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="dv">4</span><span class="sc">:</span> <span class="fl">204928.1</span> <span class="fl">169.7184</span> <span class="fl">246953.0</span> <span class="fl">641145.2</span></span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="dv">5</span><span class="sc">:</span> <span class="fl">168382.3</span> <span class="fl">408.6908</span> <span class="fl">213764.4</span> <span class="fl">717701.9</span></span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="dv">6</span><span class="sc">:</span> <span class="fl">158486.8</span> <span class="fl">194.0509</span> <span class="fl">227606.5</span> <span class="fl">711641.2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p><code>ibnrSimsDF</code> contains 5000 rows, with the value in each row representing the total simulated reserve need across all accident years for the lob in question. It is possible to produce histograms of the simulated total IBNR using ggplot2. The code that follows generates a faceted quad-plot of the sampling distribution of total IBNR for each lob, with a vertical dashed red line marking the location of the distribution mean. We first transform <code>ibnrSimsDF</code> into a ggplot2-compatible format (which is ggDF):</p>
+<p><br></p>
+<p><code>ibnrSimsDF</code> contains 5000 rows, with the value in each row representing the total simulated reserve need across all accident years for the lob in question. It is possible to produce histograms of the simulated total IBNR using ggplot2. The code that follows generates a faceted quad-plot of the sampling distribution of total IBNR for each lob, with a vertical dashed red line marking the location of the distribution mean. We first transform <code>ibnrSimsDF</code> into a ggplot2-compatible format (which is <code>ggDF</code>):</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create faceted quad-plot representing sampling distribution of total IBNR.</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>ggDF <span class="ot">=</span> data.table<span class="sc">::</span><span class="fu">melt</span>(</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    ibnrSimsDF, <span class="at">measure.vars=</span><span class="fu">names</span>(ibnrSimsDF), <span class="at">value.name=</span><span class="st">"ibnr"</span>, </span>
@@ -418,13 +426,15 @@ window.Quarto = {
 <span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">labels=</span><span class="cf">function</span>(x) <span class="fu">format</span>(x, <span class="at">big.mark=</span><span class="st">","</span>, <span class="at">scientific=</span><span class="cn">FALSE</span>)</span>
 <span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span></span>
 <span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">facet_wrap</span>(<span class="sc">~</span>lob, <span class="at">scales=</span><span class="st">"free"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Running the code above produces the following exhibit:</p>
+<p><br></p>
+<p>Running the code above produces:</p>
 <p><img src="correlated0.png" class="img-fluid"></p>
+<p><br></p>
 <section id="quantifying-total-reserve-variability" class="level3">
 <h3 class="anchored" data-anchor-id="quantifying-total-reserve-variability">Quantifying Total Reserve Variability</h3>
 <p>If all we are trying to do is determine the expected value of the reserve run-off, we can calculate the expected value for each lob separately and add all the expectations together. However, if we are trying to quantify a value other than the mean (such as the 75th percentile), we cannot simply sum across lines of business. If we do so, we will overstate the aggregate reserve need. The only time the sum of each lob’s 75th percentile would be appropriate for the aggregate reserve indication is when all lines are fully correlated with each other, which is highly unlikely.</p>
 <p>To account for correlation between lobs, we rely on the rank correlation methodology described in <a href="https://www.casact.org/sites/default/files/database/forum_02fforum_02ff211.pdf"><em>Two Approaches to Calculating Correlated Reserve Indications Across Multiple Lines of Business</em></a>. The methodology is carried out through a two-step process:</p>
-<p>In the first step, a stochastic reserving technique is used to generate N possible reserve runoffs from each data triangle being analyzed (this is what we have in ibnrSimsDF). In the second step, a correlation matrix is specified, where individual elements of the correlation matrix describe the association between different pairs of lobs. With the correlation matrix <span class="math inline">\(\Sigma\)</span>, carry out the following steps:</p>
+<p>In the first step, a stochastic reserving technique is used to generate N possible reserve runoffs from each data triangle being analyzed (this is what we have in <code>ibnrSimsDF</code>). In the second step, a correlation matrix is specified, where individual elements of the correlation matrix describe the association between different pairs of lobs. With the correlation matrix <span class="math inline">\(\Sigma\)</span>, carry out the following steps:</p>
 <ol type="1">
 <li><p>Compute the Cholesky decomposition of <span class="math inline">\(\Sigma\)</span>, that is, find the unique lower triangular matrix <span class="math inline">\(A\)</span> such that <span class="math inline">\(AA^{T} = \Sigma\)</span>.</p></li>
 <li><p>Compute <span class="math inline">\(Z = (z_{1}, \dots, z_{n})^{T}\)</span>, a vector whose components are <span class="math inline">\(n\)</span> independent standard normal variates (for our example, <span class="math inline">\(n=5000\)</span>.)</p></li>
@@ -441,16 +451,19 @@ we’ll compare estimated reserve need as a function of changing correlation.</p
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">nrow=</span><span class="dv">4</span>, </span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">dimnames=</span><span class="fu">list</span>(<span class="fu">names</span>(ibnrSimsDF), <span class="fu">names</span>(ibnrSimsDF))</span>
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 <p>Which looks like the following:</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>         wkcomp prodliab comauto othliab</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>wkcomp        <span class="dv">1</span>        <span class="dv">0</span>       <span class="dv">0</span>       <span class="dv">0</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>prodliab      <span class="dv">0</span>        <span class="dv">1</span>       <span class="dv">0</span>       <span class="dv">0</span></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>comauto       <span class="dv">0</span>        <span class="dv">0</span>       <span class="dv">1</span>       <span class="dv">0</span></span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>othliab       <span class="dv">0</span>        <span class="dv">0</span>       <span class="dv">0</span>       <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 <p>The next code block implements steps 1-3:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>A <span class="ot">=</span> <span class="fu">t</span>(<span class="fu">chol</span>(sigma))</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>Z <span class="ot">=</span> <span class="fu">matrix</span>(<span class="fu">rnorm</span>(<span class="fu">ncol</span>(A) <span class="sc">*</span> <span class="dv">5000</span>), <span class="at">nrow=</span><span class="dv">5000</span>, <span class="at">ncol=</span><span class="fu">ncol</span>(A))</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>X <span class="ot">=</span> Z <span class="sc">%*%</span> A</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 <p>Checking out the first few records of <code>X</code> yields:</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">head</span>(X)</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>         wkcomp    prodliab    comauto    othliab</span>
@@ -460,6 +473,7 @@ we’ll compare estimated reserve need as a function of changing correlation.</p
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>[<span class="dv">4</span>,]  <span class="fl">0.6863108</span> <span class="sc">-</span><span class="fl">1.02719480</span>  <span class="fl">0.1086142</span> <span class="sc">-</span><span class="fl">0.4941367</span></span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>[<span class="dv">5</span>,]  <span class="fl">1.3918400</span>  <span class="fl">0.09805293</span>  <span class="fl">0.3412182</span> <span class="sc">-</span><span class="fl">0.1409186</span></span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>[<span class="dv">6</span>,]  <span class="fl">0.5547157</span>  <span class="fl">1.57012447</span>  <span class="fl">0.1263973</span>  <span class="fl">0.7135559</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 <p>For each column in X, we need to obtain the rank of each correlated random draw. This can be accomplished by running:</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>rankX <span class="ot">=</span> <span class="fu">foreach</span>(<span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">ncol</span>(X), <span class="at">.combine=</span><span class="st">"cbind"</span>) <span class="sc">%do%</span> { <span class="fu">rank</span>(X[,ii]) }</span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(rankX) <span class="ot">=</span> <span class="fu">colnames</span>(sigma)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -472,7 +486,8 @@ we’ll compare estimated reserve need as a function of changing correlation.</p
 <span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>[<span class="dv">4</span>,]   <span class="dv">3785</span>      <span class="dv">782</span>    <span class="dv">2746</span>    <span class="dv">1544</span></span>
 <span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>[<span class="dv">5</span>,]   <span class="dv">4619</span>     <span class="dv">2684</span>    <span class="dv">3178</span>    <span class="dv">2221</span></span>
 <span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>[<span class="dv">6</span>,]   <span class="dv">3569</span>     <span class="dv">4687</span>    <span class="dv">2784</span>    <span class="dv">3866</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>To prepare for the rank correlation step, we need to order our total IBNR simulations from smallest to largest within each lob column:</p>
+<p><br></p>
+<p>To prepare for the rank correlation step, we need to order the total IBNR simulations from smallest to largest within each lob column:</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Order total bootstrapped ibnr samples from smallest to largest. </span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>orderedSimsDF <span class="ot">=</span> <span class="fu">foreach</span>(</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(<span class="fu">names</span>(ibnrSimsDF)), <span class="at">.combine=</span><span class="st">"cbind.data.frame"</span>,</span>
@@ -483,10 +498,11 @@ we’ll compare estimated reserve need as a function of changing correlation.</p
 <span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(orderedSimsDF) <span class="ot">=</span> <span class="fu">names</span>(ibnrSimsDF)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Then for each rank in <code>rankX</code>, we lookup the corresponding position-wise element from orderedSimsDF. This ensures that the rank order correlations between lobs are the same as the correlations imposed on the random normal samples. For example, the first row of rankX is:</p>
+<p>Then for each rank in <code>rankX</code>, we lookup the corresponding position-wise element from <code>orderedSimsDF</code>. This ensures that the rank order correlations between lobs are the same as the correlations imposed on the random normal samples. For example, the first row of <code>rankX</code> is:</p>
 <pre><code>  wkcomp prodliab  comauto  othliab 
     2971     3758     3975      293 </code></pre>
-<p>Then using orderedSimsDF, we lookup the 2971st element under wkcomp, the 3758th element under prodliab, the 3975th element under comauto and the 293rd element under othliab. This can be accomplished as follows:</p>
+<p><br></p>
+<p>Then using <code>orderedSimsDF</code>, we lookup the 2971st element under wkcomp, the 3758th element under prodliab, the 3975th element under comauto and the 293rd element under othliab. This can be accomplished as follows:</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Get correlated IBNR samples.</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>corrIBNR <span class="ot">=</span> <span class="fu">foreach</span>(</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">ii=</span><span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(<span class="fu">names</span>(orderedSimsDF)), <span class="at">.combine=</span><span class="st">"cbind"</span></span>
@@ -497,12 +513,15 @@ we’ll compare estimated reserve need as a function of changing correlation.</p
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(corrIBNR) <span class="ot">=</span> <span class="fu">names</span>(orderedSimsDF)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 <p>Finally, we sum the correlated samples across lobs, resulting in a vector of values representing the aggregate reserve distribution:</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>totalIBNR <span class="ot">=</span> <span class="fu">apply</span>(corrIBNR, <span class="at">MARGIN=</span><span class="dv">1</span>, sum)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 <p>Percentiles of the aggregate IBNR distribution can be obtained by calling:</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="sc">&gt;</span> <span class="fu">quantile</span>(totalIBNR, <span class="fu">c</span>(.<span class="dv">01</span>, .<span class="dv">25</span>, .<span class="dv">50</span>, .<span class="dv">75</span>, .<span class="dv">99</span>))</span>
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>       <span class="dv">1</span><span class="sc">%       25%</span>       <span class="dv">50</span><span class="sc">%       75%</span>       <span class="dv">99</span>% </span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a> <span class="fl">962340.6</span> <span class="fl">1107900.3</span> <span class="fl">1171348.8</span> <span class="fl">1241553.0</span> <span class="fl">1428743.0</span> </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
 </section>
 <section id="comparing-different-values-of-sigma" class="level3">
 <h3 class="anchored" data-anchor-id="comparing-different-values-of-sigma">Comparing different values of <span class="math inline">\(\Sigma\)</span></h3>
@@ -527,17 +546,21 @@ we’ll compare estimated reserve need as a function of changing correlation.</p
 <span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(</span>
 <span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y=</span><span class="fu">element_blank</span>(), <span class="at">axis.title.x=</span><span class="fu">element_blank</span>()</span>
 <span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">+</span> <span class="fu">xlim</span>(<span class="dv">0</span>, <span class="dv">1</span>) <span class="sc">+</span> </span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(<span class="st">"Aggregate reserve distribution by correlation"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Which produces the following:</p>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ggtitle</span>(<span class="st">"Aggregate reserve distribution by off-diagonal correlation"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><br></p>
+<p>Which produces:</p>
 <p><img src="correlated1.png" class="img-fluid"></p>
-<p>By changing <code>xlim(.50, 1)</code> in the code above, we can zoom in on the right-hand side of the distribution:</p>
+<p><br></p>
+<p>By setting <code>xlim(.50, 1)</code>, we can zoom in on the right-hand side of the distribution:</p>
 <p><img src="correlated2.png" class="img-fluid"></p>
+<p><br></p>
 <p>We see that around .50 mark on the x-axis, there is essntially no difference between 0% and 25% off-diagonal correlation assumption. However, as we move right along the x-axis, there’s a greater and greater discrepancy. when x=.99, the difference in the estimated total needed reserve is ~50,000, which represents approximately a 5% difference.</p>
-<p>A few take-aways:</p>
+<p><strong>A few take-aways:</strong></p>
 <ul>
-<li><p>If all we are trying to do is determine the expected value of the reserve run-off, we can calculate the expected value for each lob separately then add the expectations together.</p></li>
-<li><p>If the aim is to quantify a value other than the mean, such as the 75th percentile, we cannot simply sum across the lines of business, as this is akin to assuming full correlation between lines of business, which is unlikely and will overstate the aggregate reserve need.</p></li>
+<li><p>If the goal is to determine the expected value of the reserve run-off, the expected value for each lob can be computed separately then added together.</p></li>
+<li><p>If the aim is to quantify a value other than the mean such as the 75th percentile, we cannot simply sum across the lines of business, as this is akin to assuming full correlation between lines of business, which is unlikely and will overstate the aggregate reserve need.</p></li>
 <li><p>Off-diagonal correlation values do not need to be the same, but the matrix does need to be symmetric (identical values at <span class="math inline">\(m_{i,j}\)</span> and <span class="math inline">\(m_{j,i}\)</span>).</p></li>
+<li><p>See <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2597405">Correlations between insurance lines of business: An illusion or a real phenomenon? Some methodological considerations</a> for further context.</p></li>
 </ul>
 
 
