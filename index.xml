@@ -10,7 +10,4309 @@
 <atom:link href="https://www.jtrive.com/index.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Thu, 03 Oct 2024 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 04 Oct 2024 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>A Data-Driven Approach to Ranking Teams in Uneven Paired Competition</title>
+  <link>https://www.jtrive.com/posts/direct-method-eigenrankings/direct-method-eigenrankings.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>I recently came across <a href="http://stat.wharton.upenn.edu/~steele/Courses/956/Ranking/RankingFootballSIAM93.pdf"><em>The Perron-Frobenius and the Ranking of Football Teams</em></a>, an excellent paper in which the author describes four different methods to rank teams in uneven paired competition. He goes on to show how each of these methods depends in some way on the Perron-Frobenius theorem. The Perron-Frobenius theorem provides key insights into the structure of non-negative matrices, especially in terms of their largest eigenvalue and associated eigenvector. For irreducible non-negative matrices, the theorem guarantees the existence of a dominant eigenvalue that is real, simple, and larger than all others in magnitude, with a corresponding non-negative eigenvector.</p>
+<p>An uneven paired competition is one in which the outcome of competition between pairs of teams is known, but the pairings are not evenly matched, meaning the competition is not a round robin in which each team is paired with every other team an equal number of times. A good example is regular season football in-conference play for any of the major NCAA Division I conferences: For the 2023 season, the Big 12 had 14 teams, but each team had only 9 conference games.</p>
+<p>Here we focus on the first ranking method, which the author refers to as the “direct method”. The direct method formulates the ranking approach as a linear eigenvalue problem which makes direct use of the Perron-Frobenius theorem. For each team under consideration, the goal is to assign a score to each team based on its interactions with other teams, with the goal that the assigned score reflect both the interactions as well as the strength of opponents. We will then compare our data-driven ranking approach with the final regular season standings and assess how they line up. A similar exercise will be performed using 2023 CCIW in-conference football results.</p>
+<p><br></p>
+<section id="creating-the-adjacency-matrix" class="level3">
+<h3 class="anchored" data-anchor-id="creating-the-adjacency-matrix">Creating the Adjacency Matrix</h3>
+<p>It was first necessary to construct the adjacency matrix in order to encode interactions between teams. Big 12 2023 regular season football results were obtained <a href="https://big12sports.com/standings.aspx?standings=193&amp;path=football">here</a>. Within the matrix, the value in cell <img src="https://latex.codecogs.com/png.latex?a_%7Bij%7D"> is set to 1 if team <img src="https://latex.codecogs.com/png.latex?i"> defeated team <img src="https://latex.codecogs.com/png.latex?j">, and 0 otherwise. For games that resulted in tie, <img src="https://latex.codecogs.com/png.latex?a_%7Bij%7D%20=%20%5Cfrac%7B1%7D%7B2%7D">, but there were no such cases in 2023 Big 12 regular season conference play.</p>
+<p>The regular season rankings and adjacency matrix can be downloaded from GitHub (links available in the next cell):</p>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span>load_ext watermark</span>
+<span id="cb1-2"></span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-6"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> nx</span>
+<span id="cb1-7"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> numpy.linalg <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> eig</span>
+<span id="cb1-8"></span>
+<span id="cb1-9">np.set_printoptions(suppress<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, precision<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb1-10">pd.options.mode.chained_assignment <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb1-11">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.max_columns'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-12">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.width'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-13"></span>
+<span id="cb1-14"></span>
+<span id="cb1-15">big12_matrix_url <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://gist.githubusercontent.com/jtrive84/b9b4ff8620f90045a0377f27ec4eb50f/raw/e6923583530edadbe9da1a1f4821e415d8a7e6f2/2023-big-12-adjacency.csv"</span></span>
+<span id="cb1-16">big12_rankings_url <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://gist.githubusercontent.com/jtrive84/0207b8fd18a05e096a89498290b08d4a/raw/462d2b1bef52d96ae20e077f55501bfa23951ae4/2023-big-12-rankings.csv"</span></span>
+<span id="cb1-17"></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># ------------------------------------------------------------------------------</span></span>
+<span id="cb1-19"></span>
+<span id="cb1-20"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span>watermark <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">--</span>python <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">--</span>conda <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">--</span>hostname <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">--</span>machine <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">--</span>iversions</span>
+<span id="cb1-21"></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Python implementation: CPython
+Python version       : 3.11.10
+IPython version      : 8.28.0
+
+conda environment: py311
+
+Compiler    : MSC v.1941 64 bit (AMD64)
+OS          : Windows
+Release     : 10
+Machine     : AMD64
+Processor   : Intel64 Family 6 Model 170 Stepping 4, GenuineIntel
+CPU cores   : 22
+Architecture: 64bit
+
+Hostname: JTRIZPC11
+
+numpy     : 2.1.0
+matplotlib: 3.9.2
+pandas    : 2.2.2
+networkx  : 3.3
+</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Big 12 regular season rankings for 2023:</p>
+<div id="cell-4" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2">ranks_big12 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.read_csv(big12_rankings_url)</span>
+<span id="cb3-3"></span>
+<span id="cb3-4">ranks_big12.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">team</th>
+<th data-quarto-table-cell-role="th">conf_wins</th>
+<th data-quarto-table-cell-role="th">conf_losses</th>
+<th data-quarto-table-cell-role="th">overall_wins</th>
+<th data-quarto-table-cell-role="th">overall_losses</th>
+<th data-quarto-table-cell-role="th">conf_win_pct</th>
+<th data-quarto-table-cell-role="th">overall_win_pct</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Texas</td>
+<td>8</td>
+<td>1</td>
+<td>12</td>
+<td>2</td>
+<td>0.889</td>
+<td>0.857</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Oklahoma State</td>
+<td>7</td>
+<td>2</td>
+<td>10</td>
+<td>4</td>
+<td>0.778</td>
+<td>0.714</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Oklahoma</td>
+<td>7</td>
+<td>2</td>
+<td>10</td>
+<td>3</td>
+<td>0.778</td>
+<td>0.769</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>Iowa State</td>
+<td>6</td>
+<td>3</td>
+<td>7</td>
+<td>6</td>
+<td>0.667</td>
+<td>0.538</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Kansas State</td>
+<td>6</td>
+<td>3</td>
+<td>9</td>
+<td>4</td>
+<td>0.667</td>
+<td>0.692</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>West Virginia</td>
+<td>6</td>
+<td>3</td>
+<td>9</td>
+<td>4</td>
+<td>0.667</td>
+<td>0.692</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>Texas Tech</td>
+<td>5</td>
+<td>4</td>
+<td>7</td>
+<td>6</td>
+<td>0.556</td>
+<td>0.538</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>Kansas</td>
+<td>5</td>
+<td>4</td>
+<td>9</td>
+<td>4</td>
+<td>0.556</td>
+<td>0.692</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>UCF</td>
+<td>3</td>
+<td>6</td>
+<td>6</td>
+<td>7</td>
+<td>0.333</td>
+<td>0.462</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>TCU</td>
+<td>3</td>
+<td>6</td>
+<td>5</td>
+<td>7</td>
+<td>0.333</td>
+<td>0.417</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>Houston</td>
+<td>2</td>
+<td>7</td>
+<td>4</td>
+<td>8</td>
+<td>0.222</td>
+<td>0.333</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>BYU</td>
+<td>2</td>
+<td>7</td>
+<td>5</td>
+<td>7</td>
+<td>0.222</td>
+<td>0.417</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>Baylor</td>
+<td>2</td>
+<td>7</td>
+<td>3</td>
+<td>9</td>
+<td>0.222</td>
+<td>0.250</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>Cincinnati</td>
+<td>1</td>
+<td>8</td>
+<td>3</td>
+<td>9</td>
+<td>0.111</td>
+<td>0.250</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>The adjacency matrix considers only conference play (non-conference games excluded):</p>
+<div id="cell-6" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2">adj_big12 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.read_csv(big12_matrix_url)</span>
+<span id="cb4-3"></span>
+<span id="cb4-4">adj_big12.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Unnamed: 0</th>
+<th data-quarto-table-cell-role="th">Baylor</th>
+<th data-quarto-table-cell-role="th">BYU</th>
+<th data-quarto-table-cell-role="th">Cincinnati</th>
+<th data-quarto-table-cell-role="th">Houston</th>
+<th data-quarto-table-cell-role="th">Iowa State</th>
+<th data-quarto-table-cell-role="th">Kansas</th>
+<th data-quarto-table-cell-role="th">Kansas State</th>
+<th data-quarto-table-cell-role="th">Oklahoma</th>
+<th data-quarto-table-cell-role="th">Oklahoma State</th>
+<th data-quarto-table-cell-role="th">TCU</th>
+<th data-quarto-table-cell-role="th">Texas</th>
+<th data-quarto-table-cell-role="th">Texas Tech</th>
+<th data-quarto-table-cell-role="th">UCF</th>
+<th data-quarto-table-cell-role="th">West Virginia</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Baylor</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>BYU</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Cincinnati</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>Houston</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Iowa State</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>Kansas</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>Kansas State</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>Oklahoma</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>Oklahoma State</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>TCU</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>Texas</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>Texas Tech</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>UCF</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>West Virginia</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>For each row in <code>adj_big12</code>, 1 indicates that team at row <img src="https://latex.codecogs.com/png.latex?i"> defeated the team in column <img src="https://latex.codecogs.com/png.latex?j">. For example, Oklahoma defeated BYU 31-24 in 2023, so the value at the intersection of row Oklahoma and column BYU is 1. The value at the intersection of row BYU and column Oklahoma is 0, since BYU did not defeat Oklahoma in 2023, and they only faced each other in one contest.</p>
+<p>The sum of each row in the adjacency matrix represents the number of regular season wins conference play for a given team. Texas was 8-1 in 2023 regular season conference play, therefore the sum of the Texas row is 8. The columnar sum represents the number of losses for a given team (for Texas, this is 1).</p>
+<p>We can use NetworkX to visualize the relationships encoded in the adjacency matrix (each node label corresponds to the alphabetical enumeration of teams: 0=Baylor, 1=BYU, … 13=West Virginia). Edges indicate whether team <img src="https://latex.codecogs.com/png.latex?i"> and team <img src="https://latex.codecogs.com/png.latex?j"> faced each other in a regular season contest:</p>
+<div id="cell-8" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
+<span id="cb5-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> nx</span>
+<span id="cb5-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb5-4"></span>
+<span id="cb5-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create adjacency matrix as Numpy array. </span></span>
+<span id="cb5-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># team_names = dfadj["Unnamed: 0"].values</span></span>
+<span id="cb5-7">A <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> adj_big12.drop(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Unnamed: 0"</span>, axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>).values</span>
+<span id="cb5-8">G <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nx.from_numpy_array(A)</span>
+<span id="cb5-9"></span>
+<span id="cb5-10">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7.5</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb5-11">ax.set_title(</span>
+<span id="cb5-12">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2023 Big-12 Regular Season Football Matchups"</span>, </span>
+<span id="cb5-13">    color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"center"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"normal"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span></span>
+<span id="cb5-14">)</span>
+<span id="cb5-15">nx.draw_networkx(</span>
+<span id="cb5-16">    G, node_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#E02C70"</span>, node_size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">350</span>, ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, with_labels<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, </span>
+<span id="cb5-17">    edge_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"grey"</span>, width<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.25</span>, pos<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>nx.spring_layout(G, seed<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb5-18">)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/direct-method-eigenrankings/direct-method-eigenrankings_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>The adjacency matrix, <img src="https://latex.codecogs.com/png.latex?A">:</p>
+<div id="cell-10" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2">A</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>array([[0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+       [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+       [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+       [1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0],
+       [0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+       [1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0],
+       [0, 1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1],
+       [0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1],
+       [1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0],
+       [1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0],
+       [0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+       [1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0]])</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>If we create an initial ranking vector <img src="https://latex.codecogs.com/png.latex?r_%7B0%7D"> with all values set to 1, the the <img src="https://latex.codecogs.com/png.latex?i%5E%7Bth%7D"> component of <img src="https://latex.codecogs.com/png.latex?Ar_%7B0%7D"> is the winning percentage for team <img src="https://latex.codecogs.com/png.latex?i"> (after dividing by the number of games played):</p>
+<div id="cell-12" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"></span>
+<span id="cb8-2">r0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.ones(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">14</span>)</span>
+<span id="cb8-3">win_pcts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> A <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> r0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span></span>
+<span id="cb8-4"></span>
+<span id="cb8-5">pairs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(adj_big12.columns[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>:], win_pcts.tolist())</span>
+<span id="cb8-6"></span>
+<span id="cb8-7"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> tt <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> pairs:</span>
+<span id="cb8-8">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(tt)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>('Baylor', 0.2222222222222222)
+('BYU', 0.2222222222222222)
+('Cincinnati', 0.1111111111111111)
+('Houston', 0.2222222222222222)
+('Iowa State', 0.6666666666666666)
+('Kansas', 0.5555555555555556)
+('Kansas State', 0.6666666666666666)
+('Oklahoma', 0.7777777777777778)
+('Oklahoma State', 0.7777777777777778)
+('TCU', 0.3333333333333333)
+('Texas', 0.8888888888888888)
+('Texas Tech', 0.5555555555555556)
+('UCF', 0.3333333333333333)
+('West Virginia', 0.6666666666666666)</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>This aligns with values in the <em>conf_win_pct</em> column from <code>ranks_big12</code>.</p>
+<p>The <img src="https://latex.codecogs.com/png.latex?i%5E%7Bth%7D"> component of <img src="https://latex.codecogs.com/png.latex?A%5E%7B2%7Dr_%7B0%7D"> represents the average winning percentage of the teams that team <img src="https://latex.codecogs.com/png.latex?i"> defeated. As the author highlights, <img src="https://latex.codecogs.com/png.latex?A%5E%7B2%7Dr_%7B0%7D"> can be considered a proxy for strength of schedule. In the limit as <img src="https://latex.codecogs.com/png.latex?n"> goes to infinity, <img src="https://latex.codecogs.com/png.latex?A%5E%7Bn%7Dr_%7B0%7D/%7CA%5E%7Bn%7Dr_%7B0%7D%7C"> converges to the unique positive eigenvector of <img src="https://latex.codecogs.com/png.latex?A">, and the magnitude of the entries of this eigenvector gives a ranking of teams.</p>
+<p>If <img src="https://latex.codecogs.com/png.latex?A"> has nonnegative entries (which will always be the case given out definition of <img src="https://latex.codecogs.com/png.latex?A">), then it has an eigenvector <img src="https://latex.codecogs.com/png.latex?%5Cvec%7Br%7D"> with non-negative entries associated with a positive eigenvalue <img src="https://latex.codecogs.com/png.latex?%5Clambda">. If <img src="https://latex.codecogs.com/png.latex?A"> is irreducible, then <img src="https://latex.codecogs.com/png.latex?%5Cvec%7Br%7D"> has strictly positive entries and the corresponding eigenvalue is the one of largest absolute value. Note however that if <img src="https://latex.codecogs.com/png.latex?%5Cvec%7Br%7D"> is an eigenvector of <img src="https://latex.codecogs.com/png.latex?A">, so is <img src="https://latex.codecogs.com/png.latex?-%5Cvec%7Br%7D">. In practice, we simply take the absolute value of the eigenvector associated with the largest eigenvalue. Note that for <img src="https://latex.codecogs.com/png.latex?A"> to be irreducible, there can be no winless teams.</p>
+<p>The steps for deriving our rankings are outlined below:</p>
+<ol type="1">
+<li><p>Construct the adjacency matrix <img src="https://latex.codecogs.com/png.latex?A">, in which entry <img src="https://latex.codecogs.com/png.latex?a_%7Bij%7D"> represents the number of times team <img src="https://latex.codecogs.com/png.latex?i"> defeated team <img src="https://latex.codecogs.com/png.latex?j">.</p></li>
+<li><p>Perform the eigendecomposition of <img src="https://latex.codecogs.com/png.latex?A">, factoring the matrix into its eigenvalues and eigenvectors.</p></li>
+<li><p>Identify the index of the largest eigenvalue.</p></li>
+<li><p>Extract the eigenvector at the index identified in step 3. If using Numpy and the maximum eigenvalue is found at index <img src="https://latex.codecogs.com/png.latex?j">, the corresponding eigenvector <img src="https://latex.codecogs.com/png.latex?%5Cvec%7Br%7D"> will be located in column <img src="https://latex.codecogs.com/png.latex?j">.</p></li>
+<li><p>Take the absolute value of <img src="https://latex.codecogs.com/png.latex?%5Cvec%7Br%7D">. The value at index <img src="https://latex.codecogs.com/png.latex?i"> in <img src="https://latex.codecogs.com/png.latex?%5Cvec%7Br%7D"> represents the score for the team at the same index (for the Big 12 example, index 0 = Baylor, index 1 = BYU, …).</p></li>
+<li><p>Sort the eigenvector scores in decreasing order; higher performing teams will have a larger value, poorer performing teams will have a smaller value.</p></li>
+</ol>
+<p><br></p>
+<p>Keep in mind that using a binary encoding scheme in a football setting, where each team may only compete once per season, overlooks information that could enhance the encoding. As it stands, a victory by 80 points for team A over team B is treated the same as a victory in triple overtime. In sports where teams face each other multiple times in a season, <img src="https://latex.codecogs.com/png.latex?a_%7Bij%7D"> serves as a better indicator of the relative strength between the two teams. We’ll explore regular season Major League Baseball results later.</p>
+<p>The next cell demonstrates how to implement the ranking procedure using Numpy.</p>
+<div id="cell-14" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
+<span id="cb10-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> numpy.linalg <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> eig</span>
+<span id="cb10-3"></span>
+<span id="cb10-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Adjacency matrix as Numpy array.</span></span>
+<span id="cb10-5">A <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> adj_big12.drop(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Unnamed: 0"</span>, axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>).values.astype(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>)</span>
+<span id="cb10-6"></span>
+<span id="cb10-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Perform eigendecomposition of A. </span></span>
+<span id="cb10-8">e_vals, e_vecs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> eig(A)</span>
+<span id="cb10-9"></span>
+<span id="cb10-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Identify index of largest eigenvalue. </span></span>
+<span id="cb10-11">e_val1_indx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.argmax(e_vals)</span>
+<span id="cb10-12"></span>
+<span id="cb10-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Extract real part of eigenvector at index e_val1_indx. </span></span>
+<span id="cb10-14">e_vec1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(e_vecs[:, e_val1_indx])</span>
+<span id="cb10-15"></span>
+<span id="cb10-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get indices associated with each team.</span></span>
+<span id="cb10-17">indices <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.argsort(e_vec1)[::<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb10-18"></span>
+<span id="cb10-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Associate ranks with teams. </span></span>
+<span id="cb10-20">teams <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> adj_big12.columns[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>:]</span>
+<span id="cb10-21">ranked_teams <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> teams[indices]</span>
+<span id="cb10-22"></span>
+<span id="cb10-23"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> team <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> ranked_teams:</span>
+<span id="cb10-24">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(team)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Texas
+Oklahoma State
+Oklahoma
+Kansas
+Iowa State
+Kansas State
+Texas Tech
+West Virginia
+UCF
+Houston
+BYU
+TCU
+Baylor
+Cincinnati</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>We can compare actual vs.&nbsp;predicted rankings to see how well the direct method performed:</p>
+<div id="cell-16" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
+<span id="cb12-2"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> jj, team <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(ranked_teams):</span>
+<span id="cb12-3">    actual_rank <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ranks_big12[ranks_big12.team<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span>team].index.item()</span>
+<span id="cb12-4">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>team<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">: actual/predicted : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>actual_rank<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>jj<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb12-5"></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Texas: actual/predicted : 0/0
+Oklahoma State: actual/predicted : 1/1
+Oklahoma: actual/predicted : 2/2
+Kansas: actual/predicted : 7/3
+Iowa State: actual/predicted : 3/4
+Kansas State: actual/predicted : 4/5
+Texas Tech: actual/predicted : 6/6
+West Virginia: actual/predicted : 5/7
+UCF: actual/predicted : 8/8
+Houston: actual/predicted : 10/9
+BYU: actual/predicted : 11/10
+TCU: actual/predicted : 9/11
+Baylor: actual/predicted : 12/12
+Cincinnati: actual/predicted : 13/13</code></pre>
+</div>
+</div>
+<p>There are a few discrepancies, but the ranks are largely consistent. An interesting discrepancy is Kansas, having an actual rank of 7 vs.&nbsp;a predicted rank of 3. It’s difficult to say why Kansas is given such a high rank, but it may have to do with strength of schedule.</p>
+<p>For the bottom five teams, the direct method does a good job. Three of the five teams have the same in-conference winning percentage, therefore slight out-of-orderings aren’t of concern.</p>
+<p>Next let’s look at a more substantial example: All games for the 2021 MLB regular season.</p>
+<p><br></p>
+</section>
+<section id="mlb-example" class="level3">
+<h3 class="anchored" data-anchor-id="mlb-example">MLB Example</h3>
+<p>A Major League Baseball dataset with game results from 2016-2021 is available on <a href="https://www.kaggle.com/datasets/josephvm/mlb-game-data">Kaggle</a>. The <em>games.csv</em> dataset has information about each contest that can be used to build an adjacency matrix. We load the dataset and inspect the first few records:</p>
+<div id="cell-19" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
+<span id="cb14-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb14-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb14-4"></span>
+<span id="cb14-5">np.set_printoptions(suppress<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, precision<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb14-6">pd.options.mode.chained_assignment <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb14-7">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.max_columns'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb14-8">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.width'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb14-9"></span>
+<span id="cb14-10">df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.read_csv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"C:/Users/jtriv/datasets/MLB/games.csv"</span>)</span>
+<span id="cb14-11"></span>
+<span id="cb14-12"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"df.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>df<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb14-13"></span>
+<span id="cb14-14">df.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>df.shape: (13439, 43)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Game</th>
+<th data-quarto-table-cell-role="th">away</th>
+<th data-quarto-table-cell-role="th">away-record</th>
+<th data-quarto-table-cell-role="th">awayaway-record</th>
+<th data-quarto-table-cell-role="th">home</th>
+<th data-quarto-table-cell-role="th">home-record</th>
+<th data-quarto-table-cell-role="th">homehome-record</th>
+<th data-quarto-table-cell-role="th">away-score</th>
+<th data-quarto-table-cell-role="th">home-score</th>
+<th data-quarto-table-cell-role="th">postseason info</th>
+<th data-quarto-table-cell-role="th">Walks Issued - Away</th>
+<th data-quarto-table-cell-role="th">Walks Issued - Home</th>
+<th data-quarto-table-cell-role="th">Stolen Bases - Away</th>
+<th data-quarto-table-cell-role="th">Stolen Bases - Home</th>
+<th data-quarto-table-cell-role="th">Strikeouts Thrown - Away</th>
+<th data-quarto-table-cell-role="th">Strikeouts Thrown - Home</th>
+<th data-quarto-table-cell-role="th">Total Bases - Away</th>
+<th data-quarto-table-cell-role="th">Total Bases - Home</th>
+<th data-quarto-table-cell-role="th">Stadium</th>
+<th data-quarto-table-cell-role="th">Date</th>
+<th data-quarto-table-cell-role="th">Location</th>
+<th data-quarto-table-cell-role="th">Odds</th>
+<th data-quarto-table-cell-role="th">O/U</th>
+<th data-quarto-table-cell-role="th">Attendance</th>
+<th data-quarto-table-cell-role="th">Capacity</th>
+<th data-quarto-table-cell-role="th">Duration</th>
+<th data-quarto-table-cell-role="th">Umpires</th>
+<th data-quarto-table-cell-role="th">WIN - Pitcher - Stats</th>
+<th data-quarto-table-cell-role="th">WIN - Pitcher - Id</th>
+<th data-quarto-table-cell-role="th">WIN - Pitcher - Name</th>
+<th data-quarto-table-cell-role="th">WIN - Pitcher - AbbrName</th>
+<th data-quarto-table-cell-role="th">WIN - Pitcher - Record</th>
+<th data-quarto-table-cell-role="th">LOSS - Pitcher - Stats</th>
+<th data-quarto-table-cell-role="th">LOSS - Pitcher - Id</th>
+<th data-quarto-table-cell-role="th">LOSS - Pitcher - Name</th>
+<th data-quarto-table-cell-role="th">LOSS - Pitcher - AbbrName</th>
+<th data-quarto-table-cell-role="th">LOSS - Pitcher - Record</th>
+<th data-quarto-table-cell-role="th">SAVE - Pitcher - Stats</th>
+<th data-quarto-table-cell-role="th">SAVE - Pitcher - Id</th>
+<th data-quarto-table-cell-role="th">SAVE - Pitcher - Name</th>
+<th data-quarto-table-cell-role="th">SAVE - Pitcher - AbbrName</th>
+<th data-quarto-table-cell-role="th">SAVE - Pitcher - Record</th>
+<th data-quarto-table-cell-role="th">Extra Innings</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>360403123</td>
+<td>STL</td>
+<td>0-1</td>
+<td>0-1 Away</td>
+<td>PIT</td>
+<td>Jan-00</td>
+<td>1-0 Home</td>
+<td>1.0</td>
+<td>4.0</td>
+<td>NaN</td>
+<td>5.0</td>
+<td>5.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>5.0</td>
+<td>14.0</td>
+<td>5.0</td>
+<td>13.0</td>
+<td>\n\n\n\n\n\t\t\t\t\t\t\tPNC Park\n\t\t\t\t\t\t...</td>
+<td>2016-04-03T17:00Z</td>
+<td>Pittsburgh, Pennsylvania\n\t\t\t\t\t\t\t\n\t\t...</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>39,500</td>
+<td>38,362</td>
+<td>3:02</td>
+<td>Home Plate Umpire - Jerry Layne, First Base Um...</td>
+<td>6.0 IP, 0 ER, 10 K, 5 BB</td>
+<td>6211.0</td>
+<td>Francisco Liriano</td>
+<td>F. Liriano</td>
+<td>(1-0)</td>
+<td>6.0 IP, 3 ER, 3 K, 3 BB</td>
+<td>5403.0</td>
+<td>Adam Wainwright</td>
+<td>A. Wainwright</td>
+<td>(0-1)</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>360403130</td>
+<td>TOR</td>
+<td>Jan-00</td>
+<td>1-0 Away</td>
+<td>TB</td>
+<td>0-1</td>
+<td>0-1 Home</td>
+<td>5.0</td>
+<td>3.0</td>
+<td>NaN</td>
+<td>1.0</td>
+<td>3.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>7.0</td>
+<td>16.0</td>
+<td>11.0</td>
+<td>11.0</td>
+<td>\n\n\n\n\n\t\t\t\t\t\t\tTropicana Field\n\t\t\...</td>
+<td>2016-04-03T20:00Z</td>
+<td>St. Petersburg, Florida\n\t\t\t\t\t\t\t\n\t\t\...</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>31,042</td>
+<td>31,042</td>
+<td>2:51</td>
+<td>Home Plate Umpire - Mike Everitt, First Base U...</td>
+<td>8.0 IP, 3 ER, 5 K, 1 BB</td>
+<td>32815.0</td>
+<td>Marcus Stroman</td>
+<td>M. Stroman</td>
+<td>(1-0)</td>
+<td>5.0 IP, 2 ER, 12 K, 3 BB</td>
+<td>31003.0</td>
+<td>Chris Archer</td>
+<td>C. Archer</td>
+<td>(0-1)</td>
+<td>1.0 IP, 0 ER, 2 K, 0 BB</td>
+<td>32693.0</td>
+<td>Roberto Osuna</td>
+<td>R. Osuna</td>
+<td>-1.0</td>
+<td>NaN</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>360403107</td>
+<td>NYM</td>
+<td>0-1</td>
+<td>0-1 Away</td>
+<td>KC</td>
+<td>Jan-00</td>
+<td>1-0 Home</td>
+<td>3.0</td>
+<td>4.0</td>
+<td>NaN</td>
+<td>2.0</td>
+<td>6.0</td>
+<td>0.0</td>
+<td>1.0</td>
+<td>3.0</td>
+<td>9.0</td>
+<td>8.0</td>
+<td>9.0</td>
+<td>\n\n\n\n\n\t\t\t\t\t\t\tKauffman Stadium\n\t\t...</td>
+<td>2016-04-04T00:30Z</td>
+<td>Kansas City, Missouri\n\t\t\t\t\t\t\t\n\t\t\t\...</td>
+<td>NaN</td>
+<td>NaN</td>
+<td>40,030</td>
+<td>37,903</td>
+<td>3:13</td>
+<td>Home Plate Umpire - Gerry Davis, First Base Um...</td>
+<td>6.0 IP, 0 ER, 5 K, 3 BB</td>
+<td>6401.0</td>
+<td>Edinson Volquez</td>
+<td>E. Volquez</td>
+<td>(1-0)</td>
+<td>5.2 IP, 3 ER, 2 K, 2 BB</td>
+<td>31214.0</td>
+<td>Matt Harvey</td>
+<td>M. Harvey</td>
+<td>(0-1)</td>
+<td>1.0 IP, 0 ER, 2 K, 1 BB</td>
+<td>28957.0</td>
+<td>Wade Davis</td>
+<td>W. Davis</td>
+<td>-1.0</td>
+<td>NaN</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>It is first necessary to filter down to 2021 regular season games. If “postseason info” column is null, we assume the game is a regular season matchup. The “Date” column is used to extract the year.</p>
+<p>In order to create the adjacency matrix only “away”, “home”, “away-score” and “home-score” need be retained. All other columns are removed:</p>
+<div id="cell-21" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"></span>
+<span id="cb16-2">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yyyy"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.to_datetime(df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Date"</span>]).dt.year</span>
+<span id="cb16-3"></span>
+<span id="cb16-4">df21 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb16-5">    df[(pd.isnull(df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"postseason info"</span>])) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span> (df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"yyyy"</span>]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2021</span>)]</span>
+<span id="cb16-6">    .dropna(subset<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"away"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"home"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"away-score"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"home-score"</span>])</span>
+<span id="cb16-7">    .rename({<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"away-score"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"away_score"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"home-score"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"home_score"</span>}, axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb16-8">    [[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"away"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"home"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"away_score"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"home_score"</span>]]</span>
+<span id="cb16-9">    .reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb16-10">)</span>
+<span id="cb16-11"></span>
+<span id="cb16-12"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"df21.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>df21<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb16-13"></span>
+<span id="cb16-14">df21.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">15</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>df21.shape: (2310, 4)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">away</th>
+<th data-quarto-table-cell-role="th">home</th>
+<th data-quarto-table-cell-role="th">away_score</th>
+<th data-quarto-table-cell-role="th">home_score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>TOR</td>
+<td>NYY</td>
+<td>3.0</td>
+<td>2.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>CLE</td>
+<td>DET</td>
+<td>2.0</td>
+<td>3.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>MIN</td>
+<td>MIL</td>
+<td>5.0</td>
+<td>6.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>PIT</td>
+<td>CHC</td>
+<td>5.0</td>
+<td>3.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>ATL</td>
+<td>PHI</td>
+<td>2.0</td>
+<td>3.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>ARI</td>
+<td>SD</td>
+<td>7.0</td>
+<td>8.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>LAD</td>
+<td>COL</td>
+<td>5.0</td>
+<td>8.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>STL</td>
+<td>CIN</td>
+<td>11.0</td>
+<td>6.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>TB</td>
+<td>MIA</td>
+<td>1.0</td>
+<td>0.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>TEX</td>
+<td>KC</td>
+<td>10.0</td>
+<td>14.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>CHW</td>
+<td>LAA</td>
+<td>3.0</td>
+<td>4.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>HOU</td>
+<td>OAK</td>
+<td>8.0</td>
+<td>1.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>SF</td>
+<td>SEA</td>
+<td>7.0</td>
+<td>8.0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>BAL</td>
+<td>BOS</td>
+<td>3.0</td>
+<td>0.0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">14</td>
+<td>TB</td>
+<td>MIA</td>
+<td>6.0</td>
+<td>4.0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>All 30 MLB teams are represented in the “home” and away” columns. An empty DataFrame is created with columns and rows indexed using the 30 teams ordered alphabetically.</p>
+<div id="cell-23" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"></span>
+<span id="cb18-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create empty DataFrame with rows and columns indexed by the 30 MLB teams.</span></span>
+<span id="cb18-3">mlb_teams <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sorted</span>(df21[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"home"</span>].unique().tolist())</span>
+<span id="cb18-4">dfadj <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>mlb_teams, columns<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>mlb_teams)</span>
+<span id="cb18-5">dfadj.loc[:,:] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb18-6"></span>
+<span id="cb18-7">dfadj</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="11">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ARI</th>
+<th data-quarto-table-cell-role="th">ATL</th>
+<th data-quarto-table-cell-role="th">BAL</th>
+<th data-quarto-table-cell-role="th">BOS</th>
+<th data-quarto-table-cell-role="th">CHC</th>
+<th data-quarto-table-cell-role="th">CHW</th>
+<th data-quarto-table-cell-role="th">CIN</th>
+<th data-quarto-table-cell-role="th">CLE</th>
+<th data-quarto-table-cell-role="th">COL</th>
+<th data-quarto-table-cell-role="th">DET</th>
+<th data-quarto-table-cell-role="th">HOU</th>
+<th data-quarto-table-cell-role="th">KC</th>
+<th data-quarto-table-cell-role="th">LAA</th>
+<th data-quarto-table-cell-role="th">LAD</th>
+<th data-quarto-table-cell-role="th">MIA</th>
+<th data-quarto-table-cell-role="th">MIL</th>
+<th data-quarto-table-cell-role="th">MIN</th>
+<th data-quarto-table-cell-role="th">NYM</th>
+<th data-quarto-table-cell-role="th">NYY</th>
+<th data-quarto-table-cell-role="th">OAK</th>
+<th data-quarto-table-cell-role="th">PHI</th>
+<th data-quarto-table-cell-role="th">PIT</th>
+<th data-quarto-table-cell-role="th">SD</th>
+<th data-quarto-table-cell-role="th">SEA</th>
+<th data-quarto-table-cell-role="th">SF</th>
+<th data-quarto-table-cell-role="th">STL</th>
+<th data-quarto-table-cell-role="th">TB</th>
+<th data-quarto-table-cell-role="th">TEX</th>
+<th data-quarto-table-cell-role="th">TOR</th>
+<th data-quarto-table-cell-role="th">WSH</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">ARI</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">ATL</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">BAL</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">BOS</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">CHC</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">CHW</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">CIN</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">CLE</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">COL</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">DET</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">HOU</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">KC</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">LAA</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">LAD</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">MIA</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">MIL</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">MIN</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">NYM</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">NYY</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">OAK</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">PHI</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">PIT</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">SD</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">SEA</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">SF</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">STL</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">TB</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">TEX</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">TOR</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">WSH</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>We iterate over <code>df21</code>, updating values in <code>dfadj</code> according to the following rules:</p>
+<ul>
+<li>If team in row <img src="https://latex.codecogs.com/png.latex?i"> defeated team in column <img src="https://latex.codecogs.com/png.latex?j">, <img src="https://latex.codecogs.com/png.latex?a_%7Bij%7D"> is incremented by 1.</li>
+<li>If team in row <img src="https://latex.codecogs.com/png.latex?i"> lost to team in column <img src="https://latex.codecogs.com/png.latex?j">, <img src="https://latex.codecogs.com/png.latex?a_%7Bji%7D"> is incremented by 1.</li>
+<li>If the contest resulted in a tie, <img src="https://latex.codecogs.com/png.latex?a_%7Bij%7D"> and <img src="https://latex.codecogs.com/png.latex?a_%7Bji%7D"> are incremented by <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B1%7D%7B2%7D">, but there are no ties in <code>df21</code>.</li>
+</ul>
+<p>A dictionary <code>dresults</code> tracking wins and losses for each team is also created, in order to use regular season winning percentage as a proxy to compare against our direct method rankings.</p>
+<div id="cell-25" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"></span>
+<span id="cb19-2">dresults <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {kk: {<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"wins"</span>: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"losses"</span>: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>} <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> kk <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> dfadj.columns}</span>
+<span id="cb19-3"></span>
+<span id="cb19-4"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> rr <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> df21.itertuples(index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>):</span>
+<span id="cb19-5"></span>
+<span id="cb19-6">    ii, jj, ii_score, jj_score <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rr.away, rr.home, rr.away_score, rr.home_score</span>
+<span id="cb19-7"></span>
+<span id="cb19-8">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> ii_score <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> jj_score:</span>
+<span id="cb19-9">        dfadj.at[ii, jj]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.5</span></span>
+<span id="cb19-10">        dfadj.at[jj, ii]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.5</span></span>
+<span id="cb19-11"></span>
+<span id="cb19-12">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">elif</span> ii_score <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> jj_score:</span>
+<span id="cb19-13">        dfadj.at[ii, jj]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb19-14">        dresults[ii][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"wins"</span>]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb19-15">        dresults[jj][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"losses"</span>]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb19-16"></span>
+<span id="cb19-17">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span>:</span>
+<span id="cb19-18">        dfadj.at[jj, ii]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb19-19">        dresults[jj][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"wins"</span>]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb19-20">        dresults[ii][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"losses"</span>]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb19-21"></span>
+<span id="cb19-22">dfadj</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">ARI</th>
+<th data-quarto-table-cell-role="th">ATL</th>
+<th data-quarto-table-cell-role="th">BAL</th>
+<th data-quarto-table-cell-role="th">BOS</th>
+<th data-quarto-table-cell-role="th">CHC</th>
+<th data-quarto-table-cell-role="th">CHW</th>
+<th data-quarto-table-cell-role="th">CIN</th>
+<th data-quarto-table-cell-role="th">CLE</th>
+<th data-quarto-table-cell-role="th">COL</th>
+<th data-quarto-table-cell-role="th">DET</th>
+<th data-quarto-table-cell-role="th">HOU</th>
+<th data-quarto-table-cell-role="th">KC</th>
+<th data-quarto-table-cell-role="th">LAA</th>
+<th data-quarto-table-cell-role="th">LAD</th>
+<th data-quarto-table-cell-role="th">MIA</th>
+<th data-quarto-table-cell-role="th">MIL</th>
+<th data-quarto-table-cell-role="th">MIN</th>
+<th data-quarto-table-cell-role="th">NYM</th>
+<th data-quarto-table-cell-role="th">NYY</th>
+<th data-quarto-table-cell-role="th">OAK</th>
+<th data-quarto-table-cell-role="th">PHI</th>
+<th data-quarto-table-cell-role="th">PIT</th>
+<th data-quarto-table-cell-role="th">SD</th>
+<th data-quarto-table-cell-role="th">SEA</th>
+<th data-quarto-table-cell-role="th">SF</th>
+<th data-quarto-table-cell-role="th">STL</th>
+<th data-quarto-table-cell-role="th">TB</th>
+<th data-quarto-table-cell-role="th">TEX</th>
+<th data-quarto-table-cell-role="th">TOR</th>
+<th data-quarto-table-cell-role="th">WSH</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">ARI</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>9</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>2</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>4</td>
+<td>8</td>
+<td>2</td>
+<td>2</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>3</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">ATL</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+<td>5</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>11</td>
+<td>3</td>
+<td>0</td>
+<td>9</td>
+<td>1</td>
+<td>0</td>
+<td>10</td>
+<td>4</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>5</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">BAL</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>8</td>
+<td>3</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>4</td>
+<td>5</td>
+<td>3</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">BOS</td>
+<td>0</td>
+<td>3</td>
+<td>13</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>2</td>
+<td>5</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>4</td>
+<td>10</td>
+<td>3</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>8</td>
+<td>2</td>
+<td>8</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">CHC</td>
+<td>4</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>8</td>
+<td>1</td>
+<td>2</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>4</td>
+<td>2</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>14</td>
+<td>5</td>
+<td>0</td>
+<td>1</td>
+<td>9</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">CHW</td>
+<td>0</td>
+<td>0</td>
+<td>5</td>
+<td>2</td>
+<td>5</td>
+<td>0</td>
+<td>3</td>
+<td>9</td>
+<td>0</td>
+<td>9</td>
+<td>2</td>
+<td>8</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>12</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>3</td>
+<td>5</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">CIN</td>
+<td>1</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>11</td>
+<td>1</td>
+<td>0</td>
+<td>3</td>
+<td>5</td>
+<td>1</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>5</td>
+<td>9</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>12</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>9</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>5</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">CLE</td>
+<td>0</td>
+<td>0</td>
+<td>5</td>
+<td>2</td>
+<td>3</td>
+<td>7</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>12</td>
+<td>1</td>
+<td>13</td>
+<td>5</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>7</td>
+<td>0</td>
+<td>3</td>
+<td>2</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>1</td>
+<td>4</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">COL</td>
+<td>10</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>1</td>
+<td>6</td>
+<td>4</td>
+<td>2</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>5</td>
+<td>4</td>
+<td>10</td>
+<td>2</td>
+<td>3</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>4</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">DET</td>
+<td>0</td>
+<td>0</td>
+<td>5</td>
+<td>3</td>
+<td>1</td>
+<td>7</td>
+<td>2</td>
+<td>5</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>8</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>6</td>
+<td>0</td>
+<td>3</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+<td>3</td>
+<td>4</td>
+<td>6</td>
+<td>3</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">HOU</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>5</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+<td>6</td>
+<td>2</td>
+<td>1</td>
+<td>0</td>
+<td>3</td>
+<td>13</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>11</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>11</td>
+<td>1</td>
+<td>0</td>
+<td>4</td>
+<td>14</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">KC</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>2</td>
+<td>3</td>
+<td>9</td>
+<td>1</td>
+<td>3</td>
+<td>0</td>
+<td>11</td>
+<td>4</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>10</td>
+<td>0</td>
+<td>2</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>2</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">LAA</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>3</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>6</td>
+<td>6</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>4</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>8</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>11</td>
+<td>3</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">LAD</td>
+<td>16</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>13</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>4</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>2</td>
+<td>4</td>
+<td>6</td>
+<td>12</td>
+<td>3</td>
+<td>9</td>
+<td>4</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>7</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">MIA</td>
+<td>5</td>
+<td>8</td>
+<td>2</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>9</td>
+<td>0</td>
+<td>0</td>
+<td>9</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>8</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">MIL</td>
+<td>6</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>13</td>
+<td>2</td>
+<td>10</td>
+<td>3</td>
+<td>5</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>13</td>
+<td>5</td>
+<td>0</td>
+<td>4</td>
+<td>8</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">MIN</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>2</td>
+<td>2</td>
+<td>5</td>
+<td>2</td>
+<td>10</td>
+<td>0</td>
+<td>10</td>
+<td>4</td>
+<td>9</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>1</td>
+<td>3</td>
+<td>4</td>
+<td>3</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">NYM</td>
+<td>5</td>
+<td>7</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>9</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>6</td>
+<td>2</td>
+<td>4</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>8</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">NYY</td>
+<td>0</td>
+<td>3</td>
+<td>11</td>
+<td>7</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>4</td>
+<td>4</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>5</td>
+<td>1</td>
+<td>0</td>
+<td>4</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+<td>0</td>
+<td>8</td>
+<td>6</td>
+<td>7</td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">OAK</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>2</td>
+<td>6</td>
+<td>8</td>
+<td>5</td>
+<td>15</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>4</td>
+<td>2</td>
+<td>0</td>
+<td>4</td>
+<td>10</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">PHI</td>
+<td>3</td>
+<td>9</td>
+<td>2</td>
+<td>3</td>
+<td>5</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>9</td>
+<td>5</td>
+<td>0</td>
+<td>9</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>4</td>
+<td>0</td>
+<td>2</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>12</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">PIT</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>5</td>
+<td>1</td>
+<td>6</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>5</td>
+<td>4</td>
+<td>2</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>7</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">SD</td>
+<td>11</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>7</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>2</td>
+<td>7</td>
+<td>4</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>2</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>8</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>5</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">SEA</td>
+<td>4</td>
+<td>0</td>
+<td>1</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>4</td>
+<td>2</td>
+<td>1</td>
+<td>8</td>
+<td>3</td>
+<td>11</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>2</td>
+<td>15</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>6</td>
+<td>13</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">SF</td>
+<td>17</td>
+<td>3</td>
+<td>0</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>6</td>
+<td>0</td>
+<td>14</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>10</td>
+<td>4</td>
+<td>3</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+<td>4</td>
+<td>4</td>
+<td>3</td>
+<td>11</td>
+<td>1</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">STL</td>
+<td>6</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>8</td>
+<td>1</td>
+<td>8</td>
+<td>2</td>
+<td>4</td>
+<td>1</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+<td>3</td>
+<td>6</td>
+<td>11</td>
+<td>2</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>12</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">TB</td>
+<td>0</td>
+<td>2</td>
+<td>18</td>
+<td>11</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>2</td>
+<td>4</td>
+<td>6</td>
+<td>0</td>
+<td>5</td>
+<td>0</td>
+<td>3</td>
+<td>3</td>
+<td>11</td>
+<td>3</td>
+<td>4</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>11</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">TEX</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>4</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>2</td>
+<td>2</td>
+<td>1</td>
+<td>5</td>
+<td>4</td>
+<td>8</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>9</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>6</td>
+<td>1</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">TOR</td>
+<td>0</td>
+<td>6</td>
+<td>12</td>
+<td>7</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>3</td>
+<td>2</td>
+<td>3</td>
+<td>2</td>
+<td>0</td>
+<td>4</td>
+<td>0</td>
+<td>4</td>
+<td>1</td>
+<td>10</td>
+<td>5</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>8</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">WSH</td>
+<td>4</td>
+<td>5</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+<td>2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>11</td>
+<td>1</td>
+<td>0</td>
+<td>6</td>
+<td>1</td>
+<td>0</td>
+<td>5</td>
+<td>4</td>
+<td>3</td>
+<td>0</td>
+<td>1</td>
+<td>4</td>
+<td>3</td>
+<td>0</td>
+<td>3</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Convert <code>dresults</code> into a DataFrame and add win_pct column:</p>
+<div id="cell-27" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"></span>
+<span id="cb20-2">dfresults <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb20-3">    pd.DataFrame().from_dict(dresults, orient<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"index"</span>)</span>
+<span id="cb20-4">    .reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>, names<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"team"</span>)</span>
+<span id="cb20-5">)</span>
+<span id="cb20-6"></span>
+<span id="cb20-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute winning percentage. </span></span>
+<span id="cb20-8">dfresults[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"win_pct"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dfresults[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"wins"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (dfresults[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"wins"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> dfresults[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"losses"</span>])</span>
+<span id="cb20-9"></span>
+<span id="cb20-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Sort values by win_pct. </span></span>
+<span id="cb20-11">dfresults <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb20-12">    dfresults.sort_values(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"win_pct"</span>, ascending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb20-13">    .reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb20-14">)</span>
+<span id="cb20-15"></span>
+<span id="cb20-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Add win_pct rank column.</span></span>
+<span id="cb20-17">dfresults[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank0"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dfresults.index <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb20-18"></span>
+<span id="cb20-19">dfresults.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">30</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">team</th>
+<th data-quarto-table-cell-role="th">wins</th>
+<th data-quarto-table-cell-role="th">losses</th>
+<th data-quarto-table-cell-role="th">win_pct</th>
+<th data-quarto-table-cell-role="th">rank0</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>SF</td>
+<td>105</td>
+<td>53</td>
+<td>0.664557</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>LAD</td>
+<td>106</td>
+<td>54</td>
+<td>0.662500</td>
+<td>2</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>TB</td>
+<td>98</td>
+<td>62</td>
+<td>0.612500</td>
+<td>3</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>HOU</td>
+<td>94</td>
+<td>66</td>
+<td>0.587500</td>
+<td>4</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>MIL</td>
+<td>89</td>
+<td>65</td>
+<td>0.577922</td>
+<td>5</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>BOS</td>
+<td>86</td>
+<td>64</td>
+<td>0.573333</td>
+<td>6</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>NYY</td>
+<td>86</td>
+<td>67</td>
+<td>0.562092</td>
+<td>7</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>ATL</td>
+<td>84</td>
+<td>66</td>
+<td>0.560000</td>
+<td>8</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>TOR</td>
+<td>82</td>
+<td>65</td>
+<td>0.557823</td>
+<td>9</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>CHW</td>
+<td>82</td>
+<td>66</td>
+<td>0.554054</td>
+<td>10</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>SEA</td>
+<td>88</td>
+<td>71</td>
+<td>0.553459</td>
+<td>11</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>STL</td>
+<td>85</td>
+<td>69</td>
+<td>0.551948</td>
+<td>12</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>OAK</td>
+<td>84</td>
+<td>76</td>
+<td>0.525000</td>
+<td>13</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>PHI</td>
+<td>80</td>
+<td>74</td>
+<td>0.519481</td>
+<td>14</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">14</td>
+<td>CLE</td>
+<td>74</td>
+<td>73</td>
+<td>0.503401</td>
+<td>15</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">15</td>
+<td>CIN</td>
+<td>80</td>
+<td>79</td>
+<td>0.503145</td>
+<td>16</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>SD</td>
+<td>77</td>
+<td>82</td>
+<td>0.484277</td>
+<td>17</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17</td>
+<td>LAA</td>
+<td>75</td>
+<td>82</td>
+<td>0.477707</td>
+<td>18</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">18</td>
+<td>DET</td>
+<td>71</td>
+<td>79</td>
+<td>0.473333</td>
+<td>19</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">19</td>
+<td>COL</td>
+<td>70</td>
+<td>79</td>
+<td>0.469799</td>
+<td>20</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">20</td>
+<td>MIN</td>
+<td>69</td>
+<td>79</td>
+<td>0.466216</td>
+<td>21</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">21</td>
+<td>KC</td>
+<td>70</td>
+<td>85</td>
+<td>0.451613</td>
+<td>22</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22</td>
+<td>NYM</td>
+<td>61</td>
+<td>76</td>
+<td>0.445255</td>
+<td>23</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">23</td>
+<td>CHC</td>
+<td>68</td>
+<td>86</td>
+<td>0.441558</td>
+<td>24</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">24</td>
+<td>MIA</td>
+<td>66</td>
+<td>93</td>
+<td>0.415094</td>
+<td>25</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">25</td>
+<td>WSH</td>
+<td>62</td>
+<td>89</td>
+<td>0.410596</td>
+<td>26</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">26</td>
+<td>TEX</td>
+<td>60</td>
+<td>100</td>
+<td>0.375000</td>
+<td>27</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">27</td>
+<td>PIT</td>
+<td>56</td>
+<td>97</td>
+<td>0.366013</td>
+<td>28</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">28</td>
+<td>BAL</td>
+<td>51</td>
+<td>103</td>
+<td>0.331169</td>
+<td>29</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">29</td>
+<td>ARI</td>
+<td>51</td>
+<td>110</td>
+<td>0.316770</td>
+<td>30</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>rank0 will be used to compare our results against. Let’s visualize the regular season matchup network:</p>
+<div id="cell-29" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb21" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"></span>
+<span id="cb21-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> nx</span>
+<span id="cb21-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb21-4"></span>
+<span id="cb21-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create adjacency matrix as Numpy array. </span></span>
+<span id="cb21-6">A <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dfadj.values.astype(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>)</span>
+<span id="cb21-7">G <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> nx.from_numpy_array(A)</span>
+<span id="cb21-8"></span>
+<span id="cb21-9">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8.5</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb21-10"></span>
+<span id="cb21-11">ax.set_title(</span>
+<span id="cb21-12">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2021 MLB Regular Season Matchups"</span>, </span>
+<span id="cb21-13">    color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"center"</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"normal"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span></span>
+<span id="cb21-14">)</span>
+<span id="cb21-15">nx.draw_networkx(</span>
+<span id="cb21-16">    G, node_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#32cd32"</span>, node_size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">200</span>, ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, with_labels<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, </span>
+<span id="cb21-17">    edge_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>, width<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.15</span>, pos<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>nx.spring_layout(G, seed<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb21-18">)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/direct-method-eigenrankings/direct-method-eigenrankings_files/figure-html/cell-15-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Next we perform the same steps carried out for the Big 12 analysis:</p>
+<div id="cell-31" class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb22" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"></span>
+<span id="cb22-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> numpy.linalg <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> eig</span>
+<span id="cb22-3"></span>
+<span id="cb22-4"></span>
+<span id="cb22-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Adjacency matrix as Numpy array.</span></span>
+<span id="cb22-6">A <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dfadj.values.astype(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>)</span>
+<span id="cb22-7"></span>
+<span id="cb22-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Perform eigendecomposition of A. </span></span>
+<span id="cb22-9">e_vals, e_vecs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> eig(A)</span>
+<span id="cb22-10"></span>
+<span id="cb22-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Identify index of largest eigenvalue. </span></span>
+<span id="cb22-12">e_val1_indx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.argmax(e_vals)</span>
+<span id="cb22-13"></span>
+<span id="cb22-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Extract real part of eigenvector at index e_val1_indx. </span></span>
+<span id="cb22-15">e_vec1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(e_vecs[:, e_val1_indx])</span>
+<span id="cb22-16"></span>
+<span id="cb22-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get indices associated with each team.</span></span>
+<span id="cb22-18">indices <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.argsort(e_vec1)[::<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb22-19"></span>
+<span id="cb22-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Associate ranks with teams. </span></span>
+<span id="cb22-21">teams <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dfadj.columns</span>
+<span id="cb22-22">ranked_teams <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> teams[indices]</span>
+<span id="cb22-23"></span>
+<span id="cb22-24"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> team <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> ranked_teams:</span>
+<span id="cb22-25">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(team)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>HOU
+TB
+LAD
+SF
+SEA
+NYY
+OAK
+BOS
+TOR
+CHW
+MIL
+LAA
+STL
+SD
+DET
+CLE
+ATL
+KC
+CIN
+MIN
+PHI
+COL
+TEX
+CHC
+MIA
+WSH
+BAL
+NYM
+PIT
+ARI</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Again comparing actual vs.&nbsp;predicted ranks, using regular season winning percentage as a proxy for actual rank:</p>
+<div id="cell-33" class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb24" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"></span>
+<span id="cb24-2"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> jj, team <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(ranked_teams, start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>):</span>
+<span id="cb24-3">    actual_rank <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dfresults[dfresults.team<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span>team][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank0"</span>].item()</span>
+<span id="cb24-4">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>team<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">: actual/predicted : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>actual_rank<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>jj<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>HOU: actual/predicted : 4/1
+TB: actual/predicted : 3/2
+LAD: actual/predicted : 2/3
+SF: actual/predicted : 1/4
+SEA: actual/predicted : 11/5
+NYY: actual/predicted : 7/6
+OAK: actual/predicted : 13/7
+BOS: actual/predicted : 6/8
+TOR: actual/predicted : 9/9
+CHW: actual/predicted : 10/10
+MIL: actual/predicted : 5/11
+LAA: actual/predicted : 18/12
+STL: actual/predicted : 12/13
+SD: actual/predicted : 17/14
+DET: actual/predicted : 19/15
+CLE: actual/predicted : 15/16
+ATL: actual/predicted : 8/17
+KC: actual/predicted : 22/18
+CIN: actual/predicted : 16/19
+MIN: actual/predicted : 21/20
+PHI: actual/predicted : 14/21
+COL: actual/predicted : 20/22
+TEX: actual/predicted : 27/23
+CHC: actual/predicted : 24/24
+MIA: actual/predicted : 25/25
+WSH: actual/predicted : 26/26
+BAL: actual/predicted : 29/27
+NYM: actual/predicted : 23/28
+PIT: actual/predicted : 28/29
+ARI: actual/predicted : 30/30</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>The Houston Astros are considered the best team based on the direct method, which is encouraging as they ultimately reached the 2021 World Series. One of the biggest discrepancies is with the Atlanta Braves, who were 8th in terms of regular season winning percentage but 17th in terms of the direct method. They went on to win the 2021 World Series. Nonetheless, the modeled ranking are reasonable, and it is clear that the direct might be able to provide further insight into how teams rank looking beyond winning percentage.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Machine Learning</category>
+  <category>Python</category>
+  <guid>https://www.jtrive.com/posts/direct-method-eigenrankings/direct-method-eigenrankings.html</guid>
+  <pubDate>Fri, 04 Oct 2024 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Techniques for Convolutional Neural Network Interpretability</title>
   <link>https://www.jtrive.com/posts/cnn-interpretability/cnn-interpretability.html</link>
@@ -20174,378 +24476,6 @@ fitdistrplus estimate: 5.356176   9278.52939
   <category>R</category>
   <guid>https://www.jtrive.com/posts/lle-optim-r/lle-optim-r.html</guid>
   <pubDate>Wed, 21 Feb 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>A PDF Harvester in 25 Lines of Python</title>
-  <link>https://www.jtrive.com/posts/pdf-harvester-python/pdf-harvester-python.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>The goal of this article is to develop a utility that handles the following:</p>
-<ol type="1">
-<li>Retrieve HTML from a webpage.<br>
-</li>
-<li>Parse the HTML and extract all references to embedded PDF links.<br>
-</li>
-<li>For each PDF link, download the document and save it locally.</li>
-</ol>
-<p>Plenty of 3rd-party libraries can query and retrieve a webpage’s links. However, the purpose of this post is to highlight the fact that by combining elements of the Python Standard Library with the Requests package, we can roll our own, and learn something while we’re at it.</p>
-<section id="step-i-acquire-html" class="level3">
-<h3 class="anchored" data-anchor-id="step-i-acquire-html">Step I: Acquire HTML</h3>
-<p>This is straightforward using requests. Let’s query the Singular Value Decomposition page on Wikipedia:</p>
-<div id="cell-3" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> requests</span>
-<span id="cb1-2"></span>
-<span id="cb1-3">url <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"https://en.wikipedia.org/wiki/Singular_value_decomposition"</span></span>
-<span id="cb1-4"></span>
-<span id="cb1-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># instruct requests object to return HTML as plain text.</span></span>
-<span id="cb1-6">html <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> requests.get(url).text</span>
-<span id="cb1-7"></span>
-<span id="cb1-8">html[:<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">50</span>]</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="6">
-<pre><code>'&lt;!DOCTYPE html&gt;\n&lt;html class="client-nojs vector-fe'</code></pre>
-</div>
-</div>
-<p>The HTML has been obtained. Next we’ll identify and extract references to all embedded PDF links.</p>
-</section>
-<section id="step-ii-extract-pdf-urls-from-html" class="level3">
-<h3 class="anchored" data-anchor-id="step-ii-extract-pdf-urls-from-html">Step II: Extract PDF URLs from HTML</h3>
-<p>A cursory review of the HTML from webpages with embedded PDF links revealed the following:</p>
-<ul>
-<li>Valid PDF URLs will in almost always be embedded within an <code>href</code> tag.<br>
-</li>
-<li>Valid PDF URLs will in all cases be preceded by <code>http</code> or <code>https</code>.<br>
-</li>
-<li>Valid PDF URLs will in all cases be enclosed by a trailing <code>&gt;</code>.<br>
-</li>
-<li>Valid PDF URLs cannot contain whitespace.</li>
-</ul>
-<p>After some trial and error, the following regular expression was found to have acceptable performance for our test cases:</p>
-<pre><code>"(?=href=).*(https?://\S+.pdf).*?&gt;"</code></pre>
-<p>An excellent site to practice building and testing regular expressions is <a href="https://pythex.org/">Pythex</a> . The app allows you to construct regular expressions and determine how they match against the target text. I find myself using it on a regular basis.</p>
-<p>Here is the logic associated with steps I and II combined:</p>
-<div id="cell-5" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
-<span id="cb4-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> re</span>
-<span id="cb4-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> requests</span>
-<span id="cb4-4"></span>
-<span id="cb4-5">url <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"https://en.wikipedia.org/wiki/Singular_value_decomposition"</span></span>
-<span id="cb4-6"></span>
-<span id="cb4-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># instruct requests object to return HTML as plain text.</span></span>
-<span id="cb4-8">html <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> requests.get(url).text</span>
-<span id="cb4-9"></span>
-<span id="cb4-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Search html and compile PDF URLs in a list.</span></span>
-<span id="cb4-11">pdf_links <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> re.findall(<span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"(?=href=).*(https?://\S+.pdf).*?&gt;"</span>, html)</span>
-<span id="cb4-12"></span>
-<span id="cb4-13"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> link <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> pdf_links:</span>
-<span id="cb4-14">    <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(link)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>http://www.wou.edu/~beavers/Talks/Willamette1106.pdf
-http://www.alterlab.org/research/highlights/pone.0078913_Highlight.pdf
-http://math.mit.edu/~edelman/publications/distribution_of_a_scaled.pdf
-http://files.grouplens.org/papers/webKDD00.pdf
-https://stanford.edu/~rezab/papers/dimsum.pdf
-http://faculty.missouri.edu/uhlmannj/UC-SIMAX-Final.pdf</code></pre>
-</div>
-</div>
-<p>Note that the regular expression is prepended with an <code>r</code> when passed to <code>re.findall</code>. This instructs Python to interpret what follows as a raw string and to ignore escape sequences.</p>
-<p><code>re.findall</code> returns a list of matches extracted from the source text. In our case, it returns a list of URLs referencing the PDF documents found on the page.</p>
-<p>For the last step we need to retrieve the documents associated with our collection of links and write them to file locally. We introduce another module from the Python Standard Library, <code>os.path</code>, which facilitates the partitioning of absolute filepaths into components in order to retain filenames when saving documents to file.</p>
-<p>For example, consider the following url:</p>
-<pre><code>https://stanford.edu/~rezab/papers/dimsum.pdf</code></pre>
-<p>To capture <em>dimsum.pdf</em>, we pass the absolute URL to <code>os.path.split</code>, which returns a tuple of everything preceding the filename as the first element, along with the filename and extension as the second element:</p>
-<div id="cell-7" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
-<span id="cb7-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> os</span>
-<span id="cb7-3"></span>
-<span id="cb7-4">url <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"https://stanford.edu/~rezab/papers/dimsum.pdf"</span></span>
-<span id="cb7-5">os.path.split(url)</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>('https://stanford.edu/~rezab/papers', 'dimsum.pdf')</code></pre>
-</div>
-</div>
-<p>This will be used to preserve the filename of the documents we save locally.</p>
-</section>
-<section id="step-iii-write-pdfs-to-file" class="level3">
-<h3 class="anchored" data-anchor-id="step-iii-write-pdfs-to-file">Step III: Write PDFs to File</h3>
-<p>This step differs from the initial HTML retrieval in that we need to request the content as bytes, not text. By calling <code>requests.get(url).content</code>, we’re accessing the raw bytes that comprise the PDF, then writing those bytes to file. Here’s the logic for the third and final step:</p>
-<div id="cell-9" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> os</span>
-<span id="cb9-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> re</span>
-<span id="cb9-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> requests</span>
-<span id="cb9-4"></span>
-<span id="cb9-5">url <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"https://en.wikipedia.org/wiki/Singular_value_decomposition"</span></span>
-<span id="cb9-6">html <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> requests.get(url).text</span>
-<span id="cb9-7">pdf_links <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> re.findall(<span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"(?=href=).*(https?://\S+.pdf).*?&gt;"</span>, html)</span>
-<span id="cb9-8"></span>
-<span id="cb9-9"></span>
-<span id="cb9-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Request PDF content and write to file for all entries.</span></span>
-<span id="cb9-11"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> pdf <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> pdf_links:</span>
-<span id="cb9-12"></span>
-<span id="cb9-13">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get filename from url for naming file locally.</span></span>
-<span id="cb9-14">    pdf_name <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> os.path.split(pdf)[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>].strip()</span>
-<span id="cb9-15">    </span>
-<span id="cb9-16">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">try</span>:</span>
-<span id="cb9-17">        r <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> requests.get(pdf).content</span>
-<span id="cb9-18">        <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">with</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">open</span>(pdf_name, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"wb"</span>) <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> f: </span>
-<span id="cb9-19">            f.write(r)</span>
-<span id="cb9-20">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">except</span>:</span>
-<span id="cb9-21">        <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Unable to download </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>pdf_name<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">."</span>)</span>
-<span id="cb9-22">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span>:</span>
-<span id="cb9-23">        <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Saved </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>pdf_name<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">."</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Saved Willamette1106.pdf.
-Saved pone.0078913_Highlight.pdf.
-Saved distribution_of_a_scaled.pdf.
-Saved webKDD00.pdf.
-Saved dimsum.pdf.
-Unable to download UC-SIMAX-Final.pdf.</code></pre>
-</div>
-</div>
-<p>Notice that we surround <code>with open(pdfname, "wb")...</code> in a try-except block: This handles situations that would prevent our code from downloading a document, such as broken redirects or invalid links.</p>
-<p>All-in we end up with 16 lines of code excluding comments. We next present the full implementation of the PDF Harvester after a little reorganization:</p>
-<div id="cell-11" class="cell">
-<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"></span>
-<span id="cb11-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> os.path</span>
-<span id="cb11-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> re</span>
-<span id="cb11-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> requests</span>
-<span id="cb11-5"></span>
-<span id="cb11-6"></span>
-<span id="cb11-7"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> pdf_harvester(url):</span>
-<span id="cb11-8">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb11-9"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Retrieve URLs html and extract references to PDFs. Download PDFs, </span></span>
-<span id="cb11-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    writing to current working directory. </span></span>
-<span id="cb11-11"></span>
-<span id="cb11-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Parameters</span></span>
-<span id="cb11-13"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    ----------</span></span>
-<span id="cb11-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    url: str</span></span>
-<span id="cb11-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Web address to serach for PDF links.</span></span>
-<span id="cb11-16"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb11-17">    html <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> requests.get(url).text</span>
-<span id="cb11-18">    pdf_links <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> re.findall(<span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"(?=href=).*(https?://\S+.pdf).*?&gt;"</span>, html)</span>
-<span id="cb11-19"></span>
-<span id="cb11-20">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> pdf <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> pdf_links:</span>
-<span id="cb11-21">        </span>
-<span id="cb11-22">        <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get filename from url for naming file locally.</span></span>
-<span id="cb11-23">        pdf_name <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> os.path.split(pdf)[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>].strip()</span>
-<span id="cb11-24"></span>
-<span id="cb11-25">        <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">try</span>:</span>
-<span id="cb11-26">            r <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> requests.get(pdf).content</span>
-<span id="cb11-27">            <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">with</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">open</span>(pdf_name, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"wb"</span>) <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> f: </span>
-<span id="cb11-28">                f.write(r)</span>
-<span id="cb11-29">        <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">except</span>:</span>
-<span id="cb11-30">            <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Unable to download </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>pdf_name<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">."</span>)</span>
-<span id="cb11-31">        <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span>:</span>
-<span id="cb11-32">            <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Saved </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>pdf_name<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">."</span>)</span></code></pre></div>
-</div>
-
-
-</section>
-
- ]]></description>
-  <category>Python</category>
-  <guid>https://www.jtrive.com/posts/pdf-harvester-python/pdf-harvester-python.html</guid>
-  <pubDate>Tue, 20 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
