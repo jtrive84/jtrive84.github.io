@@ -10,7 +10,906 @@
 <atom:link href="https://www.jtrive.com/index-python.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Fri, 04 Oct 2024 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Mon, 14 Oct 2024 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Determining Distance to Coastline for Policy Locations Using GeoPandas</title>
+  <link>https://www.jtrive.com/posts/distance-to-coastline/distance-to-coastline.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Knowing the distance to coastline for an exposure is crucial for insurance rating applications because it helps insurers assess the risk of hazards like hurricanes, storm surges, and flooding, which are much more prevalent in coastal areas. This information allows insurers to make informed decisions about pricing, underwriting and reinsurance. Properties closer to the coast are generally at higher risk, leading to higher premiums for these properties. Insurance rating plans may use distance to coastline directly as an explanatory variable, with factors inversely proportional to distance to coastline.</p>
+<p>This article walks through how GeoPandas can be used to calculate distance to coastline for a collection of simulated latitude-longitude pairs in the Florida region, and how these exposure locations can be assigned to different risk levels based on the distance calculation.</p>
+<p><br></p>
+<section id="coastal-shapefiles" class="level3">
+<h3 class="anchored" data-anchor-id="coastal-shapefiles">Coastal Shapefiles</h3>
+<p>The United States Census Bureau provides shapefiles for state, county and ZCTA boundaries as well as roads, rails an coastlines (see full list <a href="https://www2.census.gov/geo/tiger/TIGER2024/2024_TL_Shapefiles_File_Name_Definitions.pdf">here</a>). Shapefiles are a widely-used geospatial vector data format that store the geometric location and attribute information of geographic features, which can be represented as points, lines, or polygons.</p>
+<p>We being by downloading the COASTLINE zip archive available on the Census Bureau’s <a href="https://www2.census.gov/geo/tiger/TIGER2024/COASTLINE/">FTP site</a>. The COASTLINE shapefile is loaded into GeoPandas (the STATE shapefile is also loaded for later use). We limit our analysis to the continental United States and filter out the Great Lakes. Inspecting the first few records:</p>
+<div id="cell-2" class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> geopandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> gpd</span>
+<span id="cb1-5"></span>
+<span id="cb1-6">np.set_printoptions(suppress<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, precision<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb1-7">pd.options.mode.chained_assignment <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb1-8">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.max_columns'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-9">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.width'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-10"></span>
+<span id="cb1-11"></span>
+<span id="cb1-12">coastline_shp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tl_2024_us_coastline.zip"</span></span>
+<span id="cb1-13">us_shp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tl_2024_us_state.zip"</span></span>
+<span id="cb1-14"></span>
+<span id="cb1-15"></span>
+<span id="cb1-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Bounding box of lower 48 states. Remove Great Lakes.</span></span>
+<span id="cb1-17">xmin, ymin, xmax, ymax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">125</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">24.6</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">65</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span></span>
+<span id="cb1-18">coast <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gpd.read_file(coastline_shp)</span>
+<span id="cb1-19">coast <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> coast.cx[xmin:xmax, ymin:ymax]</span>
+<span id="cb1-20">coast <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> coast[coast.NAME<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Great Lakes"</span>].reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-21"></span>
+<span id="cb1-22"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># State boundaries.</span></span>
+<span id="cb1-23">states <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gpd.read_file(us_shp)[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"geometry"</span>]]</span>
+<span id="cb1-24">states <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> states.cx[xmin:xmax, ymin:ymax].reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-25"></span>
+<span id="cb1-26"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"coast.shape : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>coast<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-27"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"states.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>states<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-28"></span>
+<span id="cb1-29">coast.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span></code></pre></div>
+</div>
+<p><br></p>
+<p>The coastline shapefile is comprised of ~3,000 LINESTRING objects. Let’s get a count of geometries by NAME:</p>
+<div id="cell-4" class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2">coast[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>].value_counts().sort_index()</span></code></pre></div>
+</div>
+<p><br></p>
+<p><br></p>
+<p>We can visualize the coastline by calling the <code>coast</code> GeoDataFrame’s <code>plot</code> method:</p>
+<div id="cell-7" class="cell">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb3-3"></span>
+<span id="cb3-4">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb3-5">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Lower 48 Coastline"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb3-6">coast.plot(ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.0</span>)</span>
+<span id="cb3-7">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb3-8">plt.show()</span></code></pre></div>
+</div>
+<p><br></p>
+<p>To overlay the coastline along with state boundaries, download the STATE shapefile from the Census Bureau’s FTP site and plot them together:</p>
+<div id="cell-9" class="cell">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb4-3">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Lower 48 States with Coastline"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb4-4">coast.plot(ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.50</span>, linestyle<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"--"</span>)</span>
+<span id="cb4-5">states.boundary.plot(ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"black"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.50</span>)</span>
+<span id="cb4-6">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb4-7">plt.show()</span></code></pre></div>
+</div>
+<p><br></p>
+<p>Let’s next generate synthetic latitude-longitude pairs from within the Florida bounding envelope. The envelope bounds can be obtained from Florida’s geometry as follows:</p>
+<div id="cell-11" class="cell">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
+<span id="cb5-2"></span>
+<span id="cb5-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get bounding box for each state.</span></span>
+<span id="cb5-4">states[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bbox"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> states.geometry.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">map</span>(<span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">lambda</span> gg: gg.envelope.bounds)</span>
+<span id="cb5-5"></span>
+<span id="cb5-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Put coordinates in separate columns.</span></span>
+<span id="cb5-7">states[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lon0"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lat0"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lon1"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lat1"</span>]] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(states.bbox.tolist(), index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>states.index)</span>
+<span id="cb5-8"></span>
+<span id="cb5-9">states.head()</span></code></pre></div>
+</div>
+<p><br></p>
+<p>Let’s draw the bounding region using folium:</p>
+<div id="cell-13" class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> folium </span>
+<span id="cb6-3"></span>
+<span id="cb6-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Florida bounding box. </span></span>
+<span id="cb6-5">lon0, lat0, lon1, lat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> states[states.NAME<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Florida"</span>].bbox.item()</span>
+<span id="cb6-6"></span>
+<span id="cb6-7">mlat, mlon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (lat0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> lat1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, (lon0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> lon1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb6-8"></span>
+<span id="cb6-9">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> folium.Map(</span>
+<span id="cb6-10">    location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[mlat, mlon], </span>
+<span id="cb6-11">    zoom_start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>, </span>
+<span id="cb6-12">    zoom_control<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, </span>
+<span id="cb6-13">    no_touch<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb6-14">    tiles<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OpenStreetMap"</span></span>
+<span id="cb6-15">    )</span>
+<span id="cb6-16"></span>
+<span id="cb6-17">folium.Rectangle(</span>
+<span id="cb6-18">    [(lat0, lon0), (lat1, lon1)], </span>
+<span id="cb6-19">    fill_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>, fill_opacity<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.05</span></span>
+<span id="cb6-20">    ).add_to(m)</span>
+<span id="cb6-21"></span>
+<span id="cb6-22">m</span></code></pre></div>
+</div>
+<p><br></p>
+<p>Sampling from the bounding region highlighted above will result in many points in the Gulf. Let’s narrow the sampling space:</p>
+<div id="cell-15" class="cell">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2">lon0, lat0, lon1, lat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">80.5</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">26</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">81.75</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span>)</span>
+<span id="cb7-3"></span>
+<span id="cb7-4">mlat, mlon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (lat0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> lat1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, (lon0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> lon1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb7-5"></span>
+<span id="cb7-6">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> folium.Map(</span>
+<span id="cb7-7">    location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[mlat, mlon], </span>
+<span id="cb7-8">    zoom_start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>, </span>
+<span id="cb7-9">    zoom_control<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, </span>
+<span id="cb7-10">    no_touch<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb7-11">    tiles<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OpenStreetMap"</span></span>
+<span id="cb7-12">    )</span>
+<span id="cb7-13"></span>
+<span id="cb7-14">folium.Rectangle(</span>
+<span id="cb7-15">    [(lat0, lon0), (lat1, lon1)], </span>
+<span id="cb7-16">    fill_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>, fill_opacity<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.05</span></span>
+<span id="cb7-17">    ).add_to(m)</span>
+<span id="cb7-18"></span>
+<span id="cb7-19">m</span></code></pre></div>
+</div>
+<div id="cell-16" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"></span>
+<span id="cb8-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Sample within bounds defined by lat0, lon0, lat1, lon1. </span></span>
+<span id="cb8-3"></span>
+<span id="cb8-4">nbr_locations <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span></span>
+<span id="cb8-5"></span>
+<span id="cb8-6">rng <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.random.default_rng(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb8-7"></span>
+<span id="cb8-8">rlats <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.uniform(low<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>lat0, high<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>lat1, size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>nbr_locations)</span>
+<span id="cb8-9">rlons <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.uniform(low<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>lon1, high<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>lon0, size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>nbr_locations)</span>
+<span id="cb8-10">points <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(rlats, rlons))</span></code></pre></div>
+</div>
+<p><br></p>
+<p>Visualizing the synthetic locations:</p>
+<div id="cell-18" class="cell">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
+<span id="cb9-2">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> folium.Map(location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[mlat, mlon], zoom_start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>)</span>
+<span id="cb9-3"></span>
+<span id="cb9-4"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> lat, lon <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> points:</span>
+<span id="cb9-5"></span>
+<span id="cb9-6">    folium.CircleMarker(</span>
+<span id="cb9-7">        location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[lat, lon], </span>
+<span id="cb9-8">        radius<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, </span>
+<span id="cb9-9">        color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, </span>
+<span id="cb9-10">        fill_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, </span>
+<span id="cb9-11">        fill<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb9-12">        fill_opacity<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb9-13">        ).add_to(m)</span>
+<span id="cb9-14"></span>
+<span id="cb9-15">m</span></code></pre></div>
+</div>
+<p><br></p>
+<p>Next the <code>points</code> list needs to be represented as a GeoDataFrame, using the generated points as the geometry. We set <code>"crs=EPSG:4326"</code> representing longitude-latitude pairs. A policy_id is included as an identifier for each point.</p>
+<div id="cell-20" class="cell">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
+<span id="cb10-2">dfpoints <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame({</span>
+<span id="cb10-3">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"policy_id"</span>: [<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>(ii).zfill(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(points))],</span>
+<span id="cb10-4">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lat"</span>: rlats, </span>
+<span id="cb10-5">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lon"</span>: rlons, </span>
+<span id="cb10-6">})</span>
+<span id="cb10-7"></span>
+<span id="cb10-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create GeoDataFrame.</span></span>
+<span id="cb10-9">points <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gpd.GeoDataFrame(</span>
+<span id="cb10-10">    dfpoints,</span>
+<span id="cb10-11">    geometry<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>gpd.points_from_xy(dfpoints.lon, dfpoints.lat),</span>
+<span id="cb10-12">    crs<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EPSG:4326"</span></span>
+<span id="cb10-13">)</span>
+<span id="cb10-14"></span>
+<span id="cb10-15">points.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span></code></pre></div>
+</div>
+<p><br></p>
+<p>With both the coastline shapefile and point data represented as GeoDataFrames, we execute the <code>sjoin_nearest</code> spatial join to get the distance from each point to the nearest coastline. First we need to set the crs to a projected coordinate system so the distances are returned in units of meters instead of degrees. Projected coordinate systems use linear units like meters or feet, which makes it easier to perform precise spatial measurements. Here we opt for the Conus Albers equal area conic projection (EPSG:5069).</p>
+<p>In the call to <code>sjoin_nearest</code>, we specify “meters” for the <code>distance_col</code> argument. This column will hold the distance to the coastline for each point in <code>points</code> in units of meters. A miles column is added after the join.</p>
+<div id="cell-22" class="cell">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"></span>
+<span id="cb11-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Convert from GPS to  Conus Albers. </span></span>
+<span id="cb11-3">points <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> points.to_crs(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EPSG:5069"</span>)</span>
+<span id="cb11-4">coast <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> coast.to_crs(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EPSG:5069"</span>)</span>
+<span id="cb11-5"></span>
+<span id="cb11-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Perform spatial join. Covert meters to miles. </span></span>
+<span id="cb11-7">gdf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gpd.sjoin_nearest(points, coast, how<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>, distance_col<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"meters"</span>)</span>
+<span id="cb11-8">gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"meters"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.000621371</span></span>
+<span id="cb11-9"></span>
+<span id="cb11-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get min, max and average distance to coast line.</span></span>
+<span id="cb11-11">min_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.miles.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">min</span>()</span>
+<span id="cb11-12">max_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.miles.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span>()</span>
+<span id="cb11-13">avg_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.miles.mean()</span>
+<span id="cb11-14"></span>
+<span id="cb11-15"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"min. distance to coastline: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>min_dist<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb11-16"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"max. distance to coastline: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>max_dist<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb11-17"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"avg. distance to coastline: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>avg_dist<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+</div>
+<p><br></p>
+</section>
+<section id="rate-group-based-on-distance-to-coastline" class="level3">
+<h3 class="anchored" data-anchor-id="rate-group-based-on-distance-to-coastline">Rate Group Based on Distance to Coastline</h3>
+<p>Let’s imagine a hypothetical rating plan that uses the following distances from the coastline to determine rates:</p>
+<ul>
+<li>0 - 5 miles: very high risk</li>
+<li>5 - 25 miles: high risk</li>
+<li>25 - 50 miles: medium risk</li>
+<li>greater than 50 miles: low risk</li>
+</ul>
+<p><br></p>
+<p>A rolling join via <code>merge_asof</code> can be used to select the last row in the right DataFrame (group thresholds) whose <code>on</code> key is less than or equal to <code>gdf</code>’s key, which will be “miles” in both DataFrames.</p>
+<div id="cell-24" class="cell">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
+<span id="cb12-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create dfgroups DataFrame. </span></span>
+<span id="cb12-3">dfgroups <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame({</span>
+<span id="cb12-4">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"risk"</span>: [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"very high"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"high"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"medium"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"low"</span>],</span>
+<span id="cb12-5">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>: [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">25.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50.</span>]</span>
+<span id="cb12-6">})</span>
+<span id="cb12-7"></span>
+<span id="cb12-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Assign risk group to each policy location.</span></span>
+<span id="cb12-9">gdf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.sort_values(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>, ascending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb12-10">gdf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.merge_asof(gdf, dfgroups, on<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"backward"</span>)</span>
+<span id="cb12-11"></span>
+<span id="cb12-12">gdf.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span></code></pre></div>
+</div>
+<p><br></p>
+<p>Counting the number of policies per risk group:</p>
+<div id="cell-26" class="cell">
+<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"></span>
+<span id="cb13-2">gdf.risk.value_counts().sort_index()</span></code></pre></div>
+</div>
+<p><br></p>
+<p>Finally, we can assign each risk a different color and visualize the resulting risk groups with folium:</p>
+<div id="cell-28" class="cell">
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
+<span id="cb14-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Colors for each group.</span></span>
+<span id="cb14-3">dcolors <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {</span>
+<span id="cb14-4">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"very high"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#f40002"</span>,</span>
+<span id="cb14-5">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"high"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#ff721f"</span>,</span>
+<span id="cb14-6">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"medium"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#fafc15"</span>,</span>
+<span id="cb14-7">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"low"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#268a6d"</span></span>
+<span id="cb14-8">}</span>
+<span id="cb14-9"></span>
+<span id="cb14-10">gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"color"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"risk"</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">map</span>(dcolors)</span>
+<span id="cb14-11"></span>
+<span id="cb14-12">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> folium.Map(location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[mlat, mlon], zoom_start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>)</span>
+<span id="cb14-13"></span>
+<span id="cb14-14"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> tt <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> gdf.itertuples():</span>
+<span id="cb14-15">    lat, lon, color <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tt.lat, tt.lon, tt.color</span>
+<span id="cb14-16">    folium.CircleMarker(</span>
+<span id="cb14-17">        location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[lat, lon],</span>
+<span id="cb14-18">        radius<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6</span>, </span>
+<span id="cb14-19">        color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>color, </span>
+<span id="cb14-20">        fill_color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>color, </span>
+<span id="cb14-21">        fill<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb14-22">        fill_opacity<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb14-23">        ).add_to(m)</span>
+<span id="cb14-24"></span>
+<span id="cb14-25">m</span></code></pre></div>
+</div>
+<p><br></p>
+
+
+</section>
+
+ ]]></description>
+  <category>Python</category>
+  <category>Geospatial</category>
+  <guid>https://www.jtrive.com/posts/distance-to-coastline/distance-to-coastline.html</guid>
+  <pubDate>Mon, 14 Oct 2024 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>A Data-Driven Approach to Ranking Teams in Uneven Paired Competition</title>
   <link>https://www.jtrive.com/posts/direct-method-eigenrankings/direct-method-eigenrankings.html</link>
@@ -4298,6 +5197,17 @@ BAL: actual/predicted : 29/27
 NYM: actual/predicted : 23/28
 PIT: actual/predicted : 28/29
 ARI: actual/predicted : 30/30</code></pre>
+</div>
+<div class="cell-output cell-output-error">
+<div class="ansi-escaped-output">
+<pre><span class="ansi-red-fg ansi-bold">The Kernel crashed while executing code in the current cell or a previous cell. 
+
+</span><span class="ansi-red-fg ansi-bold">Please review the code in the cell(s) to identify a possible cause of the failure. 
+
+</span><span class="ansi-red-fg ansi-bold">Click &lt;a href='https://aka.ms/vscodeJupyterKernelCrash'&gt;here&lt;/a&gt; for more info. 
+
+</span><span class="ansi-red-fg ansi-bold">View Jupyter &lt;a href='command:jupyter.viewOutput'&gt;log&lt;/a&gt; for further details.</span></pre>
+</div>
 </div>
 </div>
 <p><br></p>
@@ -22588,2309 +23498,6 @@ font-style: inherit;">;</span></span></code></pre></div>
   <category>Machine Learning</category>
   <category>Python</category>
   <guid>https://www.jtrive.com/posts/gcn-prop-model/gcn-prop-model.html</guid>
-  <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Bayesian Linear Regression via Gibbs Sampling</title>
-  <link>https://www.jtrive.com/posts/gibbs-sampling-linear-regression/gibbs-sampling-linear-regression.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>Markov Chain Monte Carlo (MCMC) methods can be used to estimate the parameters of linear regression models. In this post, the distributional forms and algorithms associated with two Gibbs sampling approaches are outlined: the full conditionals approach and the composition method.</p>
-<p>The dataset used in what follows is available <a href="https://gist.github.com/jtrive84/96757393423b2599c7d5da361fdf024b/raw/82000835b7c3b70dcf21a9ab43c59db700b78136/Refrigerator.csv">here</a> and represents refrigerator price as a function of a number of features. The objective is to estimate PRICE as a function of ECOST, FSIZE, SHELVES and FEATURES, where:</p>
-<ul>
-<li><strong>PRICE</strong>: Response, cost of refrigerator.<br>
-</li>
-<li><strong>FSIZE</strong>: Size of freezer compartment.<br>
-</li>
-<li><strong>ECOST</strong>: Annual energy cost to operate refrigerator.<br>
-</li>
-<li><strong>SHELVES</strong>: Number of shelves.</li>
-<li><strong>FEATURES</strong>: Number of features.</li>
-</ul>
-<section id="i.-the-full-conditionals-method" class="level3">
-<h3 class="anchored" data-anchor-id="i.-the-full-conditionals-method">I. The Full Conditionals Method</h3>
-<p>First determine the joint kernel, which is the product of the likelihood and all prior distributions. The joint kernel will be proportional to the posterior distribution:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign%7D%0Af(%5Cbeta,%20%5Csigma%5E%7B2%7D%7CX,%20y)%20&amp;%5Cpropto%20f(y%7CX,%20%5Cbeta,%20%5Csigma%5E%7B2%7D)%20%5Ctimes%20f(%5Cbeta)%20%5Ctimes%20f(%5Csigma%5E%7B2%7D).%0A%5Cend%7Balign%7D%0A"></p>
-<p><br></p>
-<p>The likelihood, <img src="https://latex.codecogs.com/png.latex?f(y%7CX,%20%5Cbeta,%20%5Csigma%5E%7B2%7D)">, is given by:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign%7D%0Ay%7CX,%20%5Cbeta,%20%5Csigma%5E%7B2%7D%20&amp;%5Csim%20%5Cmathcal%7BN%7D(X%5Cbeta,%20%5Csigma%5E%7B2%7DI)%5C%5C%0A&amp;=%20%5Cprod_%7Bi=1%7D%5E%7Bn%7D%20f(y_%7Bi%7D%7Cx_%7Bi%7D,%20%5Cbeta,%20%5Csigma%5E%7B2%7D)%20%5C%5C%0A&amp;=%20(2%5Cpi%5Csigma%5E%7B2%7D)%5E%7B-n/2%7D%20%5Cmathrm%7Bexp%7D%5CBig%5C%7B%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)%5E%7B2%7D%5CBig%5C%7D%5C%5C%0A&amp;=%20(2%5Cpi%5Csigma%5E%7B2%7D)%5E%7B-n/2%7D%5Cmathrm%7Bexp%7D%5CBig%5C%7B-%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D(y-X%5Cbeta)%5E%7BT%7D(y-X%5Cbeta)%5CBig%5C%7D%0A%5Cend%7Balign%7D%0A"> <br></p>
-<p>For the parameter vector <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> we assume an improper uniform prior over the real line. For the variance, we assume a uniform prior over the real line for <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Blog%7D(%5Csigma%5E%7B2%7D)">. If we transform the uniform prior on <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Blog%7D(%5Csigma%5E%7B2%7D)"> into a density for <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">, we obtain <img src="https://latex.codecogs.com/png.latex?f(%5Csigma%5E%7B2%7D)%20%5Cpropto%201/%5Csigma%5E%7B2%7D">. This is a common reference prior for the variance used within the context of Bayesian linear regression.</p>
-<p>Since the prior distribution for the parameter vector <img src="https://latex.codecogs.com/png.latex?f(%5Cbeta)"> can be treated as a multiplicative constant which can be ignored, the expression for the posterior reduces to:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign%7D%0Af(%5Cbeta,%20%5Csigma%5E%7B2%7D%7CX,%20y)%20&amp;%5Cpropto%20%5Cfrac%7B1%7D%7B%5Csigma%5E%7B2%7D%7D%20%5Ctimes%20(2%5Cpi%5Csigma%5E%7B2%7D)%5E%7B-n/2%7D%5Cmathrm%7Bexp%7D%5CBig%5C%7B-%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D(y-X%5Cbeta)%5E%7BT%7D(y-X%5Cbeta)%5CBig%5C%7D%5C%5C%0A&amp;%5Cpropto%20(%5Csigma%5E%7B2%7D)%5E%7B-(n/2%20+%201)%7D%5Cmathrm%7Bexp%7D%5CBig%5C%7B-%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D(y-X%5Cbeta)%5E%7BT%7D(y-X%5Cbeta)%5CBig%5C%7D.%5C%5C%0A%5Cend%7Balign%7D%0A"></p>
-<p>Note that posterior distribution is asymptotically equivalent to the expression for the model likelihood.</p>
-<p>Gibbs sampling requires identifying the full conditional distribution for each parameter, holding all other parameters constant. To find the full conditional distribution for <img src="https://latex.codecogs.com/png.latex?%5Cbeta">, select only the terms from the joint kernel that include <img src="https://latex.codecogs.com/png.latex?%5Cbeta">. Doing so results in:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Af(%5Cbeta%7CX,%20y,%20%5Csigma%5E%7B2%7D)%20%5Cpropto%20%5Cmathrm%7Bexp%7D%5CBig%5C%7B-%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D(y-X%5Cbeta)%5E%7BT%7D(y-X%5Cbeta)%5CBig%5C%7D%0A"> <br></p>
-<p>After distributing the transpose, removing multiplicative constants and performing a bit of reorganization, we arrive at:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Af(%5Cbeta%7CX,%20y,%20%5Csigma%5E%7B2%7D)%20%5Cpropto%20%5Cmathrm%7Bexp%7D%5CBig%5C%7B-%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D%5B%5Cbeta%5E%7BT%7DX%5E%7BT%7DX%5Cbeta%20-%202%5Cbeta%5E%7BT%7DX%5E%7BT%7Dy%5D%5CBig%5C%7D.%5C%5C%0A"></p>
-<p>Upon completing the square, we find the distribution for <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> to be normal with mean <img src="https://latex.codecogs.com/png.latex?(X%5E%7BT%7DX)%5E%7B-1%7DX%5E%7BT%7Dy%5Chspace%7B.25em%7D"> and variance <img src="https://latex.codecogs.com/png.latex?%5Chspace%7B.25em%7D%5Csigma%5E%7B2%7D(X%5E%7BT%7DX)%5E%7B-1%7D">.</p>
-<p>For <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">, with <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> assumed fixed, we obtain:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Af(%5Csigma%5E%7B2%7D%7CX,%20y,%20%5Cbeta)%20%5Cpropto%20(%5Csigma%5E%7B2%7D)%5E%7B-(n/2%20+%201)%7D%5Cmathrm%7Bexp%7D%5CBig%5C%7B-%5Cfrac%7B%5Cmathrm%7BSSR%7D%7D%7B2%5Csigma%5E%7B2%7D%7D%5CBig%5C%7D,%0A"></p>
-<p>where <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7BSSR%7D"> represents the sum of squared residuals under the specified value of <img src="https://latex.codecogs.com/png.latex?%5Cbeta">. This is proportional to an inverse gamma distribution with <img src="https://latex.codecogs.com/png.latex?a%20=%20n/2"> and <img src="https://latex.codecogs.com/png.latex?b%20=%20%5Cmathrm%7BSSR%7D/2">.</p>
-<section id="full-conditionals-approach-for-sampling-from-the-posterior-distribution" class="level4">
-<h4 class="anchored" data-anchor-id="full-conditionals-approach-for-sampling-from-the-posterior-distribution">Full Conditionals Approach for Sampling from the Posterior Distribution:</h4>
-<ol type="1">
-<li><p>Establish starting values for <img src="https://latex.codecogs.com/png.latex?%5Cbeta_%7Bp%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">. We use <img src="https://latex.codecogs.com/png.latex?%5Cbeta%5E%7B(0)%7D%20=%20%5Chat%5Cbeta_%7Bols%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Chat%20%5Csigma_%7B0%7D%5E%7B2%7D%20=%20%5Cmathrm%7BSSR%7D%20/%20(n%20-%20p)"></p></li>
-<li><p>Sample <img src="https://latex.codecogs.com/png.latex?%5Cbeta_%7Bp%7D"> from multivariate normal distribution with <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D"> fixed.</p></li>
-<li><p>Sample <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D"> from inverse gamma distribution with <img src="https://latex.codecogs.com/png.latex?%5Cbeta_%7Bp%7D"> fixed.</p></li>
-</ol>
-<p>In the code below, we run the sampler for 10,000 iterations, discarding the first 1,000 samples.</p>
-<div id="cell-2" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">The full conditionals Gibbs sampling method. </span></span>
-<span id="cb1-3"></span>
-<span id="cb1-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    PRICE ~ "ECOST" + "FSIZE" + "SHELVES" + "FEATURES"</span></span>
-<span id="cb1-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-6"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> math <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> sqrt</span>
-<span id="cb1-7"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> mpl</span>
-<span id="cb1-8"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> plt</span>
-<span id="cb1-9"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np </span>
-<span id="cb1-10"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb1-11"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> scipy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> stats</span>
-<span id="cb1-12"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> scipy.linalg <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> cholesky</span>
-<span id="cb1-13"></span>
-<span id="cb1-14">pd.options.mode.chained_assignment <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">None</span></span>
-<span id="cb1-15">pd.set_option(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'display.max_columns'</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1000</span>)</span>
-<span id="cb1-16">pd.set_option(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'display.width'</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10000</span>)</span>
-<span id="cb1-17">np.set_printoptions(suppress<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb1-18"></span>
-<span id="cb1-19"></span>
-<span id="cb1-20">data_url <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"https://gist.github.com/jtrive84/96757393423b2599c7d5da361fdf024b/raw/82000835b7c3b70dcf21a9ab43c59db700b78136/Refrigerator.csv"</span></span>
-<span id="cb1-21"></span>
-<span id="cb1-22">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_csv(data_url)</span>
-<span id="cb1-23"></span>
-<span id="cb1-24">variates <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"ECOST"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"FSIZE"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SHELVES"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"FEATURES"</span>]</span>
-<span id="cb1-25">X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df[variates].values</span>
-<span id="cb1-26">y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"PRICE"</span>].values.reshape(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb1-27">X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.concatenate([np.ones(y.size).reshape(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), X], axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb1-28"></span>
-<span id="cb1-29">n, p <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> X.shape</span>
-<span id="cb1-30">M <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10000</span></span>
-<span id="cb1-31">burnin <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1000</span></span>
-<span id="cb1-32">prng <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.random.RandomState(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">516</span>)</span>
-<span id="cb1-33"></span>
-<span id="cb1-34"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize arrays to hold posterior samples.</span></span>
-<span id="cb1-35">betas, sigma2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros([M, p]), np.ones(M)</span>
-<span id="cb1-36"></span>
-<span id="cb1-37"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize parameter arrays and compute covariance matrix.</span></span>
-<span id="cb1-38">b_ols <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.linalg.inv(X.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> X) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> X.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> y</span>
-<span id="cb1-39">V <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.linalg.inv(X.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> X)</span>
-<span id="cb1-40">sigma2[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> ((y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> b_ols).T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> (y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> b_ols) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> (n <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> p)).item()</span>
-<span id="cb1-41">betas[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, :] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> b_ols.T</span>
-<span id="cb1-42"></span>
-<span id="cb1-43"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Gibbs sampling from full conditionals. At each iteration, p independent </span></span>
-<span id="cb1-44"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># standard normal random variates are sampled, which are transformed into </span></span>
-<span id="cb1-45"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># a draw from a multivariate normal density with mean betas[i, :] and </span></span>
-<span id="cb1-46"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># covariance V. </span></span>
-<span id="cb1-47"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, M):</span>
-<span id="cb1-48">    </span>
-<span id="cb1-49">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Sample from full conditional distribution for betas.</span></span>
-<span id="cb1-50">    betas[ii,:] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> b_ols.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> prng.randn(p).reshape(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> cholesky(sigma2[ii <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> V)</span>
-<span id="cb1-51">    </span>
-<span id="cb1-52">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Sample from full conditional distribution for variance. </span></span>
-<span id="cb1-53">    sigma2[ii] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> stats.invgamma.rvs(</span>
-<span id="cb1-54">        a<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.50</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> n, </span>
-<span id="cb1-55">        scale<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.50</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> ((y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> betas[ii,:].reshape(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)).T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> (y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> betas[ii,:].reshape(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>))).item(),</span>
-<span id="cb1-56">        random_state<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>prng</span>
-<span id="cb1-57">        )</span>
-<span id="cb1-58"></span>
-<span id="cb1-59"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Remove burnin samples.</span></span>
-<span id="cb1-60">betas <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> betas[burnin:,:]</span>
-<span id="cb1-61">sigma2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> sigma2[burnin:]</span></code></pre></div>
-</div>
-<p>Traceplots can be produced to visualize sampling variability across iterations:</p>
-<div id="cell-4" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Combine beta and sigma2 arrays to create traceplots. </span></span>
-<span id="cb2-2">varnames <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"intercept"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> variates <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> [<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"sigma2"</span>]</span>
-<span id="cb2-3">Xall1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.hstack([betas, sigma2.reshape(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)])</span>
-<span id="cb2-4"></span>
-<span id="cb2-5">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(nrows<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, ncols<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb2-6"></span>
-<span id="cb2-7">indices <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)]</span>
-<span id="cb2-8"></span>
-<span id="cb2-9"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> indx, (varname, (ii, jj)) <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">enumerate</span>(<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">zip</span>(varnames, indices)):</span>
-<span id="cb2-10">    </span>
-<span id="cb2-11">    ax[ii, jj].set_title(varname, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"center"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>)</span>
-<span id="cb2-12">    ax[ii, jj].plot(Xall1[:,indx], color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.25</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"-"</span>)</span>
-<span id="cb2-13">    ax[ii, jj].xaxis.set_major_formatter(mpl.ticker.StrMethodFormatter(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{x:,.0f}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>))</span>
-<span id="cb2-14">    ax[ii, jj].set_xlabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb2-15">    ax[ii, jj].set_ylabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb2-16">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb2-17">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb2-18">    ax[ii, jj].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb2-19">    ax[ii, jj].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb2-20">    ax[ii, jj].grid(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)   </span>
-<span id="cb2-21">    ax[ii, jj].set_axisbelow(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb2-22"></span>
-<span id="cb2-23">plt.suptitle(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Traceplots: Full Conditionals Approach"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb2-24">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/gibbs-sampling-linear-regression/gibbs-sampling-linear-regression_files/figure-html/cell-3-output-1.png" class="img-fluid figure-img" alt="Traceplot for each feature in model using full conditionals approach"></p>
-<figcaption>Traceplot for each feature in model using full conditionals approach</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<p>Histograms for each parameter can be generated from the posterior samples:</p>
-<div id="cell-6" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create histograms from posterior samples with overlaid ols estimates.</span></span>
-<span id="cb3-2">hist_color <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#ff7595"</span></span>
-<span id="cb3-3">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(nrows<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, ncols<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb3-4"></span>
-<span id="cb3-5">plt_ols <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.append(b_ols.ravel(), sigma2[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>])</span>
-<span id="cb3-6"></span>
-<span id="cb3-7">indices <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)]</span>
-<span id="cb3-8"></span>
-<span id="cb3-9"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> indx, (varname, (ii, jj)) <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">enumerate</span>(<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">zip</span>(varnames, indices)):</span>
-<span id="cb3-10">    </span>
-<span id="cb3-11">    ax[ii, jj].set_title(varname, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"center"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>)</span>
-<span id="cb3-12">    ax[ii, jj].hist(</span>
-<span id="cb3-13">        Xall1[:,indx], <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">25</span>, density<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>hist_color, </span>
-<span id="cb3-14">        edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#FFFFFF"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.0</span></span>
-<span id="cb3-15">        )</span>
-<span id="cb3-16">    label0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \sigma_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{0}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">^</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{2}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> indx <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \beta_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{OLS}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span> </span>
-<span id="cb3-17">    label1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \sigma_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{MCMC}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">^</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{2}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> indx <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \beta_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{MCMC}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span> </span>
-<span id="cb3-18">    ax[ii,jj].axvline(plt_ols[indx], color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"grey"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.25</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>label0)</span>
-<span id="cb3-19">    ax[ii,jj].axvline(Xall1[:,indx].mean(), color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"blue"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.25</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>label1)</span>
-<span id="cb3-20">    ax[ii, jj].xaxis.set_major_formatter(mpl.ticker.StrMethodFormatter(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{x:,.0f}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>))</span>
-<span id="cb3-21">    ax[ii,jj].set_yticklabels([])</span>
-<span id="cb3-22">    ax[ii, jj].set_xlabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb3-23">    ax[ii, jj].set_ylabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb3-24">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb3-25">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb3-26">    ax[ii, jj].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb3-27">    ax[ii, jj].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb3-28">    ax[ii, jj].grid(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)   </span>
-<span id="cb3-29">    ax[ii, jj].set_axisbelow(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb3-30">    ax[ii,jj].legend(loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"upper right"</span>, fancybox<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, framealpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x-small"</span>)</span>
-<span id="cb3-31"></span>
-<span id="cb3-32">plt.suptitle(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Histograms: Full Conditionals Approach"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb3-33">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/gibbs-sampling-linear-regression/gibbs-sampling-linear-regression_files/figure-html/cell-4-output-1.png" class="img-fluid figure-img" alt="Histogram for each feature using full conditionals approach"></p>
-<figcaption>Histogram for each feature using full conditionals approach</figcaption>
-</figure>
-</div>
-</div>
-</div>
-</section>
-</section>
-<section id="ii.-composition-method" class="level3">
-<h3 class="anchored" data-anchor-id="ii.-composition-method">II. Composition Method</h3>
-<p>The composition method can also be used to generate posterior samples for <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> and <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">. Using this approach, the posterior distribution is decomposed into 1) the conditional distribution for <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> given <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D"> and 2) the marginal distribution for <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Af(%5Cbeta,%20%5Csigma%5E%7B2%7D%7C%20X,%20y)%20%5Cpropto%20f(%5Cbeta%7C%5Csigma%5E%7B2%7D,%20X,%20y)%20%5Ctimes%20f(%5Csigma%5E%7B2%7D%7CX,%20y)%0A"></p>
-<p><img src="https://latex.codecogs.com/png.latex?f(%5Csigma%5E%7B2%7D%7CX,%20y)"> is an inverse gamma distribution with <img src="https://latex.codecogs.com/png.latex?%5Calpha%20=%20(n%20-%20p)%20/%202"> and <img src="https://latex.codecogs.com/png.latex?%5Cbeta%20=%20(n%20-%20p)%20%5Ctimes%20%5Cmathrm%7BSSR%7D%20/%202">, where <img src="https://latex.codecogs.com/png.latex?n"> is the number of observations in the dataset and <img src="https://latex.codecogs.com/png.latex?p"> the number of predictors in <img src="https://latex.codecogs.com/png.latex?X">. <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7BSSR%7D"> represents the sum of squared residuals obtained from the OLS estimate.</p>
-<p>As before, the conditional distribution for <img src="https://latex.codecogs.com/png.latex?%5Cbeta">, <img src="https://latex.codecogs.com/png.latex?f(%5Cbeta%7C%5Csigma%5E%7B2%7D,%20X,%20y)">, is multivariate normal with mean <img src="https://latex.codecogs.com/png.latex?(X%5E%7BT%7DX)%5E%7B-1%7DX%5E%7BT%7Dy"> and variance <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D(X%5E%7BT%7DX)%5E%7B-1%7D">.</p>
-<p>The composition method is faster than the full conditionals method since we can draw all samples from <img src="https://latex.codecogs.com/png.latex?f(%5Csigma%5E%7B2%7D%7CX,%20y)"> upfront.</p>
-<section id="composition-method-approach-for-sampling-from-the-posterior-distribution" class="level4">
-<h4 class="anchored" data-anchor-id="composition-method-approach-for-sampling-from-the-posterior-distribution">Composition Method Approach for Sampling from the Posterior Distribution:</h4>
-<ol type="1">
-<li><p>Compute <img src="https://latex.codecogs.com/png.latex?%5Chat%20%5Cbeta"> via OLS and <img src="https://latex.codecogs.com/png.latex?V%20=%20(X%5E%7BT%7DX)%5E%7B-1%7D">.</p></li>
-<li><p>Compute <img src="https://latex.codecogs.com/png.latex?SSR%20=%20%5Cfrac%7B1%7D%7Bn%20-%20p%7D(y%20-%20X%5Chat%20%5Cbeta)%5E%7BT%7D(y%20-%20X%5Chat%20%5Cbeta)">.</p></li>
-<li><p>Draw <img src="https://latex.codecogs.com/png.latex?m"> samples from <img src="https://latex.codecogs.com/png.latex?IG%5Cbig(%5Cfrac%7Bn%20-%20p%7D%7B2%7D,%20%5Cfrac%7B(n%20-%20p)%20%5Ctimes%20%5Cmathrm%7BSSR%7D%7D%7B2%7D%5Cbig)">.</p></li>
-<li><p>For <img src="https://latex.codecogs.com/png.latex?i%20=%201,%20%5Ccdots,%20m">: Draw <img src="https://latex.codecogs.com/png.latex?%5Cbeta%5E%7B(i)%7D"> from <img src="https://latex.codecogs.com/png.latex?f(%5Cbeta%7C%5Csigma%5E%7B2(i)%7D,%20X,%20y)">: <img src="https://latex.codecogs.com/png.latex?%5Cbeta%5E%7B(i)%7D%20%5Csim%20%5Cmathcal%7BN%7D(%5Chat%20%5Cbeta,%20%5Csigma%5E%7B2(i)%7DV)">.</p></li>
-</ol>
-<div id="cell-8" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb4-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Drawing posterior samples using the composition method.</span></span>
-<span id="cb4-3"></span>
-<span id="cb4-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    PRICE ~ "ECOST" + "FSIZE" + "SHELVES" + "FEATURES"</span></span>
-<span id="cb4-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb4-6"></span>
-<span id="cb4-7">n, p <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> X.shape</span>
-<span id="cb4-8">M <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10000</span></span>
-<span id="cb4-9">burnin <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1000</span></span>
-<span id="cb4-10">prng <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.random.RandomState(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">516</span>)</span>
-<span id="cb4-11"></span>
-<span id="cb4-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize betas to hold posterior samples.</span></span>
-<span id="cb4-13">betas <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros([M, p])</span>
-<span id="cb4-14"></span>
-<span id="cb4-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute OLS estimate, V and SSR. </span></span>
-<span id="cb4-16">b_ols <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.linalg.inv(X.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> X) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> X.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> y</span>
-<span id="cb4-17">V <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.linalg.inv(X.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> X)</span>
-<span id="cb4-18">SSR <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> b_ols).T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> (y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> b_ols) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> (n <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> p)</span>
-<span id="cb4-19"></span>
-<span id="cb4-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Draw M samples from marginal distribution for sigma2.</span></span>
-<span id="cb4-21">sigma2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> stats.invgamma.rvs(a<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.50</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> (n <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> p), scale<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.50</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> (n <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> p) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> SSR, size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>M, random_state<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>prng)</span>
-<span id="cb4-22"></span>
-<span id="cb4-23"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Simulate sequence of beta draws for each value in sigma2.</span></span>
-<span id="cb4-24"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">range</span>(M):</span>
-<span id="cb4-25">    betas[ii,:] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> b_ols.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> prng.randn(p).reshape(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> cholesky(sigma2[ii] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> V)</span>
-<span id="cb4-26"></span></code></pre></div>
-</div>
-<p>As before, we produce traceplots for each variable and <img src="https://latex.codecogs.com/png.latex?sigma%5E2">:</p>
-<div id="cell-10" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1">varnames <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"intercept"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> variates <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> [<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"sigma2"</span>]</span>
-<span id="cb5-2">Xall2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.hstack([betas, sigma2.reshape(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)])</span>
-<span id="cb5-3"></span>
-<span id="cb5-4">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(nrows<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, ncols<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb5-5"></span>
-<span id="cb5-6">indices <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)]</span>
-<span id="cb5-7"></span>
-<span id="cb5-8"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> indx, (varname, (ii, jj)) <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">enumerate</span>(<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">zip</span>(varnames, indices)):</span>
-<span id="cb5-9">    </span>
-<span id="cb5-10">    ax[ii, jj].set_title(varname, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"center"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>)</span>
-<span id="cb5-11">    ax[ii, jj].plot(Xall2[:,indx], color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.25</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"-"</span>)</span>
-<span id="cb5-12">    ax[ii, jj].xaxis.set_major_formatter(mpl.ticker.StrMethodFormatter(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{x:,.0f}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>))</span>
-<span id="cb5-13">    ax[ii, jj].set_xlabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb5-14">    ax[ii, jj].set_ylabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb5-15">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb5-16">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb5-17">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb5-18">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"minor"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb5-19">    ax[ii, jj].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb5-20">    ax[ii, jj].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb5-21">    ax[ii, jj].grid(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)   </span>
-<span id="cb5-22">    ax[ii, jj].set_axisbelow(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb5-23"></span>
-<span id="cb5-24">plt.suptitle(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Traceplots: Composition Method"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb5-25">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/gibbs-sampling-linear-regression/gibbs-sampling-linear-regression_files/figure-html/cell-6-output-1.png" class="img-fluid figure-img" alt="Traceplot for each feature in model using composition method"></p>
-<figcaption>Traceplot for each feature in model using composition method</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<p>As well as histograms:</p>
-<div id="cell-12" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1">hist_color <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#ff7595"</span></span>
-<span id="cb6-2">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(nrows<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, ncols<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb6-3"></span>
-<span id="cb6-4">plt_ols <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.append(b_ols.ravel(), sigma2[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>])</span>
-<span id="cb6-5"></span>
-<span id="cb6-6">indices <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)]</span>
-<span id="cb6-7"></span>
-<span id="cb6-8"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> indx, (varname, (ii, jj)) <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">enumerate</span>(<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">zip</span>(varnames, indices)):</span>
-<span id="cb6-9">    </span>
-<span id="cb6-10">    ax[ii, jj].set_title(varname, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"center"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>)</span>
-<span id="cb6-11">    ax[ii, jj].hist(</span>
-<span id="cb6-12">        Xall2[:,indx], <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">25</span>, density<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>hist_color, </span>
-<span id="cb6-13">        edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#FFFFFF"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.0</span></span>
-<span id="cb6-14">        )</span>
-<span id="cb6-15">    label0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \sigma_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{0}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">^</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{2}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> indx <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \beta_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{OLS}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span> </span>
-<span id="cb6-16">    label1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \sigma_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{MCMC}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">^</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{2}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> indx <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat \beta_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{MCMC}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span> </span>
-<span id="cb6-17">    ax[ii,jj].axvline(plt_ols[indx], color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"grey"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.25</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>label0)</span>
-<span id="cb6-18">    ax[ii,jj].axvline(Xall2[:,indx].mean(), color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"blue"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.25</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>label1)</span>
-<span id="cb6-19">    ax[ii, jj].xaxis.set_major_formatter(mpl.ticker.StrMethodFormatter(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{x:,.0f}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>))</span>
-<span id="cb6-20">    ax[ii,jj].set_yticklabels([])</span>
-<span id="cb6-21">    ax[ii, jj].set_xlabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb6-22">    ax[ii, jj].set_ylabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb6-23">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb6-24">    ax[ii, jj].tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb6-25">    ax[ii, jj].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb6-26">    ax[ii, jj].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb6-27">    ax[ii, jj].grid(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)   </span>
-<span id="cb6-28">    ax[ii, jj].set_axisbelow(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb6-29">    ax[ii,jj].legend(loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"upper right"</span>, fancybox<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, framealpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x-small"</span>)</span>
-<span id="cb6-30"></span>
-<span id="cb6-31">plt.suptitle(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Histograms: Composition Method"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb6-32">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/gibbs-sampling-linear-regression/gibbs-sampling-linear-regression_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img" alt="Histogram for each feature using composition method"></p>
-<figcaption>Histogram for each feature using composition method</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<p>Posterior percentiles from the full conditionals approach and composition method can be compared:</p>
-<div id="cell-14" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb7-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Comparing posterior percentiles for full conditionals and composition approaches.</span></span>
-<span id="cb7-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb7-4"></span>
-<span id="cb7-5">peval <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">25</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">50</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">75</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">95</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">99</span>]</span>
-<span id="cb7-6">pcols <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>ii<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.0f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">%"</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> peval]</span>
-<span id="cb7-7"></span>
-<span id="cb7-8"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> indx, varname <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">enumerate</span>(varnames):</span>
-<span id="cb7-9">    </span>
-<span id="cb7-10">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Determine percentiles generated via full-conditionals.</span></span>
-<span id="cb7-11">    df1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.DataFrame(</span>
-<span id="cb7-12">        np.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">round</span>(np.percentile(Xall1[:, indx], q<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>peval), <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>).reshape(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>,<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), </span>
-<span id="cb7-13">        columns<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>pcols,index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>varname<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">: conditionals"</span>]</span>
-<span id="cb7-14">        )</span>
-<span id="cb7-15">    </span>
-<span id="cb7-16">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Determine percentiles generated via composition method.</span></span>
-<span id="cb7-17">    df2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.DataFrame(</span>
-<span id="cb7-18">        np.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">round</span>(np.percentile(Xall2[:, indx], q<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>peval), <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>).reshape(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>,<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), </span>
-<span id="cb7-19">        columns<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>pcols, index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>varname<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">: composition"</span>]</span>
-<span id="cb7-20">        )</span>
-<span id="cb7-21">    df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.concat([df1, df2])</span>
-<span id="cb7-22">    display(df)</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">1%</th>
-<th data-quarto-table-cell-role="th">5%</th>
-<th data-quarto-table-cell-role="th">25%</th>
-<th data-quarto-table-cell-role="th">50%</th>
-<th data-quarto-table-cell-role="th">75%</th>
-<th data-quarto-table-cell-role="th">95%</th>
-<th data-quarto-table-cell-role="th">99%</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">intercept: conditionals</td>
-<td>-25.01</td>
-<td>51.28</td>
-<td>150.96</td>
-<td>221.28</td>
-<td>289.90</td>
-<td>386.74</td>
-<td>464.17</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">intercept: composition</td>
-<td>-21.44</td>
-<td>50.76</td>
-<td>152.43</td>
-<td>221.71</td>
-<td>288.77</td>
-<td>387.09</td>
-<td>461.41</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">1%</th>
-<th data-quarto-table-cell-role="th">5%</th>
-<th data-quarto-table-cell-role="th">25%</th>
-<th data-quarto-table-cell-role="th">50%</th>
-<th data-quarto-table-cell-role="th">75%</th>
-<th data-quarto-table-cell-role="th">95%</th>
-<th data-quarto-table-cell-role="th">99%</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">ECOST: conditionals</td>
-<td>-10.34</td>
-<td>-8.41</td>
-<td>-5.77</td>
-<td>-4.0</td>
-<td>-2.20</td>
-<td>0.39</td>
-<td>2.62</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">ECOST: composition</td>
-<td>-10.20</td>
-<td>-8.34</td>
-<td>-5.76</td>
-<td>-4.0</td>
-<td>-2.21</td>
-<td>0.38</td>
-<td>2.28</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">1%</th>
-<th data-quarto-table-cell-role="th">5%</th>
-<th data-quarto-table-cell-role="th">25%</th>
-<th data-quarto-table-cell-role="th">50%</th>
-<th data-quarto-table-cell-role="th">75%</th>
-<th data-quarto-table-cell-role="th">95%</th>
-<th data-quarto-table-cell-role="th">99%</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">FSIZE: conditionals</td>
-<td>38.83</td>
-<td>58.12</td>
-<td>85.95</td>
-<td>103.97</td>
-<td>121.74</td>
-<td>148.78</td>
-<td>169.22</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">FSIZE: composition</td>
-<td>39.05</td>
-<td>57.93</td>
-<td>85.41</td>
-<td>103.99</td>
-<td>122.53</td>
-<td>148.96</td>
-<td>168.51</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">1%</th>
-<th data-quarto-table-cell-role="th">5%</th>
-<th data-quarto-table-cell-role="th">25%</th>
-<th data-quarto-table-cell-role="th">50%</th>
-<th data-quarto-table-cell-role="th">75%</th>
-<th data-quarto-table-cell-role="th">95%</th>
-<th data-quarto-table-cell-role="th">99%</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">SHELVES: conditionals</td>
-<td>-2.56</td>
-<td>5.70</td>
-<td>17.33</td>
-<td>25.19</td>
-<td>32.86</td>
-<td>44.09</td>
-<td>52.25</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">SHELVES: composition</td>
-<td>-2.71</td>
-<td>5.68</td>
-<td>17.42</td>
-<td>24.81</td>
-<td>32.72</td>
-<td>44.32</td>
-<td>52.66</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">1%</th>
-<th data-quarto-table-cell-role="th">5%</th>
-<th data-quarto-table-cell-role="th">25%</th>
-<th data-quarto-table-cell-role="th">50%</th>
-<th data-quarto-table-cell-role="th">75%</th>
-<th data-quarto-table-cell-role="th">95%</th>
-<th data-quarto-table-cell-role="th">99%</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">FEATURES: conditionals</td>
-<td>11.87</td>
-<td>15.60</td>
-<td>21.25</td>
-<td>24.87</td>
-<td>28.68</td>
-<td>34.11</td>
-<td>38.15</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">FEATURES: composition</td>
-<td>11.79</td>
-<td>15.68</td>
-<td>21.13</td>
-<td>24.86</td>
-<td>28.46</td>
-<td>33.87</td>
-<td>37.89</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">1%</th>
-<th data-quarto-table-cell-role="th">5%</th>
-<th data-quarto-table-cell-role="th">25%</th>
-<th data-quarto-table-cell-role="th">50%</th>
-<th data-quarto-table-cell-role="th">75%</th>
-<th data-quarto-table-cell-role="th">95%</th>
-<th data-quarto-table-cell-role="th">99%</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">sigma2: conditionals</td>
-<td>3209.36</td>
-<td>3706.92</td>
-<td>4620.93</td>
-<td>5465.36</td>
-<td>6527.58</td>
-<td>8570.83</td>
-<td>10609.79</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">sigma2: composition</td>
-<td>3194.00</td>
-<td>3691.71</td>
-<td>4649.74</td>
-<td>5467.54</td>
-<td>6490.48</td>
-<td>8482.73</td>
-<td>10295.27</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-</section>
-</section>
-<section id="posterior-predictive-samples" class="level3">
-<h3 class="anchored" data-anchor-id="posterior-predictive-samples">Posterior Predictive Samples</h3>
-<p>For a new set of predictors <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BX%7D">, we may be interested in quantifying the variability in the price estimate given our model. This can be accomplished by sampling from the posterior predictive distribution, <img src="https://latex.codecogs.com/png.latex?f(%5Ctilde%7By%7D%7Cy)">. If <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> and <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D"> were known exactly, the distribution for <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7By%7D"> would be completely specified as <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BN%7D(%5Ctilde%7BX%7D%5Cbeta,%20%5Csigma%5E%7B2%7DI)">. But since we have only estimates of <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> and <img src="https://latex.codecogs.com/png.latex?%5Csigma%5E%7B2%7D">, we need to sample from the posterior predictive distribution <img src="https://latex.codecogs.com/png.latex?f(%5Ctilde%7By%7D%7Cy)"> as follows:</p>
-<ol type="1">
-<li>For <img src="https://latex.codecogs.com/png.latex?i%20=%201,%20%5Ccdots,%20n">: Draw <img src="https://latex.codecogs.com/png.latex?(%5Cbeta%5E%7B(i)%7D,%20%5Csigma%5E%7B2(i)%7D)"> from posterior samples.</li>
-<li>Draw <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7By%7D%5E%7B(i)%7D%20%5Csim%20%5Cmathcal%7BN%7D(%5Ctilde%7BX%7D%5Cbeta%5E%7B(i)%7D,%20%5Csigma%5E%7B2%7B(i)%7D%7DI)">.</li>
-</ol>
-<p>The code that follows generates 5000 posterior predictive samples for a new set of predictors.</p>
-<div id="cell-16" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"></span>
-<span id="cb8-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Generating posterior predictive samples for a new set of predictors.</span></span>
-<span id="cb8-3"></span>
-<span id="cb8-4">n <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5000</span></span>
-<span id="cb8-5">Xnew <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">82</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5.1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>]</span>
-<span id="cb8-6"></span>
-<span id="cb8-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Determine which 5000 parameter sets to use for sampling.</span></span>
-<span id="cb8-8">indices <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> prng.choice(<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">range</span>(Xall2.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]), size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>n, replace<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span>)</span>
-<span id="cb8-9">params <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> Xall2[indices,:]</span>
-<span id="cb8-10">samples <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> []</span>
-<span id="cb8-11"></span>
-<span id="cb8-12"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">range</span>(n):</span>
-<span id="cb8-13">    beta, v <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> params[ii, :<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>], params[ii, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>]</span>
-<span id="cb8-14">    mu <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.dot(beta, Xnew)</span>
-<span id="cb8-15">    y_ii <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> prng.normal(loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>mu, scale<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>sqrt(v))</span>
-<span id="cb8-16">    samples.append(y_ii)</span>
-<span id="cb8-17"></span>
-<span id="cb8-18">samples <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.asarray(samples)</span></code></pre></div>
-</div>
-<p>Viewing the histogram of posterior predictive samples:</p>
-<div id="cell-18" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1">hist_color <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#ff7595"</span></span>
-<span id="cb9-2">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(nrows<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, ncols<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb9-3">ax.set_title(</span>
-<span id="cb9-4">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Posterior predictive samples for new predictors"</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span>, loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"center"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span></span>
-<span id="cb9-5">    )</span>
-<span id="cb9-6">ax.hist(</span>
-<span id="cb9-7">    samples, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">30</span>, density<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>hist_color, </span>
-<span id="cb9-8">    edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#FFFFFF"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.0</span></span>
-<span id="cb9-9">    )</span>
-<span id="cb9-10">label0, label1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{y}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{OLS}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span>, <span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">r"$\hat y_</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{MCMC}</span><span class="vs" style="color: #20794D;
-background-color: null;
-font-style: inherit;">$"</span> </span>
-<span id="cb9-11">ax.axvline(np.dot(b_ols.T, Xnew), color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"grey"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.25</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>label0)</span>
-<span id="cb9-12">ax.axvline(samples.mean(), color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"blue"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.25</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>label1)</span>
-<span id="cb9-13">ax.xaxis.set_major_formatter(mpl.ticker.StrMethodFormatter(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{x:,.0f}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>))</span>
-<span id="cb9-14">ax.set_yticklabels([])</span>
-<span id="cb9-15">ax.set_xlabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb9-16">ax.set_ylabel(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>)</span>
-<span id="cb9-17">ax.tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb9-18">ax.tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb9-19">ax.xaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb9-20">ax.yaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb9-21">ax.grid(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)   </span>
-<span id="cb9-22">ax.set_axisbelow(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb9-23">ax.legend(loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"upper right"</span>, fancybox<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, framealpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"small"</span>)</span>
-<span id="cb9-24">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/gibbs-sampling-linear-regression/gibbs-sampling-linear-regression_files/figure-html/cell-10-output-1.png" class="img-fluid figure-img" alt="Histogram of posterior predictive samples"></p>
-<figcaption>Histogram of posterior predictive samples</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<p>Finally, percentiles of the posterior predictive samples:</p>
-<div id="cell-20" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
-<span id="cb10-2">peval <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">25</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">50</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">75</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">95</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">99</span>]</span>
-<span id="cb10-3">pcols <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>ii<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.0f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">%"</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> peval]</span>
-<span id="cb10-4"></span>
-<span id="cb10-5">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.DataFrame(</span>
-<span id="cb10-6">    np.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">round</span>(np.percentile(samples, q<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>peval), <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>).reshape(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>,<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), </span>
-<span id="cb10-7">    columns<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>pcols,index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"posterior predictive samples"</span>]</span>
-<span id="cb10-8">    )</span>
-<span id="cb10-9">df.head(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="10">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">1%</th>
-<th data-quarto-table-cell-role="th">5%</th>
-<th data-quarto-table-cell-role="th">25%</th>
-<th data-quarto-table-cell-role="th">50%</th>
-<th data-quarto-table-cell-role="th">75%</th>
-<th data-quarto-table-cell-role="th">95%</th>
-<th data-quarto-table-cell-role="th">99%</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">posterior predictive samples</td>
-<td>464.64</td>
-<td>530.08</td>
-<td>613.37</td>
-<td>673.32</td>
-<td>731.45</td>
-<td>813.15</td>
-<td>883.41</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-
-
-</section>
-
- ]]></description>
-  <category>Statistical Modeling</category>
-  <category>Python</category>
-  <guid>https://www.jtrive.com/posts/gibbs-sampling-linear-regression/gibbs-sampling-linear-regression.html</guid>
   <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
