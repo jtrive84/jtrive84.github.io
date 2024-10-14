@@ -59,7 +59,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -102,6 +102,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-label": "Search"
   }
 }</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 
 
 <link rel="stylesheet" href="../../styles.css">
@@ -205,7 +208,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="coastal-shapefiles">Coastal Shapefiles</h3>
 <p>The United States Census Bureau provides shapefiles for state, county and ZCTA boundaries as well as roads, rails an coastlines (see full list <a href="https://www2.census.gov/geo/tiger/TIGER2024/2024_TL_Shapefiles_File_Name_Definitions.pdf">here</a>). Shapefiles are a widely-used geospatial vector data format that store the geometric location and attribute information of geographic features, which can be represented as points, lines, or polygons.</p>
 <p>We being by downloading the COASTLINE zip archive available on the Census Bureau’s <a href="https://www2.census.gov/geo/tiger/TIGER2024/COASTLINE/">FTP site</a>. The COASTLINE shapefile is loaded into GeoPandas (the STATE shapefile is also loaded for later use). We limit our analysis to the continental United States and filter out the Great Lakes. Inspecting the first few records:</p>
-<div id="cell-2" class="cell">
+<div id="cell-2" class="cell" data-execution_count="1">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
@@ -235,170 +238,976 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"states.shape: </span><span class="sc">{</span>states<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>coast.head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>coast.shape : (2916, 3)
+states.shape: (49, 2)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="1">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">NAME</th>
+<th data-quarto-table-cell-role="th">MTFCC</th>
+<th data-quarto-table-cell-role="th">geometry</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-80.88368 32.03912, -80.88365 32.0...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-70.66800 41.51199, -70.65663 41.5...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-76.58108 38.09572, -76.58184 38.0...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-73.75518 40.58565, -73.75517 40.5...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-76.15615 38.63324, -76.15070 38.6...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-76.53289 39.20776, -76.53298 39.2...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-73.93653 40.56644, -73.93594 40.5...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-81.10208 29.42706, -81.10215 29.4...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-71.89236 41.32922, -71.89293 41.3...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>LINESTRING (-75.31239 38.94595, -75.31239 38.9...</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
 </div>
 <p><br></p>
 <p>The coastline shapefile is comprised of ~3,000 LINESTRING objects. Let’s get a count of geometries by NAME:</p>
-<div id="cell-4" class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>coast[<span class="st">"NAME"</span>].value_counts().sort_index()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-4" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>coast[<span class="st">"NAME"</span>].value_counts().sort_index()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<pre><code>NAME
+Atlantic     941
+Gulf         647
+Pacific     1328
+Name: count, dtype: int64</code></pre>
+</div>
 </div>
 <p><br></p>
 <p><br></p>
 <p>We can visualize the coastline by calling the <code>coast</code> GeoDataFrame’s <code>plot</code> method:</p>
-<div id="cell-7" class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>), tight_layout<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"Lower 48 Coastline"</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>coast.plot(ax<span class="op">=</span>ax, edgecolor<span class="op">=</span><span class="st">"red"</span>, linewidth<span class="op">=</span><span class="fl">1.0</span>)</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>ax.axis(<span class="st">"off"</span>)</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-7" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>), tight_layout<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"Lower 48 Coastline"</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>coast.plot(ax<span class="op">=</span>ax, edgecolor<span class="op">=</span><span class="st">"red"</span>, linewidth<span class="op">=</span><span class="fl">1.0</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>ax.axis(<span class="st">"off"</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="distance-to-coastline_files/figure-html/cell-4-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
 </div>
 <p><br></p>
 <p>To overlay the coastline along with state boundaries, download the STATE shapefile from the Census Bureau’s FTP site and plot them together:</p>
-<div id="cell-9" class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>), tight_layout<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"Lower 48 States with Coastline"</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>coast.plot(ax<span class="op">=</span>ax, edgecolor<span class="op">=</span><span class="st">"red"</span>, linewidth<span class="op">=</span><span class="fl">1.50</span>, linestyle<span class="op">=</span><span class="st">"--"</span>)</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>states.boundary.plot(ax<span class="op">=</span>ax, edgecolor<span class="op">=</span><span class="st">"black"</span>, linewidth<span class="op">=</span><span class="fl">0.50</span>)</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>ax.axis(<span class="st">"off"</span>)</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-9" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>), tight_layout<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"Lower 48 States with Coastline"</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>coast.plot(ax<span class="op">=</span>ax, edgecolor<span class="op">=</span><span class="st">"red"</span>, linewidth<span class="op">=</span><span class="fl">1.50</span>, linestyle<span class="op">=</span><span class="st">"--"</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>states.boundary.plot(ax<span class="op">=</span>ax, edgecolor<span class="op">=</span><span class="st">"black"</span>, linewidth<span class="op">=</span><span class="fl">0.50</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>ax.axis(<span class="st">"off"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="distance-to-coastline_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
 </div>
 <p><br></p>
 <p>Let’s next generate synthetic latitude-longitude pairs from within the Florida bounding envelope. The envelope bounds can be obtained from Florida’s geometry as follows:</p>
-<div id="cell-11" class="cell">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Get bounding box for each state.</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>states[<span class="st">"bbox"</span>] <span class="op">=</span> states.geometry.<span class="bu">map</span>(<span class="kw">lambda</span> gg: gg.envelope.bounds)</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Put coordinates in separate columns.</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>states[[<span class="st">"lon0"</span>, <span class="st">"lat0"</span>, <span class="st">"lon1"</span>, <span class="st">"lat1"</span>]] <span class="op">=</span> pd.DataFrame(states.bbox.tolist(), index<span class="op">=</span>states.index)</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>states.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-11" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Get bounding box for each state.</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>states[<span class="st">"bbox"</span>] <span class="op">=</span> states.geometry.<span class="bu">map</span>(<span class="kw">lambda</span> gg: gg.envelope.bounds)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Put coordinates in separate columns.</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>states[[<span class="st">"lon0"</span>, <span class="st">"lat0"</span>, <span class="st">"lon1"</span>, <span class="st">"lat1"</span>]] <span class="op">=</span> pd.DataFrame(states.bbox.tolist(), index<span class="op">=</span>states.index)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>states.head()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">NAME</th>
+<th data-quarto-table-cell-role="th">geometry</th>
+<th data-quarto-table-cell-role="th">bbox</th>
+<th data-quarto-table-cell-role="th">lon0</th>
+<th data-quarto-table-cell-role="th">lat0</th>
+<th data-quarto-table-cell-role="th">lon1</th>
+<th data-quarto-table-cell-role="th">lat1</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>West Virginia</td>
+<td>POLYGON ((-77.75438 39.33346, -77.75422 39.333...</td>
+<td>(-82.644591, 37.20154, -77.719519, 40.638801)</td>
+<td>-82.644591</td>
+<td>37.201540</td>
+<td>-77.719519</td>
+<td>40.638801</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Florida</td>
+<td>MULTIPOLYGON (((-83.10874 24.62949, -83.10711 ...</td>
+<td>(-87.634896, 24.396308, -79.974306, 31.000968)</td>
+<td>-87.634896</td>
+<td>24.396308</td>
+<td>-79.974306</td>
+<td>31.000968</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Illinois</td>
+<td>POLYGON ((-87.89243 38.28285, -87.89334 38.282...</td>
+<td>(-91.513079, 36.970298, -87.019935, 42.508481)</td>
+<td>-91.513079</td>
+<td>36.970298</td>
+<td>-87.019935</td>
+<td>42.508481</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>Minnesota</td>
+<td>POLYGON ((-95.31991 48.99892, -95.31778 48.998...</td>
+<td>(-97.239093, 43.499361, -89.483385, 49.384479)</td>
+<td>-97.239093</td>
+<td>43.499361</td>
+<td>-89.483385</td>
+<td>49.384479</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Maryland</td>
+<td>POLYGON ((-75.75600 39.24607, -75.75579 39.243...</td>
+<td>(-79.487651, 37.886605, -74.986282, 39.723037)</td>
+<td>-79.487651</td>
+<td>37.886605</td>
+<td>-74.986282</td>
+<td>39.723037</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
 </div>
 <p><br></p>
 <p>Let’s draw the bounding region using folium:</p>
-<div id="cell-13" class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> folium </span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Florida bounding box. </span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>lon0, lat0, lon1, lat1 <span class="op">=</span> states[states.NAME<span class="op">==</span><span class="st">"Florida"</span>].bbox.item()</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>mlat, mlon <span class="op">=</span> (lat0 <span class="op">+</span> lat1) <span class="op">/</span> <span class="dv">2</span>, (lon0 <span class="op">+</span> lon1) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[mlat, mlon], </span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="dv">6</span>, </span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    zoom_control<span class="op">=</span><span class="va">True</span>, </span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    no_touch<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"OpenStreetMap"</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>folium.Rectangle(</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    [(lat0, lon0), (lat1, lon1)], </span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    fill_color<span class="op">=</span><span class="st">"blue"</span>, fill_opacity<span class="op">=</span><span class="fl">.05</span></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    ).add_to(m)</span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-13" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> folium </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Florida bounding box. </span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>lon0, lat0, lon1, lat1 <span class="op">=</span> states[states.NAME<span class="op">==</span><span class="st">"Florida"</span>].bbox.item()</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>mlat, mlon <span class="op">=</span> (lat0 <span class="op">+</span> lat1) <span class="op">/</span> <span class="dv">2</span>, (lon0 <span class="op">+</span> lon1) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[mlat, mlon], </span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="dv">6</span>, </span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    zoom_control<span class="op">=</span><span class="va">True</span>, </span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    no_touch<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"OpenStreetMap"</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>folium.Rectangle(</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    [(lat0, lon0), (lat1, lon1)], </span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    fill_color<span class="op">=</span><span class="st">"blue"</span>, fill_opacity<span class="op">=</span><span class="fl">.05</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    ).add_to(m)</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
+    
+        <script>
+            L_NO_TOUCH = true;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
+    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
+    
+            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
+            <style>
+                #map_b085548776e6f6d8e2de11ed5f5411e3 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+</head>
+<body>
+    
+    
+            <div class=&quot;folium-map&quot; id=&quot;map_b085548776e6f6d8e2de11ed5f5411e3&quot; ></div>
+        
+</body>
+<script>
+    
+    
+            var map_b085548776e6f6d8e2de11ed5f5411e3 = L.map(
+                &quot;map_b085548776e6f6d8e2de11ed5f5411e3&quot;,
+                {
+                    center: [27.698638000000003, -83.80460099999999],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 6,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_b29acd02bc54b8b41546f18283e121e3 = L.tileLayer(
+                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
+                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
+            );
+        
+    
+            tile_layer_b29acd02bc54b8b41546f18283e121e3.addTo(map_b085548776e6f6d8e2de11ed5f5411e3);
+        
+    
+            var rectangle_f2e7711307b0494239b6457cdced4d14 = L.rectangle(
+                [[24.396308, -87.634896], [31.000968, -79.974306]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;blue&quot;, &quot;fillOpacity&quot;: 0.05, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_b085548776e6f6d8e2de11ed5f5411e3);
+        
+</script>
+</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
+</div>
 </div>
 <p><br></p>
 <p>Sampling from the bounding region highlighted above will result in many points in the Gulf. Let’s narrow the sampling space:</p>
-<div id="cell-15" class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>lon0, lat0, lon1, lat1 <span class="op">=</span> (<span class="op">-</span><span class="fl">80.5</span>, <span class="dv">26</span>, <span class="op">-</span><span class="fl">81.75</span>, <span class="dv">28</span>)</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>mlat, mlon <span class="op">=</span> (lat0 <span class="op">+</span> lat1) <span class="op">/</span> <span class="dv">2</span>, (lon0 <span class="op">+</span> lon1) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[mlat, mlon], </span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="dv">7</span>, </span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    zoom_control<span class="op">=</span><span class="va">True</span>, </span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    no_touch<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"OpenStreetMap"</span></span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>folium.Rectangle(</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    [(lat0, lon0), (lat1, lon1)], </span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    fill_color<span class="op">=</span><span class="st">"blue"</span>, fill_opacity<span class="op">=</span><span class="fl">.05</span></span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>    ).add_to(m)</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-15" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>lon0, lat0, lon1, lat1 <span class="op">=</span> (<span class="op">-</span><span class="fl">80.5</span>, <span class="dv">26</span>, <span class="op">-</span><span class="fl">81.75</span>, <span class="dv">28</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>mlat, mlon <span class="op">=</span> (lat0 <span class="op">+</span> lat1) <span class="op">/</span> <span class="dv">2</span>, (lon0 <span class="op">+</span> lon1) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[mlat, mlon], </span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="dv">7</span>, </span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    zoom_control<span class="op">=</span><span class="va">True</span>, </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    no_touch<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"OpenStreetMap"</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>folium.Rectangle(</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    [(lat0, lon0), (lat1, lon1)], </span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    fill_color<span class="op">=</span><span class="st">"blue"</span>, fill_opacity<span class="op">=</span><span class="fl">.05</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    ).add_to(m)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
+    
+        <script>
+            L_NO_TOUCH = true;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
+    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
+    
+            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
+            <style>
+                #map_41f22baf1f1ce21646580c8d02ec7364 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+</head>
+<body>
+    
+    
+            <div class=&quot;folium-map&quot; id=&quot;map_41f22baf1f1ce21646580c8d02ec7364&quot; ></div>
+        
+</body>
+<script>
+    
+    
+            var map_41f22baf1f1ce21646580c8d02ec7364 = L.map(
+                &quot;map_41f22baf1f1ce21646580c8d02ec7364&quot;,
+                {
+                    center: [27.0, -81.125],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 7,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_06409f2d352ee489d7800ff4b79d16bf = L.tileLayer(
+                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
+                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
+            );
+        
+    
+            tile_layer_06409f2d352ee489d7800ff4b79d16bf.addTo(map_41f22baf1f1ce21646580c8d02ec7364);
+        
+    
+            var rectangle_5f9d2b26e48876434c42b65607e54397 = L.rectangle(
+                [[26.0, -80.5], [28.0, -81.75]],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;blue&quot;, &quot;fillOpacity&quot;: 0.05, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_41f22baf1f1ce21646580c8d02ec7364);
+        
+</script>
+</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
 </div>
-<div id="cell-16" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample within bounds defined by lat0, lon0, lat1, lon1. </span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>nbr_locations <span class="op">=</span> <span class="dv">50</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">516</span>)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>rlats <span class="op">=</span> rng.uniform(low<span class="op">=</span>lat0, high<span class="op">=</span>lat1, size<span class="op">=</span>nbr_locations)</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>rlons <span class="op">=</span> rng.uniform(low<span class="op">=</span>lon1, high<span class="op">=</span>lon0, size<span class="op">=</span>nbr_locations)</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>points <span class="op">=</span> <span class="bu">list</span>(<span class="bu">zip</span>(rlats, rlons))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-16" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Sample within bounds defined by lat0, lon0, lat1, lon1. </span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>nbr_locations <span class="op">=</span> <span class="dv">50</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">516</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>rlats <span class="op">=</span> rng.uniform(low<span class="op">=</span>lat0, high<span class="op">=</span>lat1, size<span class="op">=</span>nbr_locations)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>rlons <span class="op">=</span> rng.uniform(low<span class="op">=</span>lon1, high<span class="op">=</span>lon0, size<span class="op">=</span>nbr_locations)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>points <span class="op">=</span> <span class="bu">list</span>(<span class="bu">zip</span>(rlats, rlons))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p><br></p>
 <p>Visualizing the synthetic locations:</p>
-<div id="cell-18" class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(location<span class="op">=</span>[mlat, mlon], zoom_start<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> lat, lon <span class="kw">in</span> points:</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    folium.CircleMarker(</span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        location<span class="op">=</span>[lat, lon], </span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        radius<span class="op">=</span><span class="dv">5</span>, </span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"red"</span>, </span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span><span class="st">"red"</span>, </span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>        fill<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        fill_opacity<span class="op">=</span><span class="dv">1</span></span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-18" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(location<span class="op">=</span>[mlat, mlon], zoom_start<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> lat, lon <span class="kw">in</span> points:</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    folium.CircleMarker(</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>        location<span class="op">=</span>[lat, lon], </span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        radius<span class="op">=</span><span class="dv">5</span>, </span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span><span class="st">"red"</span>, </span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span><span class="st">"red"</span>, </span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>        fill<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        fill_opacity<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
+    
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
+    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
+    
+            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
+            <style>
+                #map_348f00edc8bd0d742423a0d4215598b1 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+</head>
+<body>
+    
+    
+            <div class=&quot;folium-map&quot; id=&quot;map_348f00edc8bd0d742423a0d4215598b1&quot; ></div>
+        
+</body>
+<script>
+    
+    
+            var map_348f00edc8bd0d742423a0d4215598b1 = L.map(
+                &quot;map_348f00edc8bd0d742423a0d4215598b1&quot;,
+                {
+                    center: [27.0, -81.125],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 8,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_b1296c489438f70917d3cbc788e716f4 = L.tileLayer(
+                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
+                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
+            );
+        
+    
+            tile_layer_b1296c489438f70917d3cbc788e716f4.addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_0260d5053589dbacf609e47c9c818529 = L.circleMarker(
+                [26.15842498103677, -81.6978452754149],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_608f932af225bc26c5bf162741515b31 = L.circleMarker(
+                [27.308367243835498, -80.74351022614646],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_4d2dc31b9d14167f30e3646ea655f981 = L.circleMarker(
+                [26.050159830178664, -81.22629395965097],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_c66b99a826e6267b14bc8417496cafdd = L.circleMarker(
+                [26.896432196124945, -80.6823476427752],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_d071cade3a70d18434f755e0ba40736b = L.circleMarker(
+                [27.40773608152318, -81.55620947759367],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_d337768dd6086723dc42232b83288082 = L.circleMarker(
+                [26.55187691648845, -80.90280316359555],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_0f4d0f6d4c3acac774b8aab63ef0f80e = L.circleMarker(
+                [26.301071098731754, -81.52100045189212],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_881e6cafc8c4f6b6e0f1f032543c2fd3 = L.circleMarker(
+                [27.435718092142665, -81.49914451288832],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_769cd3939738e5787928e0de6d1da388 = L.circleMarker(
+                [27.784378345442054, -80.59076499724968],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_3a8eb7ef5392d2589547116cb02432fa = L.circleMarker(
+                [27.635398626773437, -81.3898362844697],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_cff09513b6eb3391a9cd378834517646 = L.circleMarker(
+                [27.37937557184798, -81.4286044623964],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_0d432798bf9841502364cf20079e3973 = L.circleMarker(
+                [26.862971977202136, -80.54717925180627],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_14a083fb249caa095dba49b5cc6b61d3 = L.circleMarker(
+                [27.98142795111799, -81.09169770076494],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_cb40c1e78b02fac8bf7b43d8a72ffacc = L.circleMarker(
+                [26.365577838913776, -80.8990291114624],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_6f5a1c6cdfc715e3ab21ca62e3018624 = L.circleMarker(
+                [26.131355757954836, -81.16027753441861],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_2c216915cba8f2ee19dcba38ad6631d4 = L.circleMarker(
+                [26.382999780154904, -81.70903306152387],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_e5cf40f0822d79ec40f736e44a12593d = L.circleMarker(
+                [27.972984413059, -80.50657443311286],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_7d00f2c23dcf6465efd328a05b4395ba = L.circleMarker(
+                [26.086354128867725, -81.48977717606184],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_b5c9ca48f3b40e6887971267f98897c9 = L.circleMarker(
+                [26.943671120744057, -80.51934697293223],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_19fbb5b077f4c17ecfa4acaa3e1773cc = L.circleMarker(
+                [26.24664396062321, -81.43299865566368],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_68b836acb93d31ef85c8901a0408afc8 = L.circleMarker(
+                [27.243754691593953, -81.40006512830422],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_8b85744d81a2b98c74093d7edd0db848 = L.circleMarker(
+                [26.78781864252158, -80.66418638533959],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_93b35ab23f371b2801505b17250d4aa9 = L.circleMarker(
+                [26.605717123010912, -81.13339074943397],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_f2fe59cd77cc1af1630d81dd8bae1746 = L.circleMarker(
+                [27.82472127183081, -81.03218135189428],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_caa0a377e63c2f919c05dc5f7ac810f5 = L.circleMarker(
+                [26.307063400374936, -81.27626966439352],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_fd3b4d1129b3e65dfdb77b021bb1dae4 = L.circleMarker(
+                [27.991454895701796, -81.17887100872782],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_ac4fa0394c3457cf5545522e86a6b8ae = L.circleMarker(
+                [26.544773024554832, -81.60667452193859],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_d5b3cb9a0633a2f54e6bad3c4d975b1b = L.circleMarker(
+                [26.886457616788025, -80.91721728171257],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_d251a1ac31512d167e3cece18bda1aca = L.circleMarker(
+                [27.714852856581068, -81.64493695441304],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_bcd903be1aba3aab6f9a8b287bfc6f43 = L.circleMarker(
+                [27.2850774684598, -81.43364197265868],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_d0fec00eafb18b21413bd8a00be9c077 = L.circleMarker(
+                [27.473269702793658, -80.50510790437552],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_e41954dfe2b1a83bf83f08a439b25685 = L.circleMarker(
+                [26.9126301314854, -81.02473504499652],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_3c9e23c39f8b2dda81dd8003b06409f7 = L.circleMarker(
+                [26.19773048060356, -81.31384553050141],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_fffaa85f3ecdb7058f2fcd502f39ff3a = L.circleMarker(
+                [26.713303385914497, -80.69627570716136],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_814b1be232a7be39c34fa16db7c9d8d0 = L.circleMarker(
+                [27.413800924899405, -81.22869767203825],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_b027bf45a9e8b482835174bdf7465e31 = L.circleMarker(
+                [26.319682526771178, -80.52723729475458],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_9093299bbaad743ea0dd8cf75f986e56 = L.circleMarker(
+                [26.076820898509965, -81.02010416275705],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_5080ec996f668540395c0aa93d9b9786 = L.circleMarker(
+                [26.366453559477833, -81.66293509555179],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_443407e1de3b587b3822418dfe78b323 = L.circleMarker(
+                [27.565561426877956, -80.86111841233041],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_fe8a9f61abbf8f1b05c8f9c379410b80 = L.circleMarker(
+                [26.694221446702628, -81.53376936951858],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_28c69a091e392341aa91053a02f291ab = L.circleMarker(
+                [26.81413637848975, -81.32644612584131],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_a89971244312113648480dc93e81a3de = L.circleMarker(
+                [26.61547413746954, -81.33572363043359],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_467ac3e9c90a06d8b94249f2e92a7f3b = L.circleMarker(
+                [26.343132637377927, -81.35686888035839],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_80435f2a1954b66de76609b887f739c2 = L.circleMarker(
+                [26.311171111000064, -80.8179971956485],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_2c3d61f4f60f9eb3a51f338682cdb61c = L.circleMarker(
+                [27.226452898410354, -80.50847148940952],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_2e148d2724cbaa5b74b28badb3674287 = L.circleMarker(
+                [26.189330375816013, -81.6619851577331],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_71bc8b63551c04b51baf794313dfaa0a = L.circleMarker(
+                [26.248784399318982, -80.7821785668828],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_1a504d726cb00560bfdd49e4c94ec5df = L.circleMarker(
+                [27.189284967955047, -81.01943246870752],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_14e5cb854d6a9e62b6ade8055d1e79ce = L.circleMarker(
+                [27.16418198699115, -81.62240296924504],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+    
+            var circle_marker_cd943d4aa878a7e98c46ba3de17c4118 = L.circleMarker(
+                [27.016995167468394, -81.61079237146735],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_348f00edc8bd0d742423a0d4215598b1);
+        
+</script>
+</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
+</div>
 </div>
 <p><br></p>
 <p>Next the <code>points</code> list needs to be represented as a GeoDataFrame, using the generated points as the geometry. We set <code>"crs=EPSG:4326"</code> representing longitude-latitude pairs. A policy_id is included as an identifier for each point.</p>
-<div id="cell-20" class="cell">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>dfpoints <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"policy_id"</span>: [<span class="bu">str</span>(ii).zfill(<span class="dv">7</span>) <span class="cf">for</span> ii <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(points))],</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"lat"</span>: rlats, </span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"lon"</span>: rlons, </span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Create GeoDataFrame.</span></span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>points <span class="op">=</span> gpd.GeoDataFrame(</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    dfpoints,</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    geometry<span class="op">=</span>gpd.points_from_xy(dfpoints.lon, dfpoints.lat),</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    crs<span class="op">=</span><span class="st">"EPSG:4326"</span></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>points.head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-20" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>dfpoints <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"policy_id"</span>: [<span class="bu">str</span>(ii).zfill(<span class="dv">7</span>) <span class="cf">for</span> ii <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(points))],</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"lat"</span>: rlats, </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"lon"</span>: rlons, </span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Create GeoDataFrame.</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>points <span class="op">=</span> gpd.GeoDataFrame(</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    dfpoints,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    geometry<span class="op">=</span>gpd.points_from_xy(dfpoints.lon, dfpoints.lat),</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    crs<span class="op">=</span><span class="st">"EPSG:4326"</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>points.head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">policy_id</th>
+<th data-quarto-table-cell-role="th">lat</th>
+<th data-quarto-table-cell-role="th">lon</th>
+<th data-quarto-table-cell-role="th">geometry</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0000000</td>
+<td>26.158425</td>
+<td>-81.697845</td>
+<td>POINT (-81.69785 26.15842)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>0000001</td>
+<td>27.308367</td>
+<td>-80.743510</td>
+<td>POINT (-80.74351 27.30837)</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>0000002</td>
+<td>26.050160</td>
+<td>-81.226294</td>
+<td>POINT (-81.22629 26.05016)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>0000003</td>
+<td>26.896432</td>
+<td>-80.682348</td>
+<td>POINT (-80.68235 26.89643)</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>0000004</td>
+<td>27.407736</td>
+<td>-81.556209</td>
+<td>POINT (-81.55621 27.40774)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>0000005</td>
+<td>26.551877</td>
+<td>-80.902803</td>
+<td>POINT (-80.90280 26.55188)</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>0000006</td>
+<td>26.301071</td>
+<td>-81.521000</td>
+<td>POINT (-81.52100 26.30107)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>0000007</td>
+<td>27.435718</td>
+<td>-81.499145</td>
+<td>POINT (-81.49914 27.43572)</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>0000008</td>
+<td>27.784378</td>
+<td>-80.590765</td>
+<td>POINT (-80.59076 27.78438)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>0000009</td>
+<td>27.635399</td>
+<td>-81.389836</td>
+<td>POINT (-81.38984 27.63540)</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
 </div>
 <p><br></p>
 <p>With both the coastline shapefile and point data represented as GeoDataFrames, we execute the <code>sjoin_nearest</code> spatial join to get the distance from each point to the nearest coastline. First we need to set the crs to a projected coordinate system so the distances are returned in units of meters instead of degrees. Projected coordinate systems use linear units like meters or feet, which makes it easier to perform precise spatial measurements. Here we opt for the Conus Albers equal area conic projection (EPSG:5069).</p>
 <p>In the call to <code>sjoin_nearest</code>, we specify “meters” for the <code>distance_col</code> argument. This column will hold the distance to the coastline for each point in <code>points</code> in units of meters. A miles column is added after the join.</p>
-<div id="cell-22" class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert from GPS to  Conus Albers. </span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>points <span class="op">=</span> points.to_crs(<span class="st">"EPSG:5069"</span>)</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>coast <span class="op">=</span> coast.to_crs(<span class="st">"EPSG:5069"</span>)</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Perform spatial join. Covert meters to miles. </span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> gpd.sjoin_nearest(points, coast, how<span class="op">=</span><span class="st">"left"</span>, distance_col<span class="op">=</span><span class="st">"meters"</span>)</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>gdf[<span class="st">"miles"</span>] <span class="op">=</span> gdf[<span class="st">"meters"</span>] <span class="op">*</span> <span class="fl">0.000621371</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Get min, max and average distance to coast line.</span></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>min_dist <span class="op">=</span> gdf.miles.<span class="bu">min</span>()</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>max_dist <span class="op">=</span> gdf.miles.<span class="bu">max</span>()</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>avg_dist <span class="op">=</span> gdf.miles.mean()</span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"min. distance to coastline: </span><span class="sc">{</span>min_dist<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"max. distance to coastline: </span><span class="sc">{</span>max_dist<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"avg. distance to coastline: </span><span class="sc">{</span>avg_dist<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-22" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert from GPS to  Conus Albers. </span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>points <span class="op">=</span> points.to_crs(<span class="st">"EPSG:5069"</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>coast <span class="op">=</span> coast.to_crs(<span class="st">"EPSG:5069"</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Perform spatial join. Covert meters to miles. </span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> gpd.sjoin_nearest(points, coast, how<span class="op">=</span><span class="st">"left"</span>, distance_col<span class="op">=</span><span class="st">"meters"</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>gdf[<span class="st">"miles"</span>] <span class="op">=</span> gdf[<span class="st">"meters"</span>] <span class="op">*</span> <span class="fl">0.000621371</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Get min, max and average distance to coast line.</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>min_dist <span class="op">=</span> gdf.miles.<span class="bu">min</span>()</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>max_dist <span class="op">=</span> gdf.miles.<span class="bu">max</span>()</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>avg_dist <span class="op">=</span> gdf.miles.mean()</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"min. distance to coastline: </span><span class="sc">{</span>min_dist<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"max. distance to coastline: </span><span class="sc">{</span>max_dist<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"avg. distance to coastline: </span><span class="sc">{</span>avg_dist<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>min. distance to coastline: 0.20197535859716287
+max. distance to coastline: 65.35183791451661
+avg. distance to coastline: 35.26215239057489</code></pre>
+</div>
 </div>
 <p><br></p>
 </section>
@@ -413,54 +1222,592 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
 <p><br></p>
 <p>A rolling join via <code>merge_asof</code> can be used to select the last row in the right DataFrame (group thresholds) whose <code>on</code> key is less than or equal to <code>gdf</code>’s key, which will be “miles” in both DataFrames.</p>
-<div id="cell-24" class="cell">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Create dfgroups DataFrame. </span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>dfgroups <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"risk"</span>: [<span class="st">"very high"</span>, <span class="st">"high"</span>, <span class="st">"medium"</span>, <span class="st">"low"</span>],</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"miles"</span>: [<span class="fl">0.</span>, <span class="fl">5.</span>, <span class="fl">25.</span>, <span class="fl">50.</span>]</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>})</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Assign risk group to each policy location.</span></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> gdf.sort_values(<span class="st">"miles"</span>, ascending<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> pd.merge_asof(gdf, dfgroups, on<span class="op">=</span><span class="st">"miles"</span>, direction<span class="op">=</span><span class="st">"backward"</span>)</span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>gdf.head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-24" class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Create dfgroups DataFrame. </span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>dfgroups <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"risk"</span>: [<span class="st">"very high"</span>, <span class="st">"high"</span>, <span class="st">"medium"</span>, <span class="st">"low"</span>],</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"miles"</span>: [<span class="fl">0.</span>, <span class="fl">5.</span>, <span class="fl">25.</span>, <span class="fl">50.</span>]</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Assign risk group to each policy location.</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> gdf.sort_values(<span class="st">"miles"</span>, ascending<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>gdf <span class="op">=</span> pd.merge_asof(gdf, dfgroups, on<span class="op">=</span><span class="st">"miles"</span>, direction<span class="op">=</span><span class="st">"backward"</span>)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>gdf.head(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">policy_id</th>
+<th data-quarto-table-cell-role="th">lat</th>
+<th data-quarto-table-cell-role="th">lon</th>
+<th data-quarto-table-cell-role="th">geometry</th>
+<th data-quarto-table-cell-role="th">index_right</th>
+<th data-quarto-table-cell-role="th">NAME</th>
+<th data-quarto-table-cell-role="th">MTFCC</th>
+<th data-quarto-table-cell-role="th">meters</th>
+<th data-quarto-table-cell-role="th">miles</th>
+<th data-quarto-table-cell-role="th">risk</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0000016</td>
+<td>27.972984</td>
+<td>-80.506574</td>
+<td>POINT (1523126.311 669355.565)</td>
+<td>176</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>325.047932</td>
+<td>0.201975</td>
+<td>very high</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>0000000</td>
+<td>26.158425</td>
+<td>-81.697845</td>
+<td>POINT (1436901.833 453402.683)</td>
+<td>2813</td>
+<td>Gulf</td>
+<td>L4150</td>
+<td>11201.767881</td>
+<td>6.960454</td>
+<td>high</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>0000015</td>
+<td>26.383000</td>
+<td>-81.709033</td>
+<td>POINT (1432089.414 477631.030)</td>
+<td>2817</td>
+<td>Gulf</td>
+<td>L4150</td>
+<td>14922.894431</td>
+<td>9.272654</td>
+<td>high</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>0000045</td>
+<td>26.189330</td>
+<td>-81.661985</td>
+<td>POINT (1439966.962 457301.849)</td>
+<td>2813</td>
+<td>Gulf</td>
+<td>L4150</td>
+<td>15292.789125</td>
+<td>9.502496</td>
+<td>high</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>0000008</td>
+<td>27.784378</td>
+<td>-80.590765</td>
+<td>POINT (1518283.776 647462.840)</td>
+<td>211</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>16412.307856</td>
+<td>10.198132</td>
+<td>high</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>0000037</td>
+<td>26.366454</td>
+<td>-81.662935</td>
+<td>POINT (1436947.116 476528.844)</td>
+<td>2813</td>
+<td>Gulf</td>
+<td>L4150</td>
+<td>18665.871130</td>
+<td>11.598431</td>
+<td>high</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>0000030</td>
+<td>27.473270</td>
+<td>-80.505108</td>
+<td>POINT (1532219.823 614970.878)</td>
+<td>10</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>20055.344308</td>
+<td>12.461809</td>
+<td>high</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>0000017</td>
+<td>26.086354</td>
+<td>-81.489777</td>
+<td>POINT (1458848.059 448748.018)</td>
+<td>2813</td>
+<td>Gulf</td>
+<td>L4150</td>
+<td>24280.862758</td>
+<td>15.087424</td>
+<td>high</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>0000044</td>
+<td>27.226453</td>
+<td>-80.508471</td>
+<td>POINT (1536305.431 588071.282)</td>
+<td>10</td>
+<td>Atlantic</td>
+<td>L4150</td>
+<td>29966.032034</td>
+<td>18.620023</td>
+<td>high</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>0000006</td>
+<td>26.301071</td>
+<td>-81.521000</td>
+<td>POINT (1452153.395 471583.300)</td>
+<td>2813</td>
+<td>Gulf</td>
+<td>L4150</td>
+<td>30913.531896</td>
+<td>19.208772</td>
+<td>high</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
 </div>
 <p><br></p>
 <p>Counting the number of policies per risk group:</p>
-<div id="cell-26" class="cell">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>gdf.risk.value_counts().sort_index()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-26" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>gdf.risk.value_counts().sort_index()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="13">
+<pre><code>risk
+high         12
+low          10
+medium       27
+very high     1
+Name: count, dtype: int64</code></pre>
+</div>
 </div>
 <p><br></p>
 <p>Finally, we can assign each risk a different color and visualize the resulting risk groups with folium:</p>
-<div id="cell-28" class="cell">
-<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Colors for each group.</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>dcolors <span class="op">=</span> {</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"very high"</span>: <span class="st">"#f40002"</span>,</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"high"</span>: <span class="st">"#ff721f"</span>,</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"medium"</span>: <span class="st">"#fafc15"</span>,</span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"low"</span>: <span class="st">"#268a6d"</span></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>gdf[<span class="st">"color"</span>] <span class="op">=</span> gdf[<span class="st">"risk"</span>].<span class="bu">map</span>(dcolors)</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(location<span class="op">=</span>[mlat, mlon], zoom_start<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tt <span class="kw">in</span> gdf.itertuples():</span>
-<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    lat, lon, color <span class="op">=</span> tt.lat, tt.lon, tt.color</span>
-<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>    folium.CircleMarker(</span>
-<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        location<span class="op">=</span>[lat, lon],</span>
-<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        radius<span class="op">=</span><span class="dv">6</span>, </span>
-<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>color, </span>
-<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span>color, </span>
-<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>        fill<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>        fill_opacity<span class="op">=</span><span class="dv">1</span></span>
-<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
-<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-28" class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Colors for each group.</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>dcolors <span class="op">=</span> {</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">"very high"</span>: <span class="st">"#f40002"</span>,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">"high"</span>: <span class="st">"#ff721f"</span>,</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">"medium"</span>: <span class="st">"#fafc15"</span>,</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">"low"</span>: <span class="st">"#268a6d"</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>gdf[<span class="st">"color"</span>] <span class="op">=</span> gdf[<span class="st">"risk"</span>].<span class="bu">map</span>(dcolors)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(location<span class="op">=</span>[mlat, mlon], zoom_start<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tt <span class="kw">in</span> gdf.itertuples():</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    lat, lon, color <span class="op">=</span> tt.lat, tt.lon, tt.color</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>    folium.CircleMarker(</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>        location<span class="op">=</span>[lat, lon],</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>        radius<span class="op">=</span><span class="dv">6</span>, </span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>        color<span class="op">=</span>color, </span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span>color, </span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>        fill<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>        fill_opacity<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="14">
+<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
+    
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
+    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
+    
+            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
+            <style>
+                #map_f1774b86214832d08db672d3b1789192 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+</head>
+<body>
+    
+    
+            <div class=&quot;folium-map&quot; id=&quot;map_f1774b86214832d08db672d3b1789192&quot; ></div>
+        
+</body>
+<script>
+    
+    
+            var map_f1774b86214832d08db672d3b1789192 = L.map(
+                &quot;map_f1774b86214832d08db672d3b1789192&quot;,
+                {
+                    center: [27.0, -81.125],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 8,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_96681e1d2e28ab2185a27a69537d4b61 = L.tileLayer(
+                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
+                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
+            );
+        
+    
+            tile_layer_96681e1d2e28ab2185a27a69537d4b61.addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_bb15e42b8ff9c5585d6d3ec9c2ad6740 = L.circleMarker(
+                [27.972984413059, -80.50657443311286],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#f40002&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#f40002&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_0f8d4ce570a063ade653d5d66a452073 = L.circleMarker(
+                [26.15842498103677, -81.6978452754149],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_bfeda87b591d95a4767a54f2c4124a31 = L.circleMarker(
+                [26.382999780154904, -81.70903306152387],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_2f9b6991d131aa1dc99f09177760963d = L.circleMarker(
+                [26.189330375816013, -81.6619851577331],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_dbd140e47ea6973b3327877786176a8d = L.circleMarker(
+                [27.784378345442054, -80.59076499724968],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_f760b649f4894829887f7badc64cad92 = L.circleMarker(
+                [26.366453559477833, -81.66293509555179],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_7e2a75fefd686100bc3c396aade6932f = L.circleMarker(
+                [27.473269702793658, -80.50510790437552],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_dd1d265aed035c68ce7859e957966ad3 = L.circleMarker(
+                [26.086354128867725, -81.48977717606184],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_0a718674836588e8ce0955b37d78211d = L.circleMarker(
+                [27.226452898410354, -80.50847148940952],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_6e4a86ee36584662543ae9e48d8952d3 = L.circleMarker(
+                [26.301071098731754, -81.52100045189212],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_8a0b2b1aed1142bdfe8fb3fe84bcee47 = L.circleMarker(
+                [26.544773024554832, -81.60667452193859],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_9515c21cbdba6923fb7b5e055e52fd7b = L.circleMarker(
+                [26.050159830178664, -81.22629395965097],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_ffab92331857aab1c3aeba685aaa1fdb = L.circleMarker(
+                [26.24664396062321, -81.43299865566368],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#ff721f&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff721f&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_aa42f42ec72abd4873855d5ad72b12f6 = L.circleMarker(
+                [26.943671120744057, -80.51934697293223],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_a3491691a7e54433d7b1a8a1c504ae70 = L.circleMarker(
+                [26.19773048060356, -81.31384553050141],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_e36f8e77d987490256a1a400f8fbcef1 = L.circleMarker(
+                [26.131355757954836, -81.16027753441861],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_d5c52c80418b3a117c3ce4bac4b89b7b = L.circleMarker(
+                [26.319682526771178, -80.52723729475458],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_1e8db8e6899f377fbffb094bdfaca3d1 = L.circleMarker(
+                [26.694221446702628, -81.53376936951858],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_47d926dda0301208e945d027fe62378b = L.circleMarker(
+                [26.343132637377927, -81.35686888035839],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_9f817c0ff9aec3f3c6051326c9b13459 = L.circleMarker(
+                [26.862971977202136, -80.54717925180627],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_4bec9897573a2cc528e9ab05ed1b2fa8 = L.circleMarker(
+                [27.308367243835498, -80.74351022614646],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_b0d5bb2c91641126400188f31f78ef77 = L.circleMarker(
+                [26.076820898509965, -81.02010416275705],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_f1345014cc9714328006916b195e794f = L.circleMarker(
+                [27.565561426877956, -80.86111841233041],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_27d5ec133b8544d3bf70ea3503396fba = L.circleMarker(
+                [27.98142795111799, -81.09169770076494],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_743ae6a56572c7901cff050d024407ee = L.circleMarker(
+                [27.82472127183081, -81.03218135189428],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_2317fc1efb349cce5a29a569628134c9 = L.circleMarker(
+                [26.307063400374936, -81.27626966439352],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_6b4df10b41843b09fe920354884d2b03 = L.circleMarker(
+                [26.896432196124945, -80.6823476427752],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_063e2cd2ba57a05429741c90ee204e0b = L.circleMarker(
+                [26.61547413746954, -81.33572363043359],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_2e9d706c6578967ae412e054042978d6 = L.circleMarker(
+                [27.991454895701796, -81.17887100872782],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_3f78952fc129e5cc86cfccf0676e10a0 = L.circleMarker(
+                [26.78781864252158, -80.66418638533959],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_1bd4a24f4bbb23ec294c0aabe90477b9 = L.circleMarker(
+                [26.713303385914497, -80.69627570716136],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_8066874a2d0f58971bbc1ea7837d3cb3 = L.circleMarker(
+                [27.016995167468394, -81.61079237146735],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_da159919ce1b47e99d572986d0db1944 = L.circleMarker(
+                [26.248784399318982, -80.7821785668828],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_63529d89abba8ef94c6bce836bfb921e = L.circleMarker(
+                [26.81413637848975, -81.32644612584131],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_6126d7917d1615a4f467655d9ce00b77 = L.circleMarker(
+                [26.311171111000064, -80.8179971956485],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_fb3adb6a86288cc6ff73ebf0a73f6210 = L.circleMarker(
+                [27.714852856581068, -81.64493695441304],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_a32f5263787739d61cc98254a39da1ae = L.circleMarker(
+                [27.16418198699115, -81.62240296924504],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_bab2d2ab56804b6c8b5dc92f06150f8f = L.circleMarker(
+                [26.605717123010912, -81.13339074943397],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_c18094b6b293055b05db02f467d61b23 = L.circleMarker(
+                [27.189284967955047, -81.01943246870752],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_237341a485fed0bdbd5c61046acb5c28 = L.circleMarker(
+                [26.365577838913776, -80.8990291114624],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#fafc15&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#fafc15&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_21cb4eac7e931ad29391917a03bb76c1 = L.circleMarker(
+                [26.886457616788025, -80.91721728171257],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_1ce2b0a1544253002ea479bb8d339828 = L.circleMarker(
+                [26.55187691648845, -80.90280316359555],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_458f8fd585dcf8d3bf7407e8ab534f91 = L.circleMarker(
+                [27.413800924899405, -81.22869767203825],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_e4e6c8f5e622f96e03ff381db1e55b5b = L.circleMarker(
+                [26.9126301314854, -81.02473504499652],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_d445978a602991b097f0c30ef5482177 = L.circleMarker(
+                [27.635398626773437, -81.3898362844697],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_63524a78bdf3c3f11a3958c52c8f7405 = L.circleMarker(
+                [27.40773608152318, -81.55620947759367],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_86efcbf661e1eb7bd77815364963c990 = L.circleMarker(
+                [27.435718092142665, -81.49914451288832],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_ad8ad98797e6b3bc5c81bd0cffec6d10 = L.circleMarker(
+                [27.2850774684598, -81.43364197265868],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_39de105a9f3ffe8a7c6cd823de8ec11b = L.circleMarker(
+                [27.243754691593953, -81.40006512830422],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+    
+            var circle_marker_9cda64d4cbf6f124ac28d5ed7d8a992b = L.circleMarker(
+                [27.37937557184798, -81.4286044623964],
+                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#268a6d&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#268a6d&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 6, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
+            ).addTo(map_f1774b86214832d08db672d3b1789192);
+        
+</script>
+</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
+</div>
 </div>
 <p><br></p>
 
