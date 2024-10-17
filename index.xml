@@ -10,7 +10,3999 @@
 <atom:link href="https://www.jtrive.com/index.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Mon, 14 Oct 2024 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 20 Oct 2024 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Quantifying Spatial Autocorrelation with Moran’s I</title>
+  <link>https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Spatial autocorrelation is a statistical concept that measures how similar values of a variable are based on their proximity to each other on a map. Positive spatial autocorrelation means that geographically nearby values of a variable tend to be similar on a map: high values tend to be located near high values, and low values near low values. By analyzing the spatial distribution of potential hazards, insurers can identify patterns and trends that might not be apparent when looking at data in isolation. This allows for more accurate risk assessment and pricing, ensuring that premiums are set appropriately based on the actual risk in different geospatial cohorts. Additionally, understanding geospatial correlations can help insurers develop targeted strategies for risk mitigation and improve their overall portfolio management. This approach ultimately leads to better financial stability for the insurer and fairer pricing for policyholders.</p>
+<p>It is well known that tornadoes frequently occur in “Tornado Alley”, a loosely defined location of states including Texas, Louisiana, Oklahoma, Kansas, South Dakota, Iowa and Nebraska. In what follows, we analyze tornado events from 2008-Present and estimate the global spatial autocorrelation for these events using Moran’s I, and determie if the results align with our prior assumptions of positive spatial autocorrelation.</p>
+<p>The National Oceanic and Atmospheric Administration (NOAA) documents the occurrence of storms and other significant weather phenomena having sufficient intensity to cause loss of life, injuries, significant property damage, and/or disruption to commerce. The database for events going back to 1950 is available for download <a href="https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/">here</a>, and serves as the starting point for our analysis. U.S. state shapefiles are available <a href="https://www2.census.gov/geo/tiger/TIGER2024/STATE/">here</a>.</p>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> geopandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> gpd</span>
+<span id="cb1-6"></span>
+<span id="cb1-7">np.set_printoptions(suppress<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, precision<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb1-8">pd.options.mode.chained_assignment <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb1-9">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.max_columns'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-10">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.width'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-11"></span>
+<span id="cb1-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Storm data. </span></span>
+<span id="cb1-13">noaa_path <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F:/actu-s/CatastropheData/NOAA_Storm_Data/noaa-storm-data-1950-2024.csv.gz"</span></span>
+<span id="cb1-14"></span>
+<span id="cb1-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># US state shapefiles. </span></span>
+<span id="cb1-16">state_shp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"C:/Users/i103455/Downloads/tl_2024_us_state.zip"</span></span>
+<span id="cb1-17"></span></code></pre></div>
+</div>
+<p><br></p>
+<p>We begin by reading in the the NOAA storm event data and filter down to tornado events from 2008-present. We also remove lower severity tornado events based on the <a href="https://en.wikipedia.org/wiki/Enhanced_Fujita_scale">Enhanced Fujita Scale</a>:</p>
+<p><strong>Enhanced Fujita scale</strong>:</p>
+<ul>
+<li><strong>EFU</strong>: Unknown</li>
+<li><strong>EF0</strong>: 65-85 mph (Light)</li>
+<li><strong>EF1</strong>: 86-110 mph (Moderate)</li>
+<li><strong>EF2</strong>: 111-135 mph (Cosiderable)</li>
+<li><strong>EF3</strong>: 136-165 mph (Severe)</li>
+<li><strong>EF4</strong>: 166-200 mph (Devestating)</li>
+<li><strong>EF5</strong>: &gt;200 mph (Incredible)</li>
+</ul>
+<p>Events with TOR_F_SCALE = “F0”, “F1”, “EF0”, “EF1” are excluded.</p>
+<div id="cell-4" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Obtained here: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/</span></span>
+<span id="cb2-3">dfstorms_all <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.read_csv(noaa_path, low_memory<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb2-4"></span>
+<span id="cb2-5">keep_events <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb2-6">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F2"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EF2"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F3"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F4"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F5"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EF3"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EF4"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EF5"</span></span>
+<span id="cb2-7">]</span>
+<span id="cb2-8"></span>
+<span id="cb2-9">dfstorms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dfstorms_all[</span>
+<span id="cb2-10">    (dfstorms_all.YEAR<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2008</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span> </span>
+<span id="cb2-11">    (dfstorms_all.EVENT_TYPE<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Tornado"</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb2-12">    (dfstorms_all.TOR_F_SCALE.isin(keep_events))</span>
+<span id="cb2-13">]</span>
+<span id="cb2-14"></span>
+<span id="cb2-15">dfstorms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb2-16">    dfstorms</span>
+<span id="cb2-17">    .dropna(subset<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"BEGIN_LAT"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"BEGIN_LON"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TOR_F_SCALE"</span>])</span>
+<span id="cb2-18">    .reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb2-19">)</span>
+<span id="cb2-20"></span>
+<span id="cb2-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Filter storms to lower 48 states.</span></span>
+<span id="cb2-22">storms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gpd.GeoDataFrame(</span>
+<span id="cb2-23">    dfstorms,</span>
+<span id="cb2-24">    geometry<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>gpd.points_from_xy(dfstorms.BEGIN_LON, dfstorms.BEGIN_LAT),</span>
+<span id="cb2-25">    crs<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EPSG:4326"</span></span>
+<span id="cb2-26">)</span>
+<span id="cb2-27"></span>
+<span id="cb2-28">storms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> storms[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EVENT_ID"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TOR_F_SCALE"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"geometry"</span>]]</span>
+<span id="cb2-29">storms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> storms.cx[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">125</span>:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">65</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">24.6</span>:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>].reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb2-30"></span>
+<span id="cb2-31"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Number of storms: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>storms<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb2-32"></span>
+<span id="cb2-33">storms.head()</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Number of storms: (2917, 3)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">EVENT_ID</th>
+<th data-quarto-table-cell-role="th">TOR_F_SCALE</th>
+<th data-quarto-table-cell-role="th">geometry</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>105611</td>
+<td>EF2</td>
+<td>POINT (-96.30000 43.14210)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>80215</td>
+<td>EF2</td>
+<td>POINT (-86.01250 37.66250)</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>80216</td>
+<td>EF2</td>
+<td>POINT (-85.77590 37.69650)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>80218</td>
+<td>EF2</td>
+<td>POINT (-85.06490 37.68890)</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>79065</td>
+<td>EF2</td>
+<td>POINT (-85.38120 37.81130)</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Reviewing the distribution of F and EF events:</p>
+<div id="cell-6" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2">storms.TOR_F_SCALE.value_counts()</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>TOR_F_SCALE
+EF2    2197
+EF3     579
+EF4     128
+EF5      13
+Name: count, dtype: int64</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Load the state shapefile and overlay retained tornado events:</p>
+<div id="cell-8" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> os</span>
+<span id="cb6-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> sys</span>
+<span id="cb6-4"></span>
+<span id="cb6-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># This suppresses `Cannot find header.dxf (GDAL_DATA is not defined)` warning.</span></span>
+<span id="cb6-6">os.environ[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'GDAL_DATA'</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> os.path.join(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f'</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>os<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>sep<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'</span>.join(sys.executable.split(os.sep)[:<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Library'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'share'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'gdal'</span>)</span>
+<span id="cb6-7"></span>
+<span id="cb6-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Filter to lower 48 states. </span></span>
+<span id="cb6-9">states <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gpd.read_file(state_shp).to_crs(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EPSG:4326"</span>)[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"geometry"</span>]]</span>
+<span id="cb6-10">states <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> states.cx[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">125</span>:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">65</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">24.6</span>:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>].reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb6-11"></span>
+<span id="cb6-12">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb6-13">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"U.S. Tornadoes ex. EF0, EF1: 2008-Present"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span>
+<span id="cb6-14">states.boundary.plot(ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"grey"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>)</span>
+<span id="cb6-15">storms.plot(ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>, marker<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"x"</span>, markersize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">25</span>, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>)</span>
+<span id="cb6-16">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb6-17">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>There are more tornadoes in the mid-south and southeast than expected. Nonetheless, there exists a clear spatial pattern to the events: Tornadoes do not appear randomly distributed over the lower 48 states. We can use Global Moran’s I to gauge the degree of spatial autocorrelation inherent in the data.</p>
+<p>In order to assign each tornado to a state, a spatial join is performed where each event is assigned to the state polygon that encloses it:</p>
+<div id="cell-10" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2">dfn <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb7-3">    states</span>
+<span id="cb7-4">    .sjoin(storms)</span>
+<span id="cb7-5">    .groupby([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>], as_index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>).size()</span>
+<span id="cb7-6">    .rename({<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"size"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>}, axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb7-7">)</span>
+<span id="cb7-8"></span>
+<span id="cb7-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Merge dfn with states to get back geometry associated with each state.</span></span>
+<span id="cb7-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># gdf will be a GeoDataFrame.</span></span>
+<span id="cb7-11">gdf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb7-12">    states</span>
+<span id="cb7-13">    .merge(dfn, on<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>], how<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>)</span>
+<span id="cb7-14">    .fillna(value<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>})[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"geometry"</span>]]</span>
+<span id="cb7-15">    .sort_values(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>)</span>
+<span id="cb7-16">    .reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb7-17">)</span>
+<span id="cb7-18"></span>
+<span id="cb7-19"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Total number of events: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'n'</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb7-20"></span>
+<span id="cb7-21">gdf.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total number of events: 2917.0</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">NAME</th>
+<th data-quarto-table-cell-role="th">ALAND</th>
+<th data-quarto-table-cell-role="th">n</th>
+<th data-quarto-table-cell-role="th">geometry</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Alabama</td>
+<td>131185561946</td>
+<td>253.0</td>
+<td>POLYGON ((-85.12733 31.76256, -85.12753 31.762...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Arizona</td>
+<td>294366118294</td>
+<td>7.0</td>
+<td>POLYGON ((-110.75069 37.00301, -110.74193 37.0...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Arkansas</td>
+<td>134658517854</td>
+<td>133.0</td>
+<td>POLYGON ((-90.95577 34.11871, -90.95451 34.117...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>California</td>
+<td>403673433805</td>
+<td>3.0</td>
+<td>MULTIPOLYGON (((-119.99987 41.18397, -119.9998...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Colorado</td>
+<td>268418973518</td>
+<td>31.0</td>
+<td>POLYGON ((-105.15504 36.99526, -105.15543 36.9...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>Connecticut</td>
+<td>12541999507</td>
+<td>0.0</td>
+<td>POLYGON ((-72.52790 41.17777, -72.55156 41.173...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>Delaware</td>
+<td>5046692239</td>
+<td>4.0</td>
+<td>POLYGON ((-75.50949 39.68652, -75.50942 39.686...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>District of Columbia</td>
+<td>158316181</td>
+<td>0.0</td>
+<td>POLYGON ((-77.11975 38.93435, -77.11886 38.935...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>Florida</td>
+<td>138965379385</td>
+<td>40.0</td>
+<td>MULTIPOLYGON (((-83.10874 24.62949, -83.10711 ...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>Georgia</td>
+<td>149485762701</td>
+<td>153.0</td>
+<td>POLYGON ((-81.09538 31.52098, -81.09710 31.519...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>Idaho</td>
+<td>214050504522</td>
+<td>0.0</td>
+<td>POLYGON ((-116.35844 49.00047, -116.34805 49.0...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>Illinois</td>
+<td>143778206717</td>
+<td>140.0</td>
+<td>POLYGON ((-87.89243 38.28285, -87.89334 38.282...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>Indiana</td>
+<td>92786694938</td>
+<td>96.0</td>
+<td>POLYGON ((-86.32960 38.18180, -86.33037 38.182...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>Iowa</td>
+<td>144660344616</td>
+<td>123.0</td>
+<td>POLYGON ((-95.86095 43.50004, -95.85979 43.500...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">14</td>
+<td>Kansas</td>
+<td>211753821560</td>
+<td>129.0</td>
+<td>POLYGON ((-94.61764 37.76124, -94.61766 37.760...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">15</td>
+<td>Kentucky</td>
+<td>102266755818</td>
+<td>118.0</td>
+<td>MULTIPOLYGON (((-89.57120 36.55214, -89.57114 ...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>Louisiana</td>
+<td>111920866908</td>
+<td>122.0</td>
+<td>POLYGON ((-92.72474 33.01439, -92.72365 33.014...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17</td>
+<td>Maine</td>
+<td>79888396620</td>
+<td>0.0</td>
+<td>POLYGON ((-67.80569 45.68005, -67.80363 45.677...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">18</td>
+<td>Maryland</td>
+<td>25151223822</td>
+<td>5.0</td>
+<td>POLYGON ((-75.75600 39.24607, -75.75579 39.243...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">19</td>
+<td>Massachusetts</td>
+<td>20204400635</td>
+<td>3.0</td>
+<td>POLYGON ((-71.25515 42.73655, -71.25510 42.736...</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Visualizing the number of tornadoes by state:</p>
+<div id="cell-12" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
+<span id="cb9-2">cmap <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"turbo"</span></span>
+<span id="cb9-3"></span>
+<span id="cb9-4">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb9-5">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"U.S. Tornadoes by State ex. EF0, EF1: 2000-Present"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb9-6">gdf.plot(</span>
+<span id="cb9-7">    ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, column<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gray"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.50</span>, </span>
+<span id="cb9-8">    cmap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>cmap, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.750</span>, legend<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb9-9">    legend_kwds<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"label"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Nbr. Tornadoes"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"orientation"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"vertical"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"shrink"</span>: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>}</span>
+<span id="cb9-10">    )</span>
+<span id="cb9-11">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb9-12">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Texas appears to have a large number of events, but this may be due to the fact that Texas has the largest land area of any state in the lower 48. If tornadoes were randomly distributed, we wouldn’t expect to see clusters of similar values on the map. However, our attention is drawn to south central and south eastern states, where hues are brighter compared with coastal regions.</p>
+<p>Let’s take a look at number of events divided by ALAND:</p>
+<div id="cell-14" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
+<span id="cb10-2">cmap <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"turbo"</span></span>
+<span id="cb10-3"></span>
+<span id="cb10-4">gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n_div_ALAND"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>]</span>
+<span id="cb10-5"></span>
+<span id="cb10-6">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb10-7">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"U.S. tornadoes by state / land area ex. F0, EF0, F1, EF1: 2000-Present"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb10-8">gdf.plot(</span>
+<span id="cb10-9">    ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, column<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n_div_ALAND"</span>, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gray"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.50</span>, </span>
+<span id="cb10-10">    cmap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>cmap, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.750</span>, legend<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb10-11">    legend_kwds<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"label"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Nbr. Tornadoes"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"orientation"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"vertical"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"shrink"</span>: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>}</span>
+<span id="cb10-12">    )</span>
+<span id="cb10-13">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb10-14">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p><br></p>
+<p>Mississippi and Alabama are consistent with the raw counts choropleth, but Texas doesn’t stand out as much when normalized by total land area. Nonetheless, raw tornado counts are used for the subsequent analysis.</p>
+<p><br></p>
+<section id="spatial-weights" class="level3">
+<h3 class="anchored" data-anchor-id="spatial-weights">Spatial Weights</h3>
+<p>In order to quantify spatial autocorrelation, it is first necessary to define the idea of closeness or proximity between geospatial units. The spatial weights matrix <img src="https://latex.codecogs.com/png.latex?W"> encodes the spatial relationships between different locations in a dataset in much the same way as an adjacency matrix used in Graph Theory and Network Science. For a dataset with <img src="https://latex.codecogs.com/png.latex?N"> geospatial units, <img src="https://latex.codecogs.com/png.latex?W"> will have dimension <img src="https://latex.codecogs.com/png.latex?N%20%5Ctimes%20N">, with 0’s along the main diagonal. Each element <img src="https://latex.codecogs.com/png.latex?w_%7Bij%7D"> represents the spatial relationship between locations <img src="https://latex.codecogs.com/png.latex?i"> and <img src="https://latex.codecogs.com/png.latex?j">. The relationship can be based on distance, contiguity or some other criteria. More information of spatial weights matrices is available <a href="https://geographicdata.science/book/notebooks/04_spatial_weights.html">here</a>.</p>
+<p>We use the Queen contiguity matrix, which is a row-standardized, symmetric matrix that indicates whether two areas are neighbors based on whether they share a vertex or edge. The value at cell <img src="https://latex.codecogs.com/png.latex?w_%7Bi,j%7D"> is 1 if <img src="https://latex.codecogs.com/png.latex?i"> and <img src="https://latex.codecogs.com/png.latex?j"> are neighbors and 0 otherwise. Using PySAL, the weights matrix with Queen contiguity can be created as follows:</p>
+<div id="cell-17" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"></span>
+<span id="cb11-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> pysal.lib <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> weights</span>
+<span id="cb11-3"></span>
+<span id="cb11-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Queen contiguity.</span></span>
+<span id="cb11-5">wq <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> weights.contiguity.Queen.from_dataframe(gdf, use_index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb11-6"></span>
+<span id="cb11-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Convert to dense matrix for viewing:</span></span>
+<span id="cb11-8">W <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>wq.full()).astype(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>)</span>
+<span id="cb11-9"></span>
+<span id="cb11-10">W</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="20">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">0</th>
+<th data-quarto-table-cell-role="th">1</th>
+<th data-quarto-table-cell-role="th">2</th>
+<th data-quarto-table-cell-role="th">3</th>
+<th data-quarto-table-cell-role="th">4</th>
+<th data-quarto-table-cell-role="th">5</th>
+<th data-quarto-table-cell-role="th">6</th>
+<th data-quarto-table-cell-role="th">7</th>
+<th data-quarto-table-cell-role="th">8</th>
+<th data-quarto-table-cell-role="th">9</th>
+<th data-quarto-table-cell-role="th">10</th>
+<th data-quarto-table-cell-role="th">11</th>
+<th data-quarto-table-cell-role="th">12</th>
+<th data-quarto-table-cell-role="th">13</th>
+<th data-quarto-table-cell-role="th">14</th>
+<th data-quarto-table-cell-role="th">15</th>
+<th data-quarto-table-cell-role="th">16</th>
+<th data-quarto-table-cell-role="th">17</th>
+<th data-quarto-table-cell-role="th">18</th>
+<th data-quarto-table-cell-role="th">19</th>
+<th data-quarto-table-cell-role="th">20</th>
+<th data-quarto-table-cell-role="th">21</th>
+<th data-quarto-table-cell-role="th">22</th>
+<th data-quarto-table-cell-role="th">23</th>
+<th data-quarto-table-cell-role="th">24</th>
+<th data-quarto-table-cell-role="th">25</th>
+<th data-quarto-table-cell-role="th">26</th>
+<th data-quarto-table-cell-role="th">27</th>
+<th data-quarto-table-cell-role="th">28</th>
+<th data-quarto-table-cell-role="th">29</th>
+<th data-quarto-table-cell-role="th">30</th>
+<th data-quarto-table-cell-role="th">31</th>
+<th data-quarto-table-cell-role="th">32</th>
+<th data-quarto-table-cell-role="th">33</th>
+<th data-quarto-table-cell-role="th">34</th>
+<th data-quarto-table-cell-role="th">35</th>
+<th data-quarto-table-cell-role="th">36</th>
+<th data-quarto-table-cell-role="th">37</th>
+<th data-quarto-table-cell-role="th">38</th>
+<th data-quarto-table-cell-role="th">39</th>
+<th data-quarto-table-cell-role="th">40</th>
+<th data-quarto-table-cell-role="th">41</th>
+<th data-quarto-table-cell-role="th">42</th>
+<th data-quarto-table-cell-role="th">43</th>
+<th data-quarto-table-cell-role="th">44</th>
+<th data-quarto-table-cell-role="th">45</th>
+<th data-quarto-table-cell-role="th">46</th>
+<th data-quarto-table-cell-role="th">47</th>
+<th data-quarto-table-cell-role="th">48</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">14</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">15</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">18</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">19</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">20</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">21</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">23</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">24</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">25</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">26</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">27</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">28</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">29</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">30</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">31</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">32</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">33</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">34</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">35</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">36</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">37</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">38</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">39</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">40</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">41</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">42</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">43</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">44</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">45</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">46</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">47</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">48</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>The number of neighbors for each state is available in <code>wq</code>’s <code>cardinalities</code> attribute:</p>
+<div id="cell-19" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
+<span id="cb12-2">wq.cardinalities</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>{0: 4,
+ 1: 5,
+ 2: 6,
+ 3: 3,
+ 4: 7,
+ 5: 3,
+ 6: 3,
+ 7: 2,
+ 8: 2,
+ 9: 5,
+ 10: 6,
+ 11: 6,
+ 12: 4,
+ 13: 6,
+ 14: 4,
+ 15: 7,
+ 16: 3,
+ 17: 1,
+ 18: 5,
+ 19: 5,
+ 20: 5,
+ 21: 5,
+ 22: 4,
+ 23: 8,
+ 24: 4,
+ 25: 6,
+ 26: 5,
+ 27: 3,
+ 28: 3,
+ 29: 5,
+ 30: 6,
+ 31: 4,
+ 32: 3,
+ 33: 5,
+ 34: 6,
+ 35: 4,
+ 36: 6,
+ 37: 3,
+ 38: 2,
+ 39: 6,
+ 40: 8,
+ 41: 4,
+ 42: 6,
+ 43: 3,
+ 44: 6,
+ 45: 2,
+ 46: 5,
+ 47: 4,
+ 48: 6}</code></pre>
+</div>
+</div>
+<p><br></p>
+<p><code>gdf</code> is sorted by NAME, so index 0 represents Alabama, index 1 = Arizona, etc. Iowa is at index 13. The columns with value 1 for row index 13 represent Iowa’s neighbors in terms of Queen contiguity:</p>
+<div id="cell-21" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
+<span id="cb14-2">iowa <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> W.loc[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">13</span>]</span>
+<span id="cb14-3"></span>
+<span id="cb14-4">iowa_neighbor_indices <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> iowa[iowa<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].index</span>
+<span id="cb14-5"></span>
+<span id="cb14-6">iowa_neighbor_names <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.loc[iowa_neighbor_indices, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>]</span>
+<span id="cb14-7"></span>
+<span id="cb14-8">iowa_neighbor_names</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<pre><code>11        Illinois
+21       Minnesota
+23        Missouri
+25        Nebraska
+39    South Dakota
+47       Wisconsin
+Name: NAME, dtype: object</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Spatial lag calculates the average number of tornadoes for a given state’s neighbors, and assigns the result to the state:</p>
+<div id="cell-23" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"></span>
+<span id="cb16-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Row standardized weights.</span></span>
+<span id="cb16-3">wq.transform <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"r"</span></span>
+<span id="cb16-4"></span>
+<span id="cb16-5">lag <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> weights.lag_spatial(wq, gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>])</span>
+<span id="cb16-6"></span>
+<span id="cb16-7">gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lag"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> lag</span>
+<span id="cb16-8"></span></code></pre></div>
+</div>
+<p><br></p>
+<p>For Iowa, the spatial lag is 79.83. If we compute the average number of tornadoes from Illinois, Minnesota, Missouri, Nebraska, South Dakota and Wisconsin, we should get 79.83:</p>
+<div id="cell-25" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"></span>
+<span id="cb17-2">actual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.loc[iowa_neighbor_indices, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>].mean()</span>
+<span id="cb17-3"></span>
+<span id="cb17-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Iowa spatial lag - actual / expected: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>actual<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> / 79.83"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Iowa spatial lag - actual / expected: 79.83 / 79.83</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Visualizing the spatial lag can provide further insight into the underlying process. It tends to smooth spatial data, making it easier to identify patterns and trends:</p>
+<div id="cell-27" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"></span>
+<span id="cb19-2">cmap <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"turbo"</span></span>
+<span id="cb19-3"></span>
+<span id="cb19-4">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb19-5">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Spatial lag"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb19-6">gdf.plot(</span>
+<span id="cb19-7">    ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, column<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lag"</span>, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gray"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.50</span>, </span>
+<span id="cb19-8">    cmap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>cmap, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.750</span>, legend<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb19-9">    legend_kwds<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"label"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Nbr. Tornadoes"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"orientation"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"vertical"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"shrink"</span>: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>}</span>
+<span id="cb19-10">    )</span>
+<span id="cb19-11">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb19-12">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation_files/figure-html/cell-14-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+</section>
+<section id="global-morans-i" class="level2">
+<h2 class="anchored" data-anchor-id="global-morans-i">Global Moran’s I</h2>
+<p>Now that we’ve defined the spatial weights matrix, it is straightforward to quantify spatial autocorrelation. Global Moran’s I is a measure of the overall clustering of spatial data, defined as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AI%20=%20%5Cfrac%7BN%7D%7BW%7D%20%5Cfrac%7B%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Csum_%7Bj=1%7D%5E%7BN%7D%20w_%7Bij%7D(x_%7Bi%7D%20-%20%5Cbar%7Bx%7D)(x_%7Bj%7D%20-%20%5Cbar%7Bx%7D)%7D%7B%5Csum_%7Bi=1%7D%5E%7BN%7D%20(x_%7Bi%7D%20-%20%5Cbar%7Bx%7D)%5E%7B2%7D%7D,%0A"></p>
+<p>where</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?N">: The number of spatial units, 49 in our case (lower 48 + District of Columbia)</li>
+<li><img src="https://latex.codecogs.com/png.latex?W">: The sum of values in the spatial weights matrix</li>
+<li><img src="https://latex.codecogs.com/png.latex?x">: The variable of interest (tornadoes)</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bx%7D">: The global mean of <img src="https://latex.codecogs.com/png.latex?x"> over all spatial units</li>
+<li><img src="https://latex.codecogs.com/png.latex?w_%7Bij%7D">: Elements of the spatial weights matrix which encodes spatial interaction</li>
+</ul>
+<p><br></p>
+<p>We’ll again rely on Queen contiguity. We first compute Global Moran’s I using the formula above, then compare the result with the value returned by PySAL.</p>
+<div id="cell-29" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"></span>
+<span id="cb20-2">wq <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> weights.contiguity.Queen.from_dataframe(gdf, use_index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb20-3">W <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>wq.full()).values</span>
+<span id="cb20-4"></span>
+<span id="cb20-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Computing Moran's I manually. </span></span>
+<span id="cb20-6">N <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb20-7"></span>
+<span id="cb20-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Average number tornadoes over all states.</span></span>
+<span id="cb20-9">xbar <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>].mean()</span>
+<span id="cb20-10"></span>
+<span id="cb20-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Denominator of Moran's I.</span></span>
+<span id="cb20-12">denom <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>((gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> xbar)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb20-13"></span>
+<span id="cb20-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Update numerator at each iteration.</span></span>
+<span id="cb20-15">numer <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb20-16"></span>
+<span id="cb20-17"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(N):</span>
+<span id="cb20-18">    x_i <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.at[i, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>]</span>
+<span id="cb20-19">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> j <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(N):</span>
+<span id="cb20-20">        x_j <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.at[j, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>]</span>
+<span id="cb20-21">        w_ij <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> W[i, j]</span>
+<span id="cb20-22">        numer<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span>w_ij <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (x_i <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> xbar) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (x_j <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> xbar)</span>
+<span id="cb20-23">        </span>
+<span id="cb20-24"></span>
+<span id="cb20-25"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute Global Moran's I.</span></span>
+<span id="cb20-26">I1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (N <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> W.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>().<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>()) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> numer <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> denom</span>
+<span id="cb20-27"></span>
+<span id="cb20-28"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Manual calculation of Global Moran's I: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>I1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Manual calculation of Global Moran's I: 0.60.</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Using PySAL:</p>
+<div id="cell-31" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb22" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"></span>
+<span id="cb22-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> esda.moran <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Moran</span>
+<span id="cb22-3"></span>
+<span id="cb22-4">I2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Moran(gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>].values,  wq)</span>
+<span id="cb22-5"></span>
+<span id="cb22-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"PySAL calculation of Global Moran's I: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>I2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>I<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>PySAL calculation of Global Moran's I: 0.61.</code></pre>
+</div>
+</div>
+<p>Pretty close.</p>
+<p>As a rule of thumb:</p>
+<ul>
+<li>If <img src="https://latex.codecogs.com/png.latex?I"> is above <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B-1%7D%7BN%20-%201%7D">, there exists positive spatial correlation (values are clustered)</li>
+<li>If <img src="https://latex.codecogs.com/png.latex?I"> is below <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B-1%7D%7BN%20-%201%7D">, there exists negative spatial correlation (neighboring values are dissimilar)</li>
+<li>If <img src="https://latex.codecogs.com/png.latex?I%20%5Capprox%20%5Cfrac%7B-1%7D%7BN-1%7D">, there exists no spatial correlation</li>
+</ul>
+<p><br></p>
+<p>The significance of a correlation in Moran’s I is determined by the z-score and p-value, assuming an expected value of <img src="https://latex.codecogs.com/png.latex?-1%20/%20(N%20-%201)">. The null hypothesis states that tornadoes are spatially uncorrelated. PySAL returns the p-value of Global Moran’s I under the normality assumption:</p>
+<div id="cell-33" class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb24" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"></span>
+<span id="cb24-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"PySAL Global Moran's I p-value: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>I2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>p_norm<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>PySAL Global Moran's I p-value: 3.106619400835348e-11</code></pre>
+</div>
+</div>
+<p>Which suggests it is very unlikely that the observed degree of clustering of tornadoes arose by chance.</p>
+<p>There are many other techniques that can be used to assess spatial autocorrelation. These will be explored in a future post.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Python</category>
+  <category>Geospatial</category>
+  <guid>https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation.html</guid>
+  <pubDate>Sun, 20 Oct 2024 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Determining Distance to Coastline for Policy Locations Using GeoPandas</title>
   <link>https://www.jtrive.com/posts/distance-to-coastline/distance-to-coastline.html</link>
@@ -25660,331 +29652,6 @@ font-style: inherit;">1</span>])</span></code></pre></div>
  ]]></description>
   <category>Python</category>
   <guid>https://www.jtrive.com/posts/shared-parallel-python/shared-parallel-python.html</guid>
-  <pubDate>Sat, 24 Feb 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Finding Roots of Equations in R with uniroot</title>
-  <link>https://www.jtrive.com/posts/uniroot-r/uniroot-r.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>Often times we encounter equations which cannot be solved using direct methods. Such systems of equations are commonly encountered within the context of maximum likelihood estimation, and in such cases, iterative methods can be used to obtain a solution.</p>
-<p>Assume a set of observations representing ground-up property losses in dollars:</p>
-<pre><code>19999  19974  5051  7179 34416  56840  4420  6558</code></pre>
-<p>Our task is to fit a Weibull distribution to the loss data in order to produce a severity curve. The Weibull density is given by:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Af(x;%5Clambda%20,k)%20=%20%5Cfrac%7Bk%7D%7B%5Clambda%7D%5CBig(%5Cfrac%7Bx%7D%7B%5Clambda%7D%5CBig)%5E%7Bk%20-%201%7D%5Cmathrm%7Bexp%7D%5Cbig%5B-(x/%5Clambda)%5Ek%5Cbig%5D,%0A"></p>
-<p>where:</p>
-<ul>
-<li><img src="https://latex.codecogs.com/png.latex?k"> is the shape parameter, <img src="https://latex.codecogs.com/png.latex?k%20%5Cin%20(0,%20+%5Cinfty)."></li>
-<li><img src="https://latex.codecogs.com/png.latex?%5Clambda"> is the scale parameter, <img src="https://latex.codecogs.com/png.latex?%5Clambda%20%5Cin%20(0,%20+%5Cinfty)">.</li>
-<li><img src="https://latex.codecogs.com/png.latex?x%20%5Cin%20%5B0,%20+%5Cinfty%5D">.</li>
-</ul>
-<p>The expected value of the Weibull distribution is</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AE%5BX%5D%20=%20%5Clambda%5CGamma(1%20+%201/k),%0A"></p>
-<p>and the median is given by</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7Bmedian%7D%20=%20F(X%20%5Cleq%20.50)%20=%20%5Clambda(%5Cmathrm%7BLn%7D(2))%5E%7B1/k%7D.%0A"></p>
-<p>The variance is given by</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7BVar%7D(X)%20=%20%5Clambda%5E2%5Cbig%5B%5CGamma%5Cbig(1%20+%202/k%5Cbig)%20-%20%5Cbig(%5CGamma(1%20+%201/k)%5Cbig)%5E2%5Cbig%5D.%0A"></p>
-<p>In <img src="https://latex.codecogs.com/png.latex?E%5BX%5D">, <img src="https://latex.codecogs.com/png.latex?%5CGamma"> represents the gamma function, a generalization of the factorial expressed as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5CGamma%7B(z)%7D%20=%20%5Cint_%7B0%7D%5E%7B%5Cinfty%7D%20x%5E%7Bz-1%7De%5E%7B-x%7Ddx,%20%5Chspace%7B.50em%7D%20%5Cmathcal%7BR%7D(z)%20%3E%200.%0A"></p>
-<p>The fitdistrplus library calculates parameter estimates given data and a hypothesized distribution. The <code>fitdist</code> function takes an optional <code>start</code> parameter, which represents initial parameter values associated with the hypothesized distribution. The Weibull distribution has two parameters that require estimation: <img src="https://latex.codecogs.com/png.latex?k">, the shape parameter and <img src="https://latex.codecogs.com/png.latex?%5Clambda">, the scale parameter. How can we come up with reasonable initial estimates of <img src="https://latex.codecogs.com/png.latex?k"> and <img src="https://latex.codecogs.com/png.latex?%5Clambda">?</p>
-<p>First, notice that if the mean is divided by the median, <img src="https://latex.codecogs.com/png.latex?%5Clambda"> cancels, leaving a function of <img src="https://latex.codecogs.com/png.latex?k"> only. By setting what remains to the ratio of the empirical mean to median, the result will be an expression we can use to obtain an initial estimate of <img src="https://latex.codecogs.com/png.latex?k">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7BE%5BX%5D%7D%7B%5Cmathrm%7Bmedian%7D%7D%20=%201.421915%20=%20%5Cfrac%7B%5CGamma(1%20+%201/k)%7D%7B%5Cmathrm%7BLn%7D(2)%5E%7B1/k%7D%7D%0A"></p>
-<p>As a consequence of the Gamma function in the right-hand-side numerator, we cannot solve for <img src="https://latex.codecogs.com/png.latex?k"> using direct methods. In R, we use <code>uniroot</code> to estimate roots of univariate functions numerically. In the code that follows, we implement a closure which returns a function which then can be evaluated and <code>k</code>, it’s sole argument, which <code>uniroot</code> will use to zero-in on a solution:</p>
-<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Example solving for Weibull shape parameter using uniroot.</span></span>
-<span id="cb2-2">lossData <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">19999</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">19974</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5051</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7179</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">34416</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">56840</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4420</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6558</span>)</span>
-<span id="cb2-3"></span>
-<span id="cb2-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Calling shapeFunc returns a function, which can then be used by uniroot to find a solution.</span></span>
-<span id="cb2-5">shapeFunc <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">function</span>(v) {</span>
-<span id="cb2-6">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute ratio of empirical mean to median.</span></span>
-<span id="cb2-7">    ratio <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">mean</span>(v) <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">median</span>(v)</span>
-<span id="cb2-8">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">function</span>(k) {</span>
-<span id="cb2-9">        <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">return</span>((<span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">gamma</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> k)) <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> (<span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">log</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">^</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> k))) <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> ratio)</span>
-<span id="cb2-10">    }</span>
-<span id="cb2-11">}</span>
-<span id="cb2-12"></span>
-<span id="cb2-13"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Evaluate shapeFunc. ff is a function which takes a single argument `k`. </span></span>
-<span id="cb2-14">ff <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">shapeFunc</span>(lossData)</span></code></pre></div>
-<p>The body of <code>shapeFunc</code> is a straightforward implementation of our ratio expression above. The only difference is the expression is set to 0 by subtracting the ratio (1.421915) from both sides. We have our function <code>ff</code> and the interval over which to search for a solution <img src="https://latex.codecogs.com/png.latex?0%20%5Clt%20k%20%5Cleq%20%5Cmathrm%7Bmax%7D(%5Cmathrm%7BlossData%7D))">. The call to <code>uniroot</code> is made below:</p>
-<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1">shape <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">uniroot</span>(ff, <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">interval=</span><span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">c</span>(.Machine<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">$</span>double.eps, <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">max</span>(lossData)))<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">$</span>root</span></code></pre></div>
-<p>Since <img src="https://latex.codecogs.com/png.latex?k"> is strictly greater than 0, we set the search interval lower bound to <code>.Machine$double.eps</code>, which represents the smallest positive floating-point value <img src="https://latex.codecogs.com/png.latex?x"> such that <img src="https://latex.codecogs.com/png.latex?1%20+%20x%20!=%201">. Our initial estimate for the shape parameter given our data is <img src="https://latex.codecogs.com/png.latex?%5Chat%7Bk%7D%20=%201.018877">. To determine an initial estimate for the scale parameter, we can use the fact that</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Clambda%20=%20%5Cfrac%7BE%5BX%5D%7D%7B%5CGamma(1%20+%201%20/%20%5Chat%7Bk%7D)%7D,%0A"></p>
-<p>resulting in <img src="https://latex.codecogs.com/png.latex?%5Chat%7B%5Clambda%7D%20=%2019454.27">.</p>
-<section id="obtaining-maximum-likelihood-estimates" class="level3">
-<h3 class="anchored" data-anchor-id="obtaining-maximum-likelihood-estimates">Obtaining Maximum Likelihood Estimates</h3>
-<p>With our hypothesized distribution and initial parameters, obtaining maximum likelihood estimates is straightforward. The initial parameter estimation code is included again for convenience:</p>
-<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Computing maximum likelihood estimates using fitdistrplus.</span></span>
-<span id="cb4-2"><span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">library</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"fitdistplus"</span>)</span>
-<span id="cb4-3"></span>
-<span id="cb4-4">lossData <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">c</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">19999</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">19974</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5051</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7179</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">34416</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">56840</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4420</span>,  <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6558</span>)</span>
-<span id="cb4-5"></span>
-<span id="cb4-6">shapeFunc <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">function</span>(v) {</span>
-<span id="cb4-7">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute ratio of empirical mean to median.</span></span>
-<span id="cb4-8">    ratio <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">mean</span>(v) <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">median</span>(v)</span>
-<span id="cb4-9">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">function</span>(k) {</span>
-<span id="cb4-10">        <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">return</span>((<span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">gamma</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> k)) <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> (<span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">log</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">^</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> k))) <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> ratio)</span>
-<span id="cb4-11">    }</span>
-<span id="cb4-12">}</span>
-<span id="cb4-13"></span>
-<span id="cb4-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Evaluate shapeFunc. ff is a function which takes a single argument `k`. </span></span>
-<span id="cb4-15">ff <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">shapeFunc</span>(lossData)</span>
-<span id="cb4-16"></span>
-<span id="cb4-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initial shape parameter estimate.</span></span>
-<span id="cb4-18">shape0 <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">uniroot</span>(ff, <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">interval=</span><span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">c</span>(.Machine<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">$</span>double.eps, <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">max</span>(lossData)))<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">$</span>root</span>
-<span id="cb4-19"></span>
-<span id="cb4-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initial scale parameter estimate.</span></span>
-<span id="cb4-21">scale0 <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">mean</span>(lossData) <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">gamma</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> shape0))</span>
-<span id="cb4-22"></span>
-<span id="cb4-23"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Obtain mle parameter estimates.</span></span>
-<span id="cb4-24">mleFit <span class="ot" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">=</span> fitdistrplus<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">::</span><span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">fitdist</span>(</span>
-<span id="cb4-25">    lossData, <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">distr=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"weibull"</span>, <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">method=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"mle"</span>, <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">start=</span><span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">list</span>(<span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">shape=</span>shape0, <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">scale=</span>scale0)</span>
-<span id="cb4-26">    )</span></code></pre></div>
-<p>Accessing <code>mleFit</code>’s <code>estimate</code> attribute, parameter estimates are:</p>
-<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&gt;</span> mleFit<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">$</span>estimate</span>
-<span id="cb5-2">        shape        scale </span>
-<span id="cb5-3">    <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.177033</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">20525.761478</span> </span></code></pre></div>
-<p>Which is close to our initial starting parameter estimates.</p>
-
-
-</section>
-
- ]]></description>
-  <category>Statistical Modeling</category>
-  <category>R</category>
-  <guid>https://www.jtrive.com/posts/uniroot-r/uniroot-r.html</guid>
   <pubDate>Sat, 24 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>

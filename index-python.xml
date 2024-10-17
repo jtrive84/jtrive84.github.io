@@ -10,7 +10,3999 @@
 <atom:link href="https://www.jtrive.com/index-python.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Mon, 14 Oct 2024 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 20 Oct 2024 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Quantifying Spatial Autocorrelation with Moran’s I</title>
+  <link>https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Spatial autocorrelation is a statistical concept that measures how similar values of a variable are based on their proximity to each other on a map. Positive spatial autocorrelation means that geographically nearby values of a variable tend to be similar on a map: high values tend to be located near high values, and low values near low values. By analyzing the spatial distribution of potential hazards, insurers can identify patterns and trends that might not be apparent when looking at data in isolation. This allows for more accurate risk assessment and pricing, ensuring that premiums are set appropriately based on the actual risk in different geospatial cohorts. Additionally, understanding geospatial correlations can help insurers develop targeted strategies for risk mitigation and improve their overall portfolio management. This approach ultimately leads to better financial stability for the insurer and fairer pricing for policyholders.</p>
+<p>It is well known that tornadoes frequently occur in “Tornado Alley”, a loosely defined location of states including Texas, Louisiana, Oklahoma, Kansas, South Dakota, Iowa and Nebraska. In what follows, we analyze tornado events from 2008-Present and estimate the global spatial autocorrelation for these events using Moran’s I, and determie if the results align with our prior assumptions of positive spatial autocorrelation.</p>
+<p>The National Oceanic and Atmospheric Administration (NOAA) documents the occurrence of storms and other significant weather phenomena having sufficient intensity to cause loss of life, injuries, significant property damage, and/or disruption to commerce. The database for events going back to 1950 is available for download <a href="https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/">here</a>, and serves as the starting point for our analysis. U.S. state shapefiles are available <a href="https://www2.census.gov/geo/tiger/TIGER2024/STATE/">here</a>.</p>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> geopandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> gpd</span>
+<span id="cb1-6"></span>
+<span id="cb1-7">np.set_printoptions(suppress<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, precision<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb1-8">pd.options.mode.chained_assignment <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb1-9">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.max_columns'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-10">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.width'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-11"></span>
+<span id="cb1-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Storm data. </span></span>
+<span id="cb1-13">noaa_path <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F:/actu-s/CatastropheData/NOAA_Storm_Data/noaa-storm-data-1950-2024.csv.gz"</span></span>
+<span id="cb1-14"></span>
+<span id="cb1-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># US state shapefiles. </span></span>
+<span id="cb1-16">state_shp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"C:/Users/i103455/Downloads/tl_2024_us_state.zip"</span></span>
+<span id="cb1-17"></span></code></pre></div>
+</div>
+<p><br></p>
+<p>We begin by reading in the the NOAA storm event data and filter down to tornado events from 2008-present. We also remove lower severity tornado events based on the <a href="https://en.wikipedia.org/wiki/Enhanced_Fujita_scale">Enhanced Fujita Scale</a>:</p>
+<p><strong>Enhanced Fujita scale</strong>:</p>
+<ul>
+<li><strong>EFU</strong>: Unknown</li>
+<li><strong>EF0</strong>: 65-85 mph (Light)</li>
+<li><strong>EF1</strong>: 86-110 mph (Moderate)</li>
+<li><strong>EF2</strong>: 111-135 mph (Cosiderable)</li>
+<li><strong>EF3</strong>: 136-165 mph (Severe)</li>
+<li><strong>EF4</strong>: 166-200 mph (Devestating)</li>
+<li><strong>EF5</strong>: &gt;200 mph (Incredible)</li>
+</ul>
+<p>Events with TOR_F_SCALE = “F0”, “F1”, “EF0”, “EF1” are excluded.</p>
+<div id="cell-4" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Obtained here: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/</span></span>
+<span id="cb2-3">dfstorms_all <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.read_csv(noaa_path, low_memory<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb2-4"></span>
+<span id="cb2-5">keep_events <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb2-6">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F2"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EF2"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F3"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F4"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"F5"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EF3"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EF4"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EF5"</span></span>
+<span id="cb2-7">]</span>
+<span id="cb2-8"></span>
+<span id="cb2-9">dfstorms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dfstorms_all[</span>
+<span id="cb2-10">    (dfstorms_all.YEAR<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2008</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span> </span>
+<span id="cb2-11">    (dfstorms_all.EVENT_TYPE<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Tornado"</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb2-12">    (dfstorms_all.TOR_F_SCALE.isin(keep_events))</span>
+<span id="cb2-13">]</span>
+<span id="cb2-14"></span>
+<span id="cb2-15">dfstorms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb2-16">    dfstorms</span>
+<span id="cb2-17">    .dropna(subset<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"BEGIN_LAT"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"BEGIN_LON"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TOR_F_SCALE"</span>])</span>
+<span id="cb2-18">    .reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb2-19">)</span>
+<span id="cb2-20"></span>
+<span id="cb2-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Filter storms to lower 48 states.</span></span>
+<span id="cb2-22">storms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gpd.GeoDataFrame(</span>
+<span id="cb2-23">    dfstorms,</span>
+<span id="cb2-24">    geometry<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>gpd.points_from_xy(dfstorms.BEGIN_LON, dfstorms.BEGIN_LAT),</span>
+<span id="cb2-25">    crs<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EPSG:4326"</span></span>
+<span id="cb2-26">)</span>
+<span id="cb2-27"></span>
+<span id="cb2-28">storms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> storms[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EVENT_ID"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TOR_F_SCALE"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"geometry"</span>]]</span>
+<span id="cb2-29">storms <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> storms.cx[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">125</span>:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">65</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">24.6</span>:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>].reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb2-30"></span>
+<span id="cb2-31"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Number of storms: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>storms<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb2-32"></span>
+<span id="cb2-33">storms.head()</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Number of storms: (2917, 3)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">EVENT_ID</th>
+<th data-quarto-table-cell-role="th">TOR_F_SCALE</th>
+<th data-quarto-table-cell-role="th">geometry</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>105611</td>
+<td>EF2</td>
+<td>POINT (-96.30000 43.14210)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>80215</td>
+<td>EF2</td>
+<td>POINT (-86.01250 37.66250)</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>80216</td>
+<td>EF2</td>
+<td>POINT (-85.77590 37.69650)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>80218</td>
+<td>EF2</td>
+<td>POINT (-85.06490 37.68890)</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>79065</td>
+<td>EF2</td>
+<td>POINT (-85.38120 37.81130)</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Reviewing the distribution of F and EF events:</p>
+<div id="cell-6" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2">storms.TOR_F_SCALE.value_counts()</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>TOR_F_SCALE
+EF2    2197
+EF3     579
+EF4     128
+EF5      13
+Name: count, dtype: int64</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Load the state shapefile and overlay retained tornado events:</p>
+<div id="cell-8" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> os</span>
+<span id="cb6-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> sys</span>
+<span id="cb6-4"></span>
+<span id="cb6-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># This suppresses `Cannot find header.dxf (GDAL_DATA is not defined)` warning.</span></span>
+<span id="cb6-6">os.environ[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'GDAL_DATA'</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> os.path.join(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f'</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>os<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>sep<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'</span>.join(sys.executable.split(os.sep)[:<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]), <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Library'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'share'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'gdal'</span>)</span>
+<span id="cb6-7"></span>
+<span id="cb6-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Filter to lower 48 states. </span></span>
+<span id="cb6-9">states <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gpd.read_file(state_shp).to_crs(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"EPSG:4326"</span>)[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"geometry"</span>]]</span>
+<span id="cb6-10">states <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> states.cx[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">125</span>:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">65</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">24.6</span>:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>].reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb6-11"></span>
+<span id="cb6-12">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb6-13">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"U.S. Tornadoes ex. EF0, EF1: 2008-Present"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span>
+<span id="cb6-14">states.boundary.plot(ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"grey"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>)</span>
+<span id="cb6-15">storms.plot(ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>, marker<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"x"</span>, markersize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">25</span>, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>)</span>
+<span id="cb6-16">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb6-17">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>There are more tornadoes in the mid-south and southeast than expected. Nonetheless, there exists a clear spatial pattern to the events: Tornadoes do not appear randomly distributed over the lower 48 states. We can use Global Moran’s I to gauge the degree of spatial autocorrelation inherent in the data.</p>
+<p>In order to assign each tornado to a state, a spatial join is performed where each event is assigned to the state polygon that encloses it:</p>
+<div id="cell-10" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2">dfn <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb7-3">    states</span>
+<span id="cb7-4">    .sjoin(storms)</span>
+<span id="cb7-5">    .groupby([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>], as_index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>).size()</span>
+<span id="cb7-6">    .rename({<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"size"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>}, axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb7-7">)</span>
+<span id="cb7-8"></span>
+<span id="cb7-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Merge dfn with states to get back geometry associated with each state.</span></span>
+<span id="cb7-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># gdf will be a GeoDataFrame.</span></span>
+<span id="cb7-11">gdf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb7-12">    states</span>
+<span id="cb7-13">    .merge(dfn, on<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>], how<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>)</span>
+<span id="cb7-14">    .fillna(value<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>})[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"geometry"</span>]]</span>
+<span id="cb7-15">    .sort_values(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>)</span>
+<span id="cb7-16">    .reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb7-17">)</span>
+<span id="cb7-18"></span>
+<span id="cb7-19"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Total number of events: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'n'</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb7-20"></span>
+<span id="cb7-21">gdf.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total number of events: 2917.0</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">NAME</th>
+<th data-quarto-table-cell-role="th">ALAND</th>
+<th data-quarto-table-cell-role="th">n</th>
+<th data-quarto-table-cell-role="th">geometry</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>Alabama</td>
+<td>131185561946</td>
+<td>253.0</td>
+<td>POLYGON ((-85.12733 31.76256, -85.12753 31.762...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>Arizona</td>
+<td>294366118294</td>
+<td>7.0</td>
+<td>POLYGON ((-110.75069 37.00301, -110.74193 37.0...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>Arkansas</td>
+<td>134658517854</td>
+<td>133.0</td>
+<td>POLYGON ((-90.95577 34.11871, -90.95451 34.117...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>California</td>
+<td>403673433805</td>
+<td>3.0</td>
+<td>MULTIPOLYGON (((-119.99987 41.18397, -119.9998...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>Colorado</td>
+<td>268418973518</td>
+<td>31.0</td>
+<td>POLYGON ((-105.15504 36.99526, -105.15543 36.9...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>Connecticut</td>
+<td>12541999507</td>
+<td>0.0</td>
+<td>POLYGON ((-72.52790 41.17777, -72.55156 41.173...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>Delaware</td>
+<td>5046692239</td>
+<td>4.0</td>
+<td>POLYGON ((-75.50949 39.68652, -75.50942 39.686...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>District of Columbia</td>
+<td>158316181</td>
+<td>0.0</td>
+<td>POLYGON ((-77.11975 38.93435, -77.11886 38.935...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>Florida</td>
+<td>138965379385</td>
+<td>40.0</td>
+<td>MULTIPOLYGON (((-83.10874 24.62949, -83.10711 ...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>Georgia</td>
+<td>149485762701</td>
+<td>153.0</td>
+<td>POLYGON ((-81.09538 31.52098, -81.09710 31.519...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>Idaho</td>
+<td>214050504522</td>
+<td>0.0</td>
+<td>POLYGON ((-116.35844 49.00047, -116.34805 49.0...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>Illinois</td>
+<td>143778206717</td>
+<td>140.0</td>
+<td>POLYGON ((-87.89243 38.28285, -87.89334 38.282...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>Indiana</td>
+<td>92786694938</td>
+<td>96.0</td>
+<td>POLYGON ((-86.32960 38.18180, -86.33037 38.182...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>Iowa</td>
+<td>144660344616</td>
+<td>123.0</td>
+<td>POLYGON ((-95.86095 43.50004, -95.85979 43.500...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">14</td>
+<td>Kansas</td>
+<td>211753821560</td>
+<td>129.0</td>
+<td>POLYGON ((-94.61764 37.76124, -94.61766 37.760...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">15</td>
+<td>Kentucky</td>
+<td>102266755818</td>
+<td>118.0</td>
+<td>MULTIPOLYGON (((-89.57120 36.55214, -89.57114 ...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>Louisiana</td>
+<td>111920866908</td>
+<td>122.0</td>
+<td>POLYGON ((-92.72474 33.01439, -92.72365 33.014...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17</td>
+<td>Maine</td>
+<td>79888396620</td>
+<td>0.0</td>
+<td>POLYGON ((-67.80569 45.68005, -67.80363 45.677...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">18</td>
+<td>Maryland</td>
+<td>25151223822</td>
+<td>5.0</td>
+<td>POLYGON ((-75.75600 39.24607, -75.75579 39.243...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">19</td>
+<td>Massachusetts</td>
+<td>20204400635</td>
+<td>3.0</td>
+<td>POLYGON ((-71.25515 42.73655, -71.25510 42.736...</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Visualizing the number of tornadoes by state:</p>
+<div id="cell-12" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
+<span id="cb9-2">cmap <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"turbo"</span></span>
+<span id="cb9-3"></span>
+<span id="cb9-4">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb9-5">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"U.S. Tornadoes by State ex. EF0, EF1: 2000-Present"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb9-6">gdf.plot(</span>
+<span id="cb9-7">    ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, column<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gray"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.50</span>, </span>
+<span id="cb9-8">    cmap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>cmap, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.750</span>, legend<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb9-9">    legend_kwds<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"label"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Nbr. Tornadoes"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"orientation"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"vertical"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"shrink"</span>: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>}</span>
+<span id="cb9-10">    )</span>
+<span id="cb9-11">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb9-12">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Texas appears to have a large number of events, but this may be due to the fact that Texas has the largest land area of any state in the lower 48. If tornadoes were randomly distributed, we wouldn’t expect to see clusters of similar values on the map. However, our attention is drawn to south central and south eastern states, where hues are brighter compared with coastal regions.</p>
+<p>Let’s take a look at number of events divided by ALAND:</p>
+<div id="cell-14" class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
+<span id="cb10-2">cmap <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"turbo"</span></span>
+<span id="cb10-3"></span>
+<span id="cb10-4">gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n_div_ALAND"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ALAND"</span>]</span>
+<span id="cb10-5"></span>
+<span id="cb10-6">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb10-7">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"U.S. tornadoes by state / land area ex. F0, EF0, F1, EF1: 2000-Present"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb10-8">gdf.plot(</span>
+<span id="cb10-9">    ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, column<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n_div_ALAND"</span>, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gray"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.50</span>, </span>
+<span id="cb10-10">    cmap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>cmap, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.750</span>, legend<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb10-11">    legend_kwds<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"label"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Nbr. Tornadoes"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"orientation"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"vertical"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"shrink"</span>: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>}</span>
+<span id="cb10-12">    )</span>
+<span id="cb10-13">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb10-14">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p><br></p>
+<p>Mississippi and Alabama are consistent with the raw counts choropleth, but Texas doesn’t stand out as much when normalized by total land area. Nonetheless, raw tornado counts are used for the subsequent analysis.</p>
+<p><br></p>
+<section id="spatial-weights" class="level3">
+<h3 class="anchored" data-anchor-id="spatial-weights">Spatial Weights</h3>
+<p>In order to quantify spatial autocorrelation, it is first necessary to define the idea of closeness or proximity between geospatial units. The spatial weights matrix <img src="https://latex.codecogs.com/png.latex?W"> encodes the spatial relationships between different locations in a dataset in much the same way as an adjacency matrix used in Graph Theory and Network Science. For a dataset with <img src="https://latex.codecogs.com/png.latex?N"> geospatial units, <img src="https://latex.codecogs.com/png.latex?W"> will have dimension <img src="https://latex.codecogs.com/png.latex?N%20%5Ctimes%20N">, with 0’s along the main diagonal. Each element <img src="https://latex.codecogs.com/png.latex?w_%7Bij%7D"> represents the spatial relationship between locations <img src="https://latex.codecogs.com/png.latex?i"> and <img src="https://latex.codecogs.com/png.latex?j">. The relationship can be based on distance, contiguity or some other criteria. More information of spatial weights matrices is available <a href="https://geographicdata.science/book/notebooks/04_spatial_weights.html">here</a>.</p>
+<p>We use the Queen contiguity matrix, which is a row-standardized, symmetric matrix that indicates whether two areas are neighbors based on whether they share a vertex or edge. The value at cell <img src="https://latex.codecogs.com/png.latex?w_%7Bi,j%7D"> is 1 if <img src="https://latex.codecogs.com/png.latex?i"> and <img src="https://latex.codecogs.com/png.latex?j"> are neighbors and 0 otherwise. Using PySAL, the weights matrix with Queen contiguity can be created as follows:</p>
+<div id="cell-17" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"></span>
+<span id="cb11-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> pysal.lib <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> weights</span>
+<span id="cb11-3"></span>
+<span id="cb11-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Queen contiguity.</span></span>
+<span id="cb11-5">wq <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> weights.contiguity.Queen.from_dataframe(gdf, use_index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb11-6"></span>
+<span id="cb11-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Convert to dense matrix for viewing:</span></span>
+<span id="cb11-8">W <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>wq.full()).astype(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>)</span>
+<span id="cb11-9"></span>
+<span id="cb11-10">W</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="20">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">0</th>
+<th data-quarto-table-cell-role="th">1</th>
+<th data-quarto-table-cell-role="th">2</th>
+<th data-quarto-table-cell-role="th">3</th>
+<th data-quarto-table-cell-role="th">4</th>
+<th data-quarto-table-cell-role="th">5</th>
+<th data-quarto-table-cell-role="th">6</th>
+<th data-quarto-table-cell-role="th">7</th>
+<th data-quarto-table-cell-role="th">8</th>
+<th data-quarto-table-cell-role="th">9</th>
+<th data-quarto-table-cell-role="th">10</th>
+<th data-quarto-table-cell-role="th">11</th>
+<th data-quarto-table-cell-role="th">12</th>
+<th data-quarto-table-cell-role="th">13</th>
+<th data-quarto-table-cell-role="th">14</th>
+<th data-quarto-table-cell-role="th">15</th>
+<th data-quarto-table-cell-role="th">16</th>
+<th data-quarto-table-cell-role="th">17</th>
+<th data-quarto-table-cell-role="th">18</th>
+<th data-quarto-table-cell-role="th">19</th>
+<th data-quarto-table-cell-role="th">20</th>
+<th data-quarto-table-cell-role="th">21</th>
+<th data-quarto-table-cell-role="th">22</th>
+<th data-quarto-table-cell-role="th">23</th>
+<th data-quarto-table-cell-role="th">24</th>
+<th data-quarto-table-cell-role="th">25</th>
+<th data-quarto-table-cell-role="th">26</th>
+<th data-quarto-table-cell-role="th">27</th>
+<th data-quarto-table-cell-role="th">28</th>
+<th data-quarto-table-cell-role="th">29</th>
+<th data-quarto-table-cell-role="th">30</th>
+<th data-quarto-table-cell-role="th">31</th>
+<th data-quarto-table-cell-role="th">32</th>
+<th data-quarto-table-cell-role="th">33</th>
+<th data-quarto-table-cell-role="th">34</th>
+<th data-quarto-table-cell-role="th">35</th>
+<th data-quarto-table-cell-role="th">36</th>
+<th data-quarto-table-cell-role="th">37</th>
+<th data-quarto-table-cell-role="th">38</th>
+<th data-quarto-table-cell-role="th">39</th>
+<th data-quarto-table-cell-role="th">40</th>
+<th data-quarto-table-cell-role="th">41</th>
+<th data-quarto-table-cell-role="th">42</th>
+<th data-quarto-table-cell-role="th">43</th>
+<th data-quarto-table-cell-role="th">44</th>
+<th data-quarto-table-cell-role="th">45</th>
+<th data-quarto-table-cell-role="th">46</th>
+<th data-quarto-table-cell-role="th">47</th>
+<th data-quarto-table-cell-role="th">48</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">14</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">15</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">18</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">19</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">20</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">21</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">23</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">24</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">25</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">26</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">27</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">28</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">29</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">30</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">31</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">32</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">33</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">34</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">35</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">36</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">37</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">38</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">39</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">40</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">41</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">42</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">43</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">44</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">45</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">46</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">47</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">48</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p><br></p>
+<p>The number of neighbors for each state is available in <code>wq</code>’s <code>cardinalities</code> attribute:</p>
+<div id="cell-19" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
+<span id="cb12-2">wq.cardinalities</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>{0: 4,
+ 1: 5,
+ 2: 6,
+ 3: 3,
+ 4: 7,
+ 5: 3,
+ 6: 3,
+ 7: 2,
+ 8: 2,
+ 9: 5,
+ 10: 6,
+ 11: 6,
+ 12: 4,
+ 13: 6,
+ 14: 4,
+ 15: 7,
+ 16: 3,
+ 17: 1,
+ 18: 5,
+ 19: 5,
+ 20: 5,
+ 21: 5,
+ 22: 4,
+ 23: 8,
+ 24: 4,
+ 25: 6,
+ 26: 5,
+ 27: 3,
+ 28: 3,
+ 29: 5,
+ 30: 6,
+ 31: 4,
+ 32: 3,
+ 33: 5,
+ 34: 6,
+ 35: 4,
+ 36: 6,
+ 37: 3,
+ 38: 2,
+ 39: 6,
+ 40: 8,
+ 41: 4,
+ 42: 6,
+ 43: 3,
+ 44: 6,
+ 45: 2,
+ 46: 5,
+ 47: 4,
+ 48: 6}</code></pre>
+</div>
+</div>
+<p><br></p>
+<p><code>gdf</code> is sorted by NAME, so index 0 represents Alabama, index 1 = Arizona, etc. Iowa is at index 13. The columns with value 1 for row index 13 represent Iowa’s neighbors in terms of Queen contiguity:</p>
+<div id="cell-21" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
+<span id="cb14-2">iowa <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> W.loc[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">13</span>]</span>
+<span id="cb14-3"></span>
+<span id="cb14-4">iowa_neighbor_indices <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> iowa[iowa<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].index</span>
+<span id="cb14-5"></span>
+<span id="cb14-6">iowa_neighbor_names <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.loc[iowa_neighbor_indices, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"NAME"</span>]</span>
+<span id="cb14-7"></span>
+<span id="cb14-8">iowa_neighbor_names</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<pre><code>11        Illinois
+21       Minnesota
+23        Missouri
+25        Nebraska
+39    South Dakota
+47       Wisconsin
+Name: NAME, dtype: object</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Spatial lag calculates the average number of tornadoes for a given state’s neighbors, and assigns the result to the state:</p>
+<div id="cell-23" class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"></span>
+<span id="cb16-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Row standardized weights.</span></span>
+<span id="cb16-3">wq.transform <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"r"</span></span>
+<span id="cb16-4"></span>
+<span id="cb16-5">lag <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> weights.lag_spatial(wq, gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>])</span>
+<span id="cb16-6"></span>
+<span id="cb16-7">gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lag"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> lag</span>
+<span id="cb16-8"></span></code></pre></div>
+</div>
+<p><br></p>
+<p>For Iowa, the spatial lag is 79.83. If we compute the average number of tornadoes from Illinois, Minnesota, Missouri, Nebraska, South Dakota and Wisconsin, we should get 79.83:</p>
+<div id="cell-25" class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"></span>
+<span id="cb17-2">actual <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.loc[iowa_neighbor_indices, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>].mean()</span>
+<span id="cb17-3"></span>
+<span id="cb17-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Iowa spatial lag - actual / expected: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>actual<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> / 79.83"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Iowa spatial lag - actual / expected: 79.83 / 79.83</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Visualizing the spatial lag can provide further insight into the underlying process. It tends to smooth spatial data, making it easier to identify patterns and trends:</p>
+<div id="cell-27" class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"></span>
+<span id="cb19-2">cmap <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"turbo"</span></span>
+<span id="cb19-3"></span>
+<span id="cb19-4">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb19-5">ax.set_title(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Spatial lag"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">9</span>)</span>
+<span id="cb19-6">gdf.plot(</span>
+<span id="cb19-7">    ax<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ax, column<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lag"</span>, edgecolor<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gray"</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.50</span>, </span>
+<span id="cb19-8">    cmap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>cmap, alpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.750</span>, legend<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb19-9">    legend_kwds<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"label"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Nbr. Tornadoes"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"orientation"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"vertical"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"shrink"</span>: <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.35</span>}</span>
+<span id="cb19-10">    )</span>
+<span id="cb19-11">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb19-12">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation_files/figure-html/cell-14-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+</section>
+<section id="global-morans-i" class="level2">
+<h2 class="anchored" data-anchor-id="global-morans-i">Global Moran’s I</h2>
+<p>Now that we’ve defined the spatial weights matrix, it is straightforward to quantify spatial autocorrelation. Global Moran’s I is a measure of the overall clustering of spatial data, defined as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AI%20=%20%5Cfrac%7BN%7D%7BW%7D%20%5Cfrac%7B%5Csum_%7Bi=1%7D%5E%7BN%7D%20%5Csum_%7Bj=1%7D%5E%7BN%7D%20w_%7Bij%7D(x_%7Bi%7D%20-%20%5Cbar%7Bx%7D)(x_%7Bj%7D%20-%20%5Cbar%7Bx%7D)%7D%7B%5Csum_%7Bi=1%7D%5E%7BN%7D%20(x_%7Bi%7D%20-%20%5Cbar%7Bx%7D)%5E%7B2%7D%7D,%0A"></p>
+<p>where</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?N">: The number of spatial units, 49 in our case (lower 48 + District of Columbia)</li>
+<li><img src="https://latex.codecogs.com/png.latex?W">: The sum of values in the spatial weights matrix</li>
+<li><img src="https://latex.codecogs.com/png.latex?x">: The variable of interest (tornadoes)</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5Cbar%7Bx%7D">: The global mean of <img src="https://latex.codecogs.com/png.latex?x"> over all spatial units</li>
+<li><img src="https://latex.codecogs.com/png.latex?w_%7Bij%7D">: Elements of the spatial weights matrix which encodes spatial interaction</li>
+</ul>
+<p><br></p>
+<p>We’ll again rely on Queen contiguity. We first compute Global Moran’s I using the formula above, then compare the result with the value returned by PySAL.</p>
+<div id="cell-29" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"></span>
+<span id="cb20-2">wq <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> weights.contiguity.Queen.from_dataframe(gdf, use_index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb20-3">W <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>wq.full()).values</span>
+<span id="cb20-4"></span>
+<span id="cb20-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Computing Moran's I manually. </span></span>
+<span id="cb20-6">N <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb20-7"></span>
+<span id="cb20-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Average number tornadoes over all states.</span></span>
+<span id="cb20-9">xbar <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>].mean()</span>
+<span id="cb20-10"></span>
+<span id="cb20-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Denominator of Moran's I.</span></span>
+<span id="cb20-12">denom <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>((gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> xbar)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb20-13"></span>
+<span id="cb20-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Update numerator at each iteration.</span></span>
+<span id="cb20-15">numer <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb20-16"></span>
+<span id="cb20-17"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(N):</span>
+<span id="cb20-18">    x_i <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.at[i, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>]</span>
+<span id="cb20-19">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> j <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(N):</span>
+<span id="cb20-20">        x_j <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gdf.at[j, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>]</span>
+<span id="cb20-21">        w_ij <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> W[i, j]</span>
+<span id="cb20-22">        numer<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span>w_ij <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (x_i <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> xbar) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (x_j <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> xbar)</span>
+<span id="cb20-23">        </span>
+<span id="cb20-24"></span>
+<span id="cb20-25"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute Global Moran's I.</span></span>
+<span id="cb20-26">I1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (N <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> W.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>().<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>()) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> numer <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> denom</span>
+<span id="cb20-27"></span>
+<span id="cb20-28"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Manual calculation of Global Moran's I: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>I1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Manual calculation of Global Moran's I: 0.60.</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Using PySAL:</p>
+<div id="cell-31" class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb22" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"></span>
+<span id="cb22-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> esda.moran <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Moran</span>
+<span id="cb22-3"></span>
+<span id="cb22-4">I2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Moran(gdf[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>].values,  wq)</span>
+<span id="cb22-5"></span>
+<span id="cb22-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"PySAL calculation of Global Moran's I: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>I2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>I<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>PySAL calculation of Global Moran's I: 0.61.</code></pre>
+</div>
+</div>
+<p>Pretty close.</p>
+<p>As a rule of thumb:</p>
+<ul>
+<li>If <img src="https://latex.codecogs.com/png.latex?I"> is above <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B-1%7D%7BN%20-%201%7D">, there exists positive spatial correlation (values are clustered)</li>
+<li>If <img src="https://latex.codecogs.com/png.latex?I"> is below <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B-1%7D%7BN%20-%201%7D">, there exists negative spatial correlation (neighboring values are dissimilar)</li>
+<li>If <img src="https://latex.codecogs.com/png.latex?I%20%5Capprox%20%5Cfrac%7B-1%7D%7BN-1%7D">, there exists no spatial correlation</li>
+</ul>
+<p><br></p>
+<p>The significance of a correlation in Moran’s I is determined by the z-score and p-value, assuming an expected value of <img src="https://latex.codecogs.com/png.latex?-1%20/%20(N%20-%201)">. The null hypothesis states that tornadoes are spatially uncorrelated. PySAL returns the p-value of Global Moran’s I under the normality assumption:</p>
+<div id="cell-33" class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb24" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"></span>
+<span id="cb24-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"PySAL Global Moran's I p-value: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>I2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>p_norm<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>PySAL Global Moran's I p-value: 3.106619400835348e-11</code></pre>
+</div>
+</div>
+<p>Which suggests it is very unlikely that the observed degree of clustering of tornadoes arose by chance.</p>
+<p>There are many other techniques that can be used to assess spatial autocorrelation. These will be explored in a future post.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Python</category>
+  <category>Geospatial</category>
+  <guid>https://www.jtrive.com/posts/spatial-autocorrelation/spatial-autocorrelation.html</guid>
+  <pubDate>Sun, 20 Oct 2024 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Determining Distance to Coastline for Policy Locations Using GeoPandas</title>
   <link>https://www.jtrive.com/posts/distance-to-coastline/distance-to-coastline.html</link>
@@ -23669,1168 +27661,6 @@ font-style: inherit;">1</span>])</span>
   <category>Statistical Modeling</category>
   <category>Python</category>
   <guid>https://www.jtrive.com/posts/dijkstras-shortest-paths/dijkstras-shortest-paths.html</guid>
-  <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Understanding the Graph Convolutional Network Propogation Model</title>
-  <link>https://www.jtrive.com/posts/gcn-prop-model/gcn-prop-model.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>Convolutional Neural networks (CNNs) have been found to be very effective at tasks such as facial recognition, video analysis, anomaly detections and semantic parsing. An image can be considered a graph with a very regular structure (i.e., pixels are considered nodes, with edges connecting adjacent nodes). A natural idea is to extend convolutions to general graphs for tasks such as graph, node or edge classification. However, it is not immediately clear how one would go about extending the concept of convolutions in the context of CNNs to graphs.</p>
-<p>In the Kipf and Welling paper, <a href="https://arxiv.org/pdf/1609.02907.pdf"><em>Semi-Supervised Classification with Graph Convolutional Networks</em></a>, the authors propose a method to approximate the spectral graph convolution via truncated Chebyshev polynomials, resulting in an efficient and scalable method to train graph neural networks. In this post, we walkthrough the graph convolutional network (GCN) propagation model, which we also implement in pytorch geometric. Thomas Kipf’s original PyTorch implementation is available <a href="https://github.com/tkipf/gcn">here</a>.</p>
-<section id="gcn-propagation-model" class="level3">
-<h3 class="anchored" data-anchor-id="gcn-propagation-model">GCN Propagation Model</h3>
-<p>The GCN forward pass is presented as:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AH%5E%7B(l+1)%7D%20=%20%5Csigma(%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Ctilde%7BA%7D%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7DH%5E%7B(l)%7DW%5E%7B(l)%7D)%0A"></p>
-<p>Where: - <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7Bn%7D">: number of nodes in graph<br>
-- <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7Bc%7D">: length of feature vector for each node<br>
-- <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7Bf%7D">: size of projection layer<br>
-- <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BA%7D">: n-by-n adjacency matrix<br>
-- <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctilde%7BA%7D%7D">: n-by-n adjacency matrix with added self-connections<br>
-- <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctilde%7BD%7D%7D">: n-by-n degree matrix of <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Ctilde%7BA%7D%7D"><br>
-- <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BH%5E%7B(l+1)%7D%7D">: n-by-c matrix of feature vectors for all nodes<br>
-- <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7BW%5E%7B(l)%7D%7D">: c-by-f linear projection layer<br>
-- <img src="https://latex.codecogs.com/png.latex?%5Cboldsymbol%7B%5Csigma%7D">: non-linearity, such as ReLU</p>
-<p>This becomes clear with an example. We create an undirected graph with 5 nodes:</p>
-<div id="cell-2" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> nx</span>
-<span id="cb1-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> plt</span>
-<span id="cb1-3"></span>
-<span id="cb1-4">G <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.Graph()</span>
-<span id="cb1-5"></span>
-<span id="cb1-6">edges <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [</span>
-<span id="cb1-7">    (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>)</span>
-<span id="cb1-8">    ]</span>
-<span id="cb1-9"></span>
-<span id="cb1-10">G.add_edges_from(edges)</span>
-<span id="cb1-11"></span>
-<span id="cb1-12">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb1-13">pos <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.spring_layout(G, seed<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">508</span>)</span>
-<span id="cb1-14">nx.draw_networkx_nodes(G, pos, node_size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">125</span>, node_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"blue"</span>)</span>
-<span id="cb1-15">nx.draw_networkx_edges(G, pos, edgelist<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>edges, width<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.5</span>, edge_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"black"</span>, style<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"solid"</span>)</span>
-<span id="cb1-16">nx.draw_networkx_labels(G, pos, font_size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>, font_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"white"</span>, font_weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bold"</span>, font_family<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"sans-serif"</span>)</span>
-<span id="cb1-17">plt.axis(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"off"</span>)</span>
-<span id="cb1-18">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/gcn-prop-model/gcn-prop-model_files/figure-html/cell-2-output-1.png" class="img-fluid figure-img" alt="An undirected graph with 5 blue numbered nodes with 5 edges"></p>
-<figcaption>5-node, 5-edge undirected graph</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<p>The elements of the adjacency matrix indicate whether pairs of vertices are connected in the graph. For the graph shown above, the adjacency matrix is given by:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboldsymbol%7BA%7D%20=%0A%5Cbegin%7Bpmatrix%7D%0A0%20&amp;%201%20&amp;%201%20&amp;%201%20&amp;%201%20%5C%5C%0A1%20&amp;%200%20&amp;%200%20&amp;%200%20&amp;%201%20%5C%5C%0A1%20&amp;%200%20&amp;%200%20&amp;%200%20&amp;%200%20%5C%5C%0A1%20&amp;%200%20&amp;%200%20&amp;%200%20&amp;%200%20%5C%5C%0A1%20&amp;%201%20&amp;%200%20&amp;%200%20&amp;%200%0A%5Cend%7Bpmatrix%7D%0A"></p>
-<p>The first row indicates the nodes adjacent to node 1. Since node 1 is connected to all other nodes, all but the first cell are set to 1 (no self connections in <img src="https://latex.codecogs.com/png.latex?A">).</p>
-<p><img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BA%7D%20=%20A%20+%20I">, where <img src="https://latex.codecogs.com/png.latex?I"> is the length-n identity matrix. This has the effect of adding self-connections to each node. We have:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboldsymbol%7B%5Ctilde%7BA%7D%7D%20=%0A%5Cbegin%7Bpmatrix%7D%0A1%20&amp;%201%20&amp;%201%20&amp;%201%20&amp;%201%20%5C%5C%0A1%20&amp;%201%20&amp;%200%20&amp;%200%20&amp;%201%20%5C%5C%0A1%20&amp;%200%20&amp;%201%20&amp;%200%20&amp;%200%20%5C%5C%0A1%20&amp;%200%20&amp;%200%20&amp;%201%20&amp;%200%20%5C%5C%0A1%20&amp;%201%20&amp;%200%20&amp;%200%20&amp;%201%0A%5Cend%7Bpmatrix%7D%0A"></p>
-<p>After adding self-connections, the graph becomes:</p>
-<div id="cell-4" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1">G <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.Graph()</span>
-<span id="cb2-2"></span>
-<span id="cb2-3">edges <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [</span>
-<span id="cb2-4">    (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>),</span>
-<span id="cb2-5">    (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>)</span>
-<span id="cb2-6">    ]</span>
-<span id="cb2-7"></span>
-<span id="cb2-8">G.add_edges_from(edges)</span>
-<span id="cb2-9"></span>
-<span id="cb2-10">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb2-11">pos <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.spring_layout(G, seed<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">508</span>)</span>
-<span id="cb2-12">nx.draw_networkx_nodes(G, pos, node_size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">125</span>, node_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"blue"</span>)</span>
-<span id="cb2-13">nx.draw_networkx_edges(G, pos, edgelist<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>edges, width<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.5</span>, edge_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"black"</span>, style<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"solid"</span>)</span>
-<span id="cb2-14">nx.draw_networkx_labels(G, pos, font_size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">9</span>, font_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"white"</span>, font_weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bold"</span>, font_family<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"sans-serif"</span>)</span>
-<span id="cb2-15">plt.axis(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"off"</span>)</span>
-<span id="cb2-16">plt.show()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/gcn-prop-model/gcn-prop-model_files/figure-html/cell-3-output-1.png" class="img-fluid figure-img" alt="An undirected graph with 5 blue numbered nodes with added self-connections"></p>
-<figcaption>5-node graph with added self-connections</figcaption>
-</figure>
-</div>
-</div>
-</div>
-<p><img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BD%7D"> is a diagonal matrix, containing the row-wise sum of <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BA%7D"> for each entry:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cboldsymbol%7B%5Ctilde%7BD%7D%7D%20=%0A%5Cbegin%7Bpmatrix%7D%0A5%20&amp;%200%20&amp;%200%20&amp;%200%20&amp;%200%20%5C%5C%0A0%20&amp;%202%20&amp;%200%20&amp;%200%20&amp;%200%20%5C%5C%0A0%20&amp;%200%20&amp;%202%20&amp;%200%20&amp;%200%20%5C%5C%0A0%20&amp;%200%20&amp;%200%20&amp;%202%20&amp;%200%20%5C%5C%0A0%20&amp;%200%20&amp;%200%20&amp;%200%20&amp;%203%0A%5Cend%7Bpmatrix%7D%0A"></p>
-<p>To get to <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Ctilde%7BA%7D%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D">, each element of <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BA%7D"> is divided by <img src="https://latex.codecogs.com/png.latex?1%20/%20%5Csqrt%7Bd_%7Bi%7D%20d_%7Bj%7D%7D"> for entries in <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BD%7D">. This normalization ensures the largest eigenvalue = 1, and addresses the issue of exploding/vanishing gradients during training:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Ctilde%7BA%7D%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20=%0A%5Cbegin%7Bpmatrix%7D%0A%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B5%7D%5Ccdot%7B5%7D%7D%7D%20&amp;%20%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B5%7D%5Ccdot%7B2%7D%7D%7D%20&amp;%20%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B5%7D%5Ccdot%7B2%7D%7D%7D%20&amp;%20%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B5%7D%5Ccdot%7B2%7D%7D%7D%20&amp;%20%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B5%7D%5Ccdot%7B3%7D%7D%7D%20%5C%5C%0A%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B2%7D%5Ccdot%7B5%7D%7D%7D%20&amp;%20%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B2%7D%5Ccdot%7B2%7D%7D%7D%20&amp;%200%20&amp;%200%20&amp;%200%20%5C%5C%0A%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B2%7D%5Ccdot%7B5%7D%7D%7D%20&amp;%200%20&amp;%20%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B2%7D%5Ccdot%7B2%7D%7D%7D%20&amp;%200%20&amp;%200%20%5C%5C%0A%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B2%7D%5Ccdot%7B5%7D%7D%7D%20&amp;%200%20&amp;%200%20&amp;%20%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B2%7D%5Ccdot%7B2%7D%7D%7D%20&amp;%200%20%5C%5C%0A%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B3%7D%5Ccdot%7B5%7D%7D%7D%20&amp;%20%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B3%7D%5Ccdot%7B2%7D%7D%7D%20&amp;%200%20&amp;%200%20&amp;%20%5Cfrac%7B1%7D%7B%5Csqrt%7B%7B3%7D%5Ccdot%7B3%7D%7D%7D%20%5C%5C%0A%5Cend%7Bpmatrix%7D%0A"></p>
-<p>Note that during training, <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Ctilde%7BA%7D%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D"> is only computed once since the values will not change.</p>
-<p>Each node has an associated feature vector of length <img src="https://latex.codecogs.com/png.latex?c">. <img src="https://latex.codecogs.com/png.latex?H%5E%7B(l)%7D"> represents stacked feature vectors for all nodes, resulting in a matrix of dimension n-by-c.&nbsp; <img src="https://latex.codecogs.com/png.latex?H%5E%7B(0)%7D%20=%20X">, the original features.</p>
-<p><img src="https://latex.codecogs.com/png.latex?W%5E%7B(l)%7D"> is the linear projection layer, which reduces the representation of each node from length c to length f.&nbsp;If we assume f = 64, <img src="https://latex.codecogs.com/png.latex?H%5E%7B(l+1)%7D"> becomes:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AH%5E%7B(l+1)%7D%20=%20%5Csigma(%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Ctilde%7BA%7D%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7DH%5E%7B(l)%7DW%5E%7B(l)%7D)%20%5Crightarrow%20%5Cmathrm%7BReLU%7D(n%20%5Ctimes%2064)%0A"></p>
-<p>For a 2-layer GCN, the full propagation model for a node classification task is:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Chat%7BA%7D%20&amp;=%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Ctilde%7BA%7D%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%5C%5C%0AZ%20&amp;=%20%5Cmathrm%7Bsoftmax%7D%5Cbig(%5Chat%7BA%7D%20%5Chspace%7B.30em%7D%5Cmathrm%7BReLU%7D(%5Chat%7BA%7DXW%5E%7B(0)%7D)%20%5Chspace%7B.30em%7D%20W%5E%7B(1)%7D%20%5Cbig)%0A%5Cend%7Balign*%7D%0A"></p>
-</section>
-<section id="derivation-of-propagation-model" class="level2">
-<h2 class="anchored" data-anchor-id="derivation-of-propagation-model">Derivation of Propagation Model</h2>
-<p>The authors begin with an expression to perform spectral convolutions on graphs:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Ag_%7B%5Ctheta%7D%20%5Cstar%20x%20=%20U%20g_%7B%5Ctheta%7D%20U%5E%7BT%7D%20x,%0A"></p>
-<p>where <img src="https://latex.codecogs.com/png.latex?U"> is the matrix of eigenvectors of the normalized Laplacian <img src="https://latex.codecogs.com/png.latex?L%20=%20I_%7Bn%7D%20-%20D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20A%20D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D">, and <img src="https://latex.codecogs.com/png.latex?U%5E%7BT%7Dx"> represents the graph Fourier transform of <img src="https://latex.codecogs.com/png.latex?x">. However, this as expensive operation, since the spectral decomposition is <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BO%7D(n%5E%7B3%7D)"> in practice. In addition, it isn’t immediately clear how one would go about incorporating this operation within the context of forward/back-propagation.</p>
-<p>Citing a paper by <a href="https://arxiv.org/pdf/0912.3848.pdf">Hammond et. al</a>, they propose an approximation to <img src="https://latex.codecogs.com/png.latex?g_%7B%5Ctheta%7D%20%5Cstar%20x"> via a truncated expansion in terms of Chebyshev polynomials <img src="https://latex.codecogs.com/png.latex?T_%7Bk%7D(x)"> up to <img src="https://latex.codecogs.com/png.latex?K%5E%7Bth%7D"> order:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Ag_%7B%5Ctheta%7D%20%5Cstar%20x%20%5Capprox%20%5Csum_%7Bk=0%7D%5E%7BK%7D%20%5Ctheta%5E%7B'%7D_%7Bk%7D%20T_%7Bk%7D(%5Ctilde%7BL%7D)x%20%5Chspace%7B.75em%7D(*),%0A"></p>
-<p>where <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BL%7D%20=%20%5Cfrac%7B2%7D%7B%5Clambda_%7B%5Cmathrm%7Bmax%7D%7D%7DL%20-%20I_%7BN%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Ctheta%5E%7B'%7D"> is a vector of Chebyshev coefficients. Note that for the Chebyshev polynomial expansion, <img src="https://latex.codecogs.com/png.latex?T_%7B0%7D(x)%20=%201">, <img src="https://latex.codecogs.com/png.latex?T_%7B1%7D(x)%20=%20x"> and all other terms are recursively defined as <img src="https://latex.codecogs.com/png.latex?T_%7Bk%7D(x)%20=%202xT_%7Bk-1%7D(x)%20-%20T_%7Bk-2%7D(x)">.</p>
-<p>By leveraging <img src="https://latex.codecogs.com/png.latex?%7B(*)%7D"> to approximate graph convolutions, the runtime complexity becomes linear in terms of the number of edges (<img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BO%7D(%7C%5Cmathcal%7BE%7D%7C)"> instead of cubic in the number of nodes as is the case for the full spectral graph convolution.</p>
-<p>From this point, the authors make three simplifications/assumptions which result in the propagation model introduced earlier:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AH%5E%7B(l+1)%7D%20=%20%5Csigma(%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Ctilde%7BA%7D%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7DH%5E%7B(l)%7DW%5E%7B(l)%7D).%0A"></p>
-<p>The first two simplifications are <img src="https://latex.codecogs.com/png.latex?K=1"> and <img src="https://latex.codecogs.com/png.latex?%5Clambda_%7B%5Cmathrm%7Bmax%7D%7D%20=%202">. Expanding <img src="https://latex.codecogs.com/png.latex?(%7B*%7D)"> with <img src="https://latex.codecogs.com/png.latex?K=1"> and <img src="https://latex.codecogs.com/png.latex?%5Clambda_%7B%5Cmathrm%7Bmax%7D%7D%20=%202"> results in:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Ag_%7B%5Ctheta%7D%20%5Cstar%20x%20%5Capprox%20%5Ctheta%5E%7B'%7D_%7B0%7Dx%20+%20%5Ctheta%5E%7B'%7D_%7B1%7D(L%20-%20I_%7BN%7D)x%20=%20%5Ctheta%5E%7B'%7D_%7B0%7Dx%20-%20%5Ctheta%5E%7B'%7D_%7B1%7DD%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7DAD%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7Dx%0A"></p>
-<p>The third simplification sets <img src="https://latex.codecogs.com/png.latex?%5Ctheta%20=%20%5Ctheta%5E%7B'%7D_%7B0%7D%20=%20-%5Ctheta%5E%7B'%7D_%7B1%7D">. This constrains the number of parameters to address overfitting and to minimize the number of multiplications per layer. Doing so results in:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Ag_%7B%5Ctheta%7D%20%5Cstar%20x%20%5Capprox%20%5Ctheta%20%5Cbig(I_%7BN%7D%20+%20D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7DAD%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Cbig)x.%0A"></p>
-<p>To address the issue of exploding/vanishing gradients during training they apply a renormalization trick, essentially swapping <img src="https://latex.codecogs.com/png.latex?A"> and <img src="https://latex.codecogs.com/png.latex?D"> with <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BA%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BD%7D">. This ensures eigenvalues are the the range [-1, 1]. We can show this is the case for our example using the adjacency matrix associated with our 5 node graph:</p>
-<div id="cell-6" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
-<span id="cb3-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb3-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> nx</span>
-<span id="cb3-4"></span>
-<span id="cb3-5">np.set_printoptions(suppress<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>)</span>
-<span id="cb3-6"></span>
-<span id="cb3-7"></span>
-<span id="cb3-8">G <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.Graph()</span>
-<span id="cb3-9">edges <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>), (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>)]</span>
-<span id="cb3-10"></span>
-<span id="cb3-11">G.add_edges_from(edges)</span>
-<span id="cb3-12">A <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nx.adjacency_matrix(G).todense()</span>
-<span id="cb3-13">I <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.identity(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>)</span>
-<span id="cb3-14">D <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.diag(np.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(A, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>))</span>
-<span id="cb3-15"></span>
-<span id="cb3-16"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Check range of eigenvalues without renormalization.</span></span>
-<span id="cb3-17">Dp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.linalg.inv(np.power(D, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span>))</span>
-<span id="cb3-18">evals0, _ <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.linalg.eig(I <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> Dp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> A <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> Dp)</span>
-<span id="cb3-19"></span>
-<span id="cb3-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Check range of eigenvalues after renormalization trick. </span></span>
-<span id="cb3-21">Atilde <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> A <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> I</span>
-<span id="cb3-22">Dtilde <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.diag(np.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(Atilde, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>))</span>
-<span id="cb3-23">Dtildep <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.linalg.inv(np.power(Dtilde, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span>))</span>
-<span id="cb3-24">evals1, _ <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.linalg.eig(Dtildep <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> Atilde <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> Dtildep)</span>
-<span id="cb3-25"></span>
-<span id="cb3-26"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">eigenvalues without renormalization: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>evals0<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb3-27"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"eigenvalues with renormalization   : </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>evals1<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-eigenvalues without renormalization: [0.19098 2.      1.30902 0.5     1.     ]
-eigenvalues with renormalization   : [-0.22526  1.       0.59192  0.5      0.     ]</code></pre>
-</div>
-</div>
-<p>By replacing <img src="https://latex.codecogs.com/png.latex?%5Cbig(I_%7BN%7D%20+%20D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7DAD%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Cbig)"> with <img src="https://latex.codecogs.com/png.latex?%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%20%5Ctilde%7BA%7D%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D">, we end up with:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AZ%20=%20%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7D%5Ctilde%7BA%7D%5Ctilde%7BD%7D%5E%7B-%5Cfrac%7B1%7D%7B2%7D%7DX%5CTheta,%0A"></p>
-<p>where <img src="https://latex.codecogs.com/png.latex?%5CTheta"> is a c-by-f matrix of filter parameters and <img src="https://latex.codecogs.com/png.latex?Z"> is the n-by-f convolved signal matrix.<br>
-The final propagation model has nothing to do with the spectral decomposition: No eigenvectors/eigenvalues are actually computed. The approach was motivated by spectral convolutions on graphs, but is not a spectral method itself.</p>
-<section id="pytorch-geometric-gcn-implementation" class="level3">
-<h3 class="anchored" data-anchor-id="pytorch-geometric-gcn-implementation">PyTorch Geometric GCN Implementation</h3>
-<p>In what follows, we demonstrate how to set up a 2-layer GCN for node classification using PyTorch Geometric and the Cora citation network.</p>
-<div id="cell-8" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
-<span id="cb5-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> random</span>
-<span id="cb5-3"></span>
-<span id="cb5-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> plt</span>
-<span id="cb5-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> nx</span>
-<span id="cb5-6"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb5-7"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb5-8"></span>
-<span id="cb5-9"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> torch</span>
-<span id="cb5-10"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> torch_geometric.datasets <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> Planetoid</span>
-<span id="cb5-11"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> torch_geometric.transforms <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> T</span>
-<span id="cb5-12"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> torch_geometric.utils <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> to_networkx</span>
-<span id="cb5-13"></span>
-<span id="cb5-14">device <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> torch.device(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"cuda:0"</span> <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> torch.cuda.is_available() <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"cpu"</span>)</span>
-<span id="cb5-15">dataset <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> Planetoid(root<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'/tmp/Cora'</span>, name<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'Cora'</span>)</span>
-<span id="cb5-16">split <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> T.RandomNodeSplit(num_val<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.15</span>, num_test<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.10</span>)</span>
-<span id="cb5-17">graph <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> split(dataset[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>])</span>
-<span id="cb5-18"></span></code></pre></div>
-</div>
-</section>
-<section id="distribution-of-classes-in-cora" class="level3">
-<h3 class="anchored" data-anchor-id="distribution-of-classes-in-cora">Distribution of classes in Cora</h3>
-<p>The Cora dataset is a citation network, where each node represents a paper belonging to one of the following 7 classes. Our goal is to predict the labels assigned to each node in the network:</p>
-<div id="cell-10" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
-<span id="cb6-2">dclasses <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {</span>
-<span id="cb6-3">    <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Theory"</span>,</span>
-<span id="cb6-4">    <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Reinforcement_Learning"</span>, </span>
-<span id="cb6-5">    <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Genetic_Algorithms"</span>,</span>
-<span id="cb6-6">    <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Neural_Networks"</span>,</span>
-<span id="cb6-7">    <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Probabilistic_Methods"</span>,</span>
-<span id="cb6-8">    <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Case_Based"</span>,</span>
-<span id="cb6-9">    <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Rule_Learning"</span></span>
-<span id="cb6-10">    }</span>
-<span id="cb6-11"></span>
-<span id="cb6-12">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (</span>
-<span id="cb6-13">    pd.DataFrame(graph.y.tolist()) </span>
-<span id="cb6-14">    .groupby(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, as_index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span>).size()</span>
-<span id="cb6-15">    .rename({<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"id"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"size"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"n"</span>}, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb6-16">    )</span>
-<span id="cb6-17"></span>
-<span id="cb6-18">df[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"desc"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"id"</span>].<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">map</span>(dclasses)</span>
-<span id="cb6-19">df[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"prop"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"n"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> df[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"n"</span>].<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()</span>
-<span id="cb6-20">df[[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"id"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"desc"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"n"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"prop"</span>]].head(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="5">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">id</th>
-<th data-quarto-table-cell-role="th">desc</th>
-<th data-quarto-table-cell-role="th">n</th>
-<th data-quarto-table-cell-role="th">prop</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
-<td>0</td>
-<td>Theory</td>
-<td>351</td>
-<td>0.129616</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
-<td>1</td>
-<td>Reinforcement_Learning</td>
-<td>217</td>
-<td>0.080133</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
-<td>2</td>
-<td>Genetic_Algorithms</td>
-<td>418</td>
-<td>0.154357</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
-<td>3</td>
-<td>Neural_Networks</td>
-<td>818</td>
-<td>0.302068</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
-<td>4</td>
-<td>Probabilistic_Methods</td>
-<td>426</td>
-<td>0.157312</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">5</td>
-<td>5</td>
-<td>Case_Based</td>
-<td>298</td>
-<td>0.110044</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">6</td>
-<td>6</td>
-<td>Rule_Learning</td>
-<td>180</td>
-<td>0.066470</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-</section>
-<section id="gcn-model" class="level3">
-<h3 class="anchored" data-anchor-id="gcn-model">GCN Model</h3>
-<p>Next we implement GCN using PyTorch Geometric. The original PyTorch implementation is available <a href="https://github.com/tkipf/pygcn">here</a>.</p>
-<div id="cell-12" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
-<span id="cb7-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> torch.nn <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> nn</span>
-<span id="cb7-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> torch_geometric.nn <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> GCNConv</span>
-<span id="cb7-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> torch.nn.functional <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> F</span>
-<span id="cb7-5"></span>
-<span id="cb7-6"></span>
-<span id="cb7-7"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">class</span> GCN(nn.Module):</span>
-<span id="cb7-8">    <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> <span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">__init__</span>(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">self</span>, num_features, num_classes):</span>
-<span id="cb7-9">        <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">super</span>().<span class="fu" style="color: #4758AB;
-background-color: null;
-font-style: inherit;">__init__</span>()</span>
-<span id="cb7-10">        <span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">self</span>.conv1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> GCNConv(num_features, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">64</span>)</span>
-<span id="cb7-11">        <span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">self</span>.conv2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> GCNConv(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">64</span>, num_classes)</span>
-<span id="cb7-12"></span>
-<span id="cb7-13">    <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> forward(<span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">self</span>, data):</span>
-<span id="cb7-14">        x, edge_index <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> data.x, data.edge_index</span>
-<span id="cb7-15">        x <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">self</span>.conv1(x, edge_index)</span>
-<span id="cb7-16">        x <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> F.relu(x)</span>
-<span id="cb7-17">        output <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">self</span>.conv2(x, edge_index)</span>
-<span id="cb7-18">        <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span>(output)</span>
-<span id="cb7-19"></span>
-<span id="cb7-20"></span>
-<span id="cb7-21"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> train_classifier(model, graph, optimizer, criterion, n_epochs<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">100</span>):</span>
-<span id="cb7-22">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb7-23"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Training loop.</span></span>
-<span id="cb7-24"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb7-25">    tm, vm <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> graph.train_mask, graph.val_mask</span>
-<span id="cb7-26">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> epoch <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">range</span>(n_epochs):</span>
-<span id="cb7-27">        model.train()</span>
-<span id="cb7-28">        optimizer.zero_grad()</span>
-<span id="cb7-29">        output <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> model(graph)</span>
-<span id="cb7-30">        loss <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> criterion(output[tm], graph.y[tm])</span>
-<span id="cb7-31">        loss.backward()</span>
-<span id="cb7-32">        optimizer.step()</span>
-<span id="cb7-33"></span>
-<span id="cb7-34">        <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Validate. </span></span>
-<span id="cb7-35">        model.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">eval</span>()</span>
-<span id="cb7-36">        pred <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> model(graph).argmax(dim<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb7-37">        correct <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (pred[vm] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> graph.y[vm]).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()</span>
-<span id="cb7-38">        acc <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> correct <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> vm.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()</span>
-<span id="cb7-39"></span>
-<span id="cb7-40">        <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> epoch <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">%</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>:</span>
-<span id="cb7-41">            <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Epoch </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>epoch<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">: train loss=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>loss<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.3f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">, val. acc=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>acc<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.3f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">."</span>)</span>
-<span id="cb7-42"></span>
-<span id="cb7-43">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span>(model)</span></code></pre></div>
-</div>
-<p>Training our network:</p>
-<div id="cell-14" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"></span>
-<span id="cb8-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Capture activations from last hidden layer to re-create plot</span></span>
-<span id="cb8-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># from paper.</span></span>
-<span id="cb8-4">activations <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {}</span>
-<span id="cb8-5"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> get_activation(name):</span>
-<span id="cb8-6">    <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> hook(gcn, <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">input</span>, output):</span>
-<span id="cb8-7">        activations[name] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> output.detach()</span>
-<span id="cb8-8">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span>(hook)</span>
-<span id="cb8-9"></span>
-<span id="cb8-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Put graph on GPU if available.</span></span>
-<span id="cb8-11">graph <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> graph.to(device)</span>
-<span id="cb8-12">gcn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> GCN(num_features<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1433</span>, num_classes<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>).to(device)</span>
-<span id="cb8-13">gcn.conv2.register_forward_hook(get_activation(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"conv2"</span>))</span>
-<span id="cb8-14">optimizer <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> torch.optim.Adam(gcn.parameters(), lr<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.01</span>, weight_decay<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1e-4</span>)</span>
-<span id="cb8-15">criterion <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nn.CrossEntropyLoss()</span>
-<span id="cb8-16">gcn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> train_classifier(gcn, graph, optimizer, criterion)</span>
-<span id="cb8-17"></span>
-<span id="cb8-18"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute test accuracy.</span></span>
-<span id="cb8-19">gcn.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">eval</span>()</span>
-<span id="cb8-20">pred <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> gcn(graph).argmax(dim<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb8-21">correct <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (pred[graph.test_mask] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> graph.y[graph.test_mask]).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()</span>
-<span id="cb8-22">test_acc <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> correct <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> graph.test_mask.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()</span>
-<span id="cb8-23"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">Test accuracy: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>test_acc<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.3f}</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Epoch 0: train loss=1.932, val. acc=0.303.
-Epoch 10: train loss=0.377, val. acc=0.862.
-Epoch 20: train loss=0.181, val. acc=0.867.
-Epoch 30: train loss=0.119, val. acc=0.857.
-Epoch 40: train loss=0.088, val. acc=0.852.
-Epoch 50: train loss=0.069, val. acc=0.845.
-Epoch 60: train loss=0.058, val. acc=0.847.
-Epoch 70: train loss=0.050, val. acc=0.850.
-Epoch 80: train loss=0.044, val. acc=0.855.
-Epoch 90: train loss=0.040, val. acc=0.855.
-
-Test accuracy: 0.893
-</code></pre>
-</div>
-</div>
-</section>
-<section id="display-hidden-layer-activations-with-t-sne" class="level3">
-<h3 class="anchored" data-anchor-id="display-hidden-layer-activations-with-t-sne">Display hidden layer activations with t-SNE</h3>
-<p>Finally, we can display a lower dimensional representation of the final hidden layer node embeddings using t-SNE. The resulting plot looks similar to figure 1b from the original paper, but experimenting with the t-SNE perplexity parameter will probably get you even closer:</p>
-<div id="cell-16" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> sklearn.manifold <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> TSNE</span>
-<span id="cb10-2"></span>
-<span id="cb10-3">X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> activations[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"conv2"</span>].cpu().numpy()</span>
-<span id="cb10-4">Xemb <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> TSNE(n_components<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>, learning_rate<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'auto'</span>, init<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'random'</span>, perplexity<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">30</span>).fit_transform(X)</span>
-<span id="cb10-5"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Xemb.shape: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>Xemb<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb10-6"></span>
-<span id="cb10-7">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb10-8">ax.scatter(Xemb[:,<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>], Xemb[:,<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>], c<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>pred.cpu(), alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.75</span>)</span>
-<span id="cb10-9">ax.axis(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"off"</span>)</span>
-<span id="cb10-10">plt.show()<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Xemb.shape: (2708, 2)</code></pre>
-</div>
-<div class="cell-output cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/gcn-prop-model/gcn-prop-model_files/figure-html/cell-9-output-2.png" class="img-fluid figure-img" alt="Lower dimensional representation of the final hidden layer using t-SNE"></p>
-<figcaption>Lower dimensional representation of the final hidden layer using t-SNE</figcaption>
-</figure>
-</div>
-</div>
-</div>
-
-
-</section>
-</section>
-
- ]]></description>
-  <category>Machine Learning</category>
-  <category>Python</category>
-  <guid>https://www.jtrive.com/posts/gcn-prop-model/gcn-prop-model.html</guid>
   <pubDate>Mon, 05 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
