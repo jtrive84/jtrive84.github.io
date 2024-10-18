@@ -246,11 +246,10 @@ window.Quarto = {
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">'display.width'</span>, <span class="va">None</span>)</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Storm data. </span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>noaa_path <span class="op">=</span> <span class="st">"F:/actu-s/CatastropheData/NOAA_Storm_Data/noaa-storm-data-1950-2024.csv.gz"</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>noaa_path <span class="op">=</span> <span class="st">"noaa-storm-data-1950-2024.csv.gz"</span></span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co"># US state shapefiles. </span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>state_shp <span class="op">=</span> <span class="st">"C:/Users/i103455/Downloads/tl_2024_us_state.zip"</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>state_shp <span class="op">=</span> <span class="st">"tl_2024_us_state.zip"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p><br></p>
 <p>We begin by reading in the the NOAA storm event data and filter down to tornado events from 2008-present. We also remove lower severity tornado events based on the <a href="https://en.wikipedia.org/wiki/Enhanced_Fujita_scale">Enhanced Fujita Scale</a>:</p>
@@ -264,7 +263,7 @@ window.Quarto = {
 <li><strong>EF4</strong>: 166-200 mph (Devestating)</li>
 <li><strong>EF5</strong>: &gt;200 mph (Incredible)</li>
 </ul>
-<p>Events with TOR_F_SCALE = “F0”, “F1”, “EF0”, “EF1” are excluded.</p>
+<p>Events with TOR_F_SCALE = “EFU”, “EF0”, “EF1” are excluded.</p>
 <div id="cell-4" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Obtained here: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/</span></span>
@@ -353,7 +352,7 @@ window.Quarto = {
 </div>
 </div>
 <p><br></p>
-<p>Reviewing the distribution of F and EF events:</p>
+<p>Reviewing the distribution EF events:</p>
 <div id="cell-6" class="cell" data-execution_count="3">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>storms.TOR_F_SCALE.value_counts()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -3453,7 +3452,6 @@ I = \frac{N}{W} \frac{\sum_{i=1}^{N} \sum_{j=1}^{N} w_{ij}(x_{i} - \bar{x})(x_{j
 <pre><code>PySAL calculation of Global Moran's I: 0.61.</code></pre>
 </div>
 </div>
-<p>Pretty close.</p>
 <p>As a rule of thumb:</p>
 <ul>
 <li>If <span class="math inline">\(I\)</span> is above <span class="math inline">\(\frac{-1}{N - 1}\)</span>, there exists positive spatial correlation (values are clustered)</li>
