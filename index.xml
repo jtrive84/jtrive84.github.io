@@ -10,7 +10,1130 @@
 <atom:link href="https://www.jtrive.com/index.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Tue, 05 Nov 2024 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 22 Nov 2024 06:00:00 GMT</lastBuildDate>
+<item>
+  <title>GIS Algorithms in Python, Part I - Point-to-Point and Point-to-Line Distances</title>
+  <link>https://www.jtrive.com/posts/gis-algorithms-in-python-1/gis-algorithms-in-python-1.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>I’ve been spending time exploring Ningchuan Xiao’s excellent book, <em>GIS Algorithms</em>. This text offers a comprehensive dive into fundamental geospatial concepts including geometric algorithms, spatial indexing, and spatial analysis. The author thoroughly explains the theoretical foundations of each concept and provides practical Python implementations as examples.</p>
+<p>In a series of upcoming posts, I’ll break down and share insights on these concepts one-by-one. In this post, we’ll focus on two straightforward geometric algorithms: calculating point-to-point and point-to-line distances. The accompanying code leverages the Shapely library to handle geometric primitives such as points and lines and to validate our custom implementations of each algorithm.</p>
+<section id="point-to-point-distance" class="level2">
+<h2 class="anchored" data-anchor-id="point-to-point-distance">Point-to-Point Distance</h2>
+<p>We begin by computing the distance between two points in a rectilinear coordinate system. This can be accomplished using the Pythagorean theorem. For <img src="https://latex.codecogs.com/png.latex?p_%7B0%7D%20=%20(x_%7B0%7D,%20y_%7B0%7D)"> and <img src="https://latex.codecogs.com/png.latex?p_%7B1%7D%20=%20(x_%7B1%7D,%20y_%7B1%7D)">, the straight line distance <img src="https://latex.codecogs.com/png.latex?D"> between <img src="https://latex.codecogs.com/png.latex?p_%7B0%7D"> and <img src="https://latex.codecogs.com/png.latex?p_%7B2%7D"> is given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AD%20=%20%5Csqrt%7B(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%20+%20(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%7D.%0A"></p>
+<p>In the next cell, <code>point2point</code> computes the distance between two points using the Pythagorean theorem:</p>
+<div id="cell-3" class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> math <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> sqrt</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> shapely.geometry <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Point</span>
+<span id="cb1-4"></span>
+<span id="cb1-5"></span>
+<span id="cb1-6"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> point2point(p0, p1):</span>
+<span id="cb1-7">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Return the distance between p1 and p2. </span></span>
+<span id="cb1-9"></span>
+<span id="cb1-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb1-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb1-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    p0: shapely.geometry.point.Point</span></span>
+<span id="cb1-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        First point.</span></span>
+<span id="cb1-14"></span>
+<span id="cb1-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    p1: shapely.geometry.point.Point</span></span>
+<span id="cb1-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Second point.</span></span>
+<span id="cb1-17"></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb1-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb1-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    float</span></span>
+<span id="cb1-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Straight-line distance between p0 and p1. </span></span>
+<span id="cb1-22"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-23">    x0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.x</span>
+<span id="cb1-24">    y0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.y</span>
+<span id="cb1-25">    x1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1.x</span>
+<span id="cb1-26">    y1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1.y</span>
+<span id="cb1-27">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> sqrt((x1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x0)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> (y1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> y0)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb1-28"></span>
+<span id="cb1-29"></span>
+<span id="cb1-30"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Define two points.</span></span>
+<span id="cb1-31">p0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.</span>)</span>
+<span id="cb1-32">p1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7.</span>)</span>
+<span id="cb1-33"></span>
+<span id="cb1-34"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute distances using point2point and shapely. </span></span>
+<span id="cb1-35">p2p <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> point2point(p0, p1)</span>
+<span id="cb1-36">shp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.distance(p1)</span>
+<span id="cb1-37"></span>
+<span id="cb1-38"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Distance using point2point: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>p2p<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-39"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Distance using shapely    : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>shp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Distance using point2point: 4.47214
+Distance using shapely    : 4.47214</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>If it is necessary to compute distance between two points on a sphere separated by a large extent, using <code>point2point</code> will not be accurate. We can instead opt for the haversine formula, which calculates the great-circle distance between two points on the Earth’s surface. It is especially suited for applications where accuracy over large distances is critical. The <code>haversine</code> function in the next cell accepts two points, with <code>x</code> representing longitude and <code>y</code> latitude, and returns the great circle distance between them. To use the haversine formula, it is necessary to specify a value for the radius of the Earth. We use 6,371 km, a generally accepted value for the Earth’s mean radius (see <a href="https://www.movable-type.co.uk/scripts/latlong.html">here</a>):</p>
+<div id="cell-5" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> math <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> asin, cos, sin, radians</span>
+<span id="cb3-3"></span>
+<span id="cb3-4"></span>
+<span id="cb3-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> get_haversine(p0, p1):</span>
+<span id="cb3-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb3-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Calculate the great circle distance between two points on the earth </span></span>
+<span id="cb3-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    (specified in decimal degrees).</span></span>
+<span id="cb3-9"></span>
+<span id="cb3-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb3-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb3-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        p0: shapely.geometry.point.Point</span></span>
+<span id="cb3-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        First point with x = longitude and y = latitude.</span></span>
+<span id="cb3-14"></span>
+<span id="cb3-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    p1: shapely.geometry.point.Point</span></span>
+<span id="cb3-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Second point with x = longitude and y = latitude.</span></span>
+<span id="cb3-17"></span>
+<span id="cb3-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb3-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb3-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    float</span></span>
+<span id="cb3-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Great circle distance between p0 and p1 in km.</span></span>
+<span id="cb3-22"></span>
+<span id="cb3-23"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    References</span></span>
+<span id="cb3-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb3-25"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    http://www.movable-type.co.uk/scripts/latlong.html</span></span>
+<span id="cb3-26"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb3-27">    R: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6371.</span></span>
+<span id="cb3-28">    lon0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.x</span>
+<span id="cb3-29">    lat0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.y</span>
+<span id="cb3-30">    lon1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1.x</span>
+<span id="cb3-31">    lat1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1.y</span>
+<span id="cb3-32">    </span>
+<span id="cb3-33">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Convert lat and lon degrees to radians.</span></span>
+<span id="cb3-34">    rlon0, rlat0, rlon1, rlat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">map</span>(radians, (lon0, lat0, lon1, lat1))</span>
+<span id="cb3-35">    dlon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rlon1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> rlon0</span>
+<span id="cb3-36">    dlat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rlat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> rlat0</span>
+<span id="cb3-37">    a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> sin(dlat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> cos(rlat0) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> cos(rlat1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> sin(dlon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb3-38">    c <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> asin(sqrt(a))</span>
+<span id="cb3-39">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> c</span></code></pre></div>
+</div>
+<p><br></p>
+<p>The pyproj library can be used to validate our haversine distance calculation. <code>p0</code> represents Chicago, Illinois and <code>p1</code> Burlington, Vermont. <code>pyproj.inv</code> returns the distance in meters, so we divide by 1000 to covert to km:</p>
+<div id="cell-7" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pyproj</span>
+<span id="cb4-3"></span>
+<span id="cb4-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># p0 = Chicago, IL, p1 = Burlington, VT. </span></span>
+<span id="cb4-5">p0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">87.6298</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">41.8781</span>)</span>
+<span id="cb4-6">p1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">73.2121</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">44.4759</span>) </span>
+<span id="cb4-7"></span>
+<span id="cb4-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute distances using get_haversine and geopy. </span></span>
+<span id="cb4-9">get_haversine_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> get_haversine(p0, p1)</span>
+<span id="cb4-10">geodesic <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pyproj.Geod(ellps<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"WGS84"</span>)</span>
+<span id="cb4-11">_, _, pyproj_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> geodesic.inv(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>p0.coords[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>p1.coords[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>])</span>
+<span id="cb4-12"></span>
+<span id="cb4-13"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Distance (km) via get_haversine: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>get_haversine_dist<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,.0f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb4-14"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Distance (km) via pyproj       : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>pyproj_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,.0f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Distance (km) via get_haversine: 1,203
+Distance (km) via pyproj       : 1,205</code></pre>
+</div>
+</div>
+<p>The results are very close. We could get them to match exactly by tweaking the value used for the Earth’s radius.</p>
+<p><br></p>
+</section>
+<section id="point-to-line-distance" class="level2">
+<h2 class="anchored" data-anchor-id="point-to-line-distance">Point-to-Line Distance</h2>
+<p>In Chapter 2 of <em>GIS Algorithms</em>, a general expression for the distance from a point to a line in rectilinear coordinates is presented. The distance <img src="https://latex.codecogs.com/png.latex?D"> is defined as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AD%20=%20%5Cfrac%7B%7Cax_%7B0%7D%20+%20by_%7B0%7D%20+%20c%7C%7D%7B%5Csqrt%7Ba%5E%7B2%7D%20+%20b%5E%7B2%7D%7D%7D,%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?ax_%7B0%7D%20+%20by_%7B0%7D%20+%20c"> is a line on the 2-D plane where <img src="https://latex.codecogs.com/png.latex?a,%20b"> and <img src="https://latex.codecogs.com/png.latex?c"> are constants. To obtain this expression, we calculate the distance from the point to the intersection point <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> between the line and a perpendicular line passing through <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)">.</p>
+<p>Let <img src="https://latex.codecogs.com/png.latex?L%20=%20ax_%7B0%7D%20+%20by_%7B0%7D%20+%20c">. The slope of the line perpendicular to <img src="https://latex.codecogs.com/png.latex?L"> is <img src="https://latex.codecogs.com/png.latex?b%20/%20a">, therefore</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7By_%7B1%7D%20-%20y_%7B0%7D%7D%7Bx_%7B1%7D%20-%20x_%7B0%7D%7D%20=%20%5Cfrac%7Bb%7D%7Ba%7D,%0A"></p>
+<p>resulting in</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Aa(y_%7B1%7D%20-%20y_%7B0%7D)%20-%20b(x_%7B1%7D%20-%20x_%7B0%7D)%20=%200.%0A"></p>
+<p>Squaring both sides and rearranging yields</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Aa%5E%7B2%7D(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20b%5E%7B2%7D(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%20=%202ab(x_%7B1%7D%20-%20x_%7B0%7D)(y_%7B1%7D%20-%20y_%7B0%7D).%0A"></p>
+<p>After adding <img src="https://latex.codecogs.com/png.latex?a%5E%7B2%7D(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%20+%20b%5E%7B2%7D(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D"> to both sides, the L.H.S. can be rewritten as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A(a%5E%7B2%7D%20+%20b%5E%7B2%7D)%5Cbig((y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%5Cbig),%0A"></p>
+<p>and the R.H.S. as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A(ax_%7B1%7D%20+%20by_%7B1%7D%20-%20ax_%7B0%7D%20-%20by_%7B0%7D)%5E%7B2%7D.%0A"></p>
+<p>Since the intersection point <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> also falls on the original line <img src="https://latex.codecogs.com/png.latex?L">, <img src="https://latex.codecogs.com/png.latex?ax_%7B1%7D%20+%20by_%7B1%7D%20=%20-c">. Substituting this result within the R.H.S expression above gives us</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A(a%5E%7B2%7D%20+%20b%5E%7B2%7D)%5Cbig((y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%5Cbig)%20=%20(ax_%7B0%7D%20+%20by_%7B0%7D%20+%20c)%5E%7B2%7D.%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D"> is the square of the distance between <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)"> and <img src="https://latex.codecogs.com/png.latex?L">. Rearranging, we obtain the original expression for <img src="https://latex.codecogs.com/png.latex?D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AD%20=%20%5Cfrac%7B%7Cax_%7B0%7D%20+%20by_%7B0%7D%20+%20c%7C%7D%7B%5Csqrt%7Ba%5E%7B2%7D%20+%20b%5E%7B2%7D%7D%7D.%0A"></p>
+<p><br></p>
+<p>In order to obtain the values for <img src="https://latex.codecogs.com/png.latex?a,%20b"> and <img src="https://latex.codecogs.com/png.latex?c">, we assume two endpoints that define a line segment <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> and <img src="https://latex.codecogs.com/png.latex?(x_%7B2%7D,%20y_%7B2%7D)">. Let</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Adx%20&amp;=%20x_%7B1%7D%20-%20x_%7B2%7D%5C%5C%0Ady%20&amp;=%20y_%7B1%7D%20-%20y_%7B2%7D%5C%5C%0Ay%20&amp;=%20%5Cfrac%7Bdy%7D%7Bdx%7Dx%20+%20n,%0A%5Cend%7Balign*%7D%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?n"> is a constant we need to compute. Plugging <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> into the last equation and solving for <img src="https://latex.codecogs.com/png.latex?n"> yields</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0An%20=%20y_%7B1%7D%20-%20%5Cfrac%7Bdy%7D%7Bdx%7Dx_%7B1%7D.%0A"></p>
+<p>Thus, a general form for the line can be expressed as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ay%20=%20%5Cfrac%7Bdy%7D%7Bdx%7Dx%20+%20y_%7B1%7D%20-%20%5Cfrac%7Bdy%7D%7Bdx%7Dx_%7B1%7D.%0A"></p>
+<p>Multiplying through by <img src="https://latex.codecogs.com/png.latex?dx"> and rearranging results in</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Axdy%20-%20ydx%20+%20y_%7B1%7Ddx%20-x_%7B1%7Ddy%20=%200.%0A"></p>
+<p>Referring back to our original expression for <img src="https://latex.codecogs.com/png.latex?L">, it is easy to see that</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Aa%20&amp;=%20dy%5C%5C%0Ab%20&amp;=%20-dx%5C%5C%0Ac%20&amp;=%20y_%7B1%7Ddx%20-%20x_%7B1%7Ddy.%0A%5Cend%7Balign*%7D%0A"></p>
+<p><br></p>
+<p>Given a point <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)"> and a line segment <img src="https://latex.codecogs.com/png.latex?L"> defined by two endpoints <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> and <img src="https://latex.codecogs.com/png.latex?(x_%7B2%7D,%20y_%7B2%7D)">, we can now determine the distance from <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)"> to the intersection point between <img src="https://latex.codecogs.com/png.latex?L"> and the perpendicular line passing through <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)">:</p>
+<div id="cell-9" class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> shapely.geometry <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> LineString</span>
+<span id="cb6-3"></span>
+<span id="cb6-4"></span>
+<span id="cb6-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> point2line(p, l):</span>
+<span id="cb6-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb6-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Compute distance between point p and line l.</span></span>
+<span id="cb6-8"></span>
+<span id="cb6-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb6-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb6-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    p: shapely.geometry.point.Point</span></span>
+<span id="cb6-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Point of interest.</span></span>
+<span id="cb6-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    l: shapely.geometry.linestring.LineString</span></span>
+<span id="cb6-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Line defined by two end points. </span></span>
+<span id="cb6-15"></span>
+<span id="cb6-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb6-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb6-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    float</span></span>
+<span id="cb6-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Distance from p to l. </span></span>
+<span id="cb6-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb6-21">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get endpoints from l. </span></span>
+<span id="cb6-22">    p1, p2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> l.coords[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]</span>
+<span id="cb6-23">    x0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p.x</span>
+<span id="cb6-24">    y0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p.y</span>
+<span id="cb6-25">    x1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb6-26">    y1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb6-27">    x2: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p2[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb6-28">    y2: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p2[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb6-29">    dx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> x1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x2</span>
+<span id="cb6-30">    dy <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> y2</span>
+<span id="cb6-31">    a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dy</span>
+<span id="cb6-32">    b <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>dx</span>
+<span id="cb6-33">    c <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dy</span>
+<span id="cb6-34">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> b <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> y0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> c) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> sqrt(a<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> b<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span></code></pre></div>
+</div>
+<p><br></p>
+<p>We create a line and point and use <code>point2line</code> to calculate the distance. The distance is also calculated using shapely to for verification:</p>
+<div id="cell-11" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2">p <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.</span>)</span>
+<span id="cb7-3">l <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> LineString([[<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.</span>], [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10.</span>]])</span>
+<span id="cb7-4"></span>
+<span id="cb7-5">point2line_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> point2line(p, l)</span>
+<span id="cb7-6">shapely_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p.distance(l)</span>
+<span id="cb7-7"></span>
+<span id="cb7-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"point2line distance: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>point2line_dist<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb7-9"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"shapely distance   : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>shapely_dist<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>point2line distance: 5.58440
+shapely distance   : 5.58440</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Let’s visualize <code>p</code> and <code>l</code>, along with the line perpendicular to <code>l</code> passing through <code>p</code>:</p>
+<div id="cell-13" class="cell" data-execution_count="61">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
+<span id="cb9-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb9-3"></span>
+<span id="cb9-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Determine slope and intercept of line perpendicular to l passing through p.</span></span>
+<span id="cb9-5">x0, y0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p.coords[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb9-6">(x1, y1), (x2, y2) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> l.coords[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]</span>
+<span id="cb9-7"></span>
+<span id="cb9-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get slope and intercept of l.</span></span>
+<span id="cb9-9">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (y2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> y1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (x2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x1)</span>
+<span id="cb9-10">b <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x1</span>
+<span id="cb9-11"></span>
+<span id="cb9-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get slope of line perpendicular to l.</span></span>
+<span id="cb9-13">mp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> m</span>
+<span id="cb9-14"></span>
+<span id="cb9-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get intercept of line perpendicular to l that passes through (x0, y0).</span></span>
+<span id="cb9-16">bp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> mp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x0</span>
+<span id="cb9-17"></span>
+<span id="cb9-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Determine x and y where l and line perpendicular to l intersect. </span></span>
+<span id="cb9-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The two points that define the line perpendicular to l are (x0, y0) </span></span>
+<span id="cb9-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># and (x_intersect, y_intersect).</span></span>
+<span id="cb9-21">x_intersect <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (bp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> b) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> mp)</span>
+<span id="cb9-22">y_intersect <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x_intersect <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> b</span>
+<span id="cb9-23"></span>
+<span id="cb9-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Group coordinates for plotting.</span></span>
+<span id="cb9-25">xx, yy <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [x1, x2], [y1, y2]</span>
+<span id="cb9-26">xxp, yyp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [x0, x_intersect], [y0, y_intersect]</span>
+<span id="cb9-27"></span>
+<span id="cb9-28"></span>
+<span id="cb9-29">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7.5</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5.</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>) </span>
+<span id="cb9-30"></span>
+<span id="cb9-31"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plot point p.</span></span>
+<span id="cb9-32">ax.plot(x0, y0, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"o"</span>, markersize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"original point"</span>)</span>
+<span id="cb9-33"></span>
+<span id="cb9-34"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plot line segment l.</span></span>
+<span id="cb9-35">ax.plot(xx, yy, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"original line"</span>)</span>
+<span id="cb9-36"></span>
+<span id="cb9-37"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plot line segment perpendicular to l.</span></span>
+<span id="cb9-38">ax.plot(xxp, yyp, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"green"</span>, linestyle<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"perpendicular line"</span>)</span>
+<span id="cb9-39"></span>
+<span id="cb9-40"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plot intersection point.</span></span>
+<span id="cb9-41">ax.plot(x_intersect, y_intersect, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"o"</span>, markersize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"green"</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"intersection point"</span>)</span>
+<span id="cb9-42"></span>
+<span id="cb9-43">ax.annotate(</span>
+<span id="cb9-44">    <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"(</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>x0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">, </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>y0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">)"</span>, xy<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(x0, y0), xycoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data"</span>, ha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bottom"</span>, </span>
+<span id="cb9-45">    textcoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"offset points"</span>, xytext<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>), fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, rotation<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"normal"</span>, </span>
+<span id="cb9-46">    color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#000000"</span></span>
+<span id="cb9-47">) </span>
+<span id="cb9-48"></span>
+<span id="cb9-49">ax.annotate(</span>
+<span id="cb9-50">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"p"</span>, xy<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(x0, y0), xycoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data"</span>, ha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bottom"</span>, textcoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"offset points"</span>, </span>
+<span id="cb9-51">    xytext<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>), fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, rotation<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#000000"</span></span>
+<span id="cb9-52">) </span>
+<span id="cb9-53"></span>
+<span id="cb9-54">ax.annotate(</span>
+<span id="cb9-55">    <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"(</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>x_intersect<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">, </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>y_intersect<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">)"</span>, xy<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(x_intersect, y_intersect), </span>
+<span id="cb9-56">    xycoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data"</span>, ha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bottom"</span>, textcoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"offset points"</span>, </span>
+<span id="cb9-57">    xytext<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>), fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, rotation<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#000000"</span></span>
+<span id="cb9-58">) </span>
+<span id="cb9-59"></span>
+<span id="cb9-60">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'equal'</span>)</span>
+<span id="cb9-61">ax.tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb9-62">ax.tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb9-63">ax.xaxis.set_ticks_position(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"none"</span>)</span>
+<span id="cb9-64">ax.yaxis.set_ticks_position(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"none"</span>)</span>
+<span id="cb9-65">ax.legend(loc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"upper right"</span>, fancybox<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, framealpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"small"</span>)</span>
+<span id="cb9-66">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/gis-algorithms-in-python-1/gis-algorithms-in-python-1_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Since we have the endpoints of the line perpendicular to <code>l</code> passing through <code>p</code>, we can show that <code>point2point</code> returns the same distance as <code>point2line</code>:</p>
+<div id="cell-15" class="cell">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
+<span id="cb10-2">p1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(x0, y0)</span>
+<span id="cb10-3">p2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(x_intersect, y_intersect)</span>
+<span id="cb10-4"></span>
+<span id="cb10-5">point2point(p1, p2)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="60">
+<pre><code>5.584403908234904</code></pre>
+</div>
+</div>
+
+
+</section>
+
+ ]]></description>
+  <category>Geospatial</category>
+  <category>Python</category>
+  <guid>https://www.jtrive.com/posts/gis-algorithms-in-python-1/gis-algorithms-in-python-1.html</guid>
+  <pubDate>Fri, 22 Nov 2024 06:00:00 GMT</pubDate>
+</item>
 <item>
   <title>The Bootstrap Chain Ladder from Scratch in Python</title>
   <link>https://www.jtrive.com/posts/boostrap-chainladder-python/bootstrap-chainladder-python.html</link>
@@ -34845,524 +35968,6 @@ font-style: inherit;">0.7070241</span></span></code></pre></div>
   <category>R</category>
   <guid>https://www.jtrive.com/posts/logistic-from-scratch-r/logistic-from-scratch-r.html</guid>
   <pubDate>Sat, 02 Mar 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Backpropagation for Fully-Connected Neural Networks</title>
-  <link>https://www.jtrive.com/posts/backprop-python/backprop-python.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>Backpropagation is a key algorithm used in training fully connected neural networks, also known as feed-forward neural networks. In this algorithm, the network’s output error is propagated backward, layer by layer, to adjust the weights of connections between neurons.</p>
-<p><img src="https://www.jtrive.com/posts/backprop-python/fc.png" class="img-fluid"></p>
-<p>The process starts by comparing the network’s output to the desired output, calculating the error. Then, starting from the output layer and moving backward, the algorithm computes the gradients of the error with respect to each weight in the network using the chain rule of calculus. These gradients indicate how much each weight contributes to the error.</p>
-<p>Next, the weights are updated using gradient descent, where they are adjusted in the direction that minimizes the error. This adjustment is proportional to the gradient and a predefined learning rate, ensuring the network converges towards a solution. Backpropagation continues iteratively over the training data until the network’s performance reaches a satisfactory level or a predetermined number of iterations is reached.</p>
-<p>Overall, backpropagation efficiently adjusts the weights of a fully connected network, enabling it to learn complex relationships between input and output data through iterative optimization of the network’s parameters.</p>
-<p>In what follows, we walkthrough the mathematics and pseudocode required to train a 2-layer fully connected network for a classification task.</p>
-<section id="forward-pass" class="level3">
-<h3 class="anchored" data-anchor-id="forward-pass">Forward Pass</h3>
-<p>In the following, superscripts represent the layer associated with each variable:</p>
-<ul>
-<li><p><img src="https://latex.codecogs.com/png.latex?X%20=%20A%5E%7B(0)%7D">: Input data having dimension n-by-f, where n is the number of samples and f the number of features. For a batch of 32 MNIST samples, <img src="https://latex.codecogs.com/png.latex?X"> would have dimension (32, 784).</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?y">: Target variable. classifying a single digit from MINST, a vector populated with 0s and 1s indicating the ground truth label for the sample (8 or not 8). Has the same length as the first dimension of <img src="https://latex.codecogs.com/png.latex?X">.</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?W%5E%7B(l)%7D">: Trainable weights. Projects previous layer activations to lower dimensional representation. Again referring to the first set of weights for a batch of 32 MNIST samples, <img src="https://latex.codecogs.com/png.latex?W%5E%7B(1)%7D">’s first dimension will match the second dimension of the activations from the previous layer (784), and <img src="https://latex.codecogs.com/png.latex?W%5E%7B(1)%7D">’s second dimension will be some lower dimension, say 256. <img src="https://latex.codecogs.com/png.latex?W%5E%7B(1)%7D"> will therefore have dimension (784, 256).</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?b%5E%7B(l)%7D">: Bias term, a one-dimensional vector associated with each hidden layer having length equal to the second dimension of the hidden layer. <img src="https://latex.codecogs.com/png.latex?b%5E%7B(1)%7D"> will have dimension (256,).</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(l)%7D%20=%20A%5E%7B(l-1)%7D%20W%5E%7B(l)%7D%20+%20b%5E%7B(l)%7D">: Output of layer <img src="https://latex.codecogs.com/png.latex?l">, which is the matrix product of the previous layer activations <img src="https://latex.codecogs.com/png.latex?A%5E%7B(l-1)%7D"> and current layer weights (plus bias term).</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?A%5E%7B(l)%7D%20=%20%5Csigma(Z%5E%7B(l)%7D)">: Activations associated with layer <img src="https://latex.codecogs.com/png.latex?l">. Passes <img src="https://latex.codecogs.com/png.latex?Z%5E%7B(l)%7D"> through a non-linearity such as sigmoid or ReLU.</p></li>
-</ul>
-<p>More concretely, assume a 2-layer fully-connected neural network with one hidden layer of size 256, through which a dataset of dimension 32-by-784 is passed to predict whether each of the 32 images is an 8 or not. The forward pass looks like:</p>
-<ul>
-<li>Randomly initialize <img src="https://latex.codecogs.com/png.latex?W%5E%7B(1)%7D"> (784x256), <img src="https://latex.codecogs.com/png.latex?W%5E%7B(2)%7D"> (256x1), <img src="https://latex.codecogs.com/png.latex?b%5E%7B(1)%7D"> (256x1) and <img src="https://latex.codecogs.com/png.latex?b%5E%7B(2)%7D"> (1x1)</li>
-<li><img src="https://latex.codecogs.com/png.latex?X%20=%20A%5E%7B(0)%7D%5Chspace%7B.75em%7D"> (32x784)</li>
-<li><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(1)%7D%20=%20A%5E%7B(0)%7D%20W%5E%7B(1)%7D%20+%20b%5E%7B(1)%7D%5Chspace%7B.75em%7D"> (32x256)</li>
-<li><img src="https://latex.codecogs.com/png.latex?A%5E%7B1%7D%20=%20%5Csigma(Z%5E%7B(1)%7D)%5Chspace%7B.75em%7D"> (32x256)</li>
-<li><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(2)%7D%20=%20A%5E%7B(1)%7D%20W%5E%7B(2)%7D%20+%20b%5E%7B(2)%7D%5Chspace%7B.75em%7D"> (32x1)</li>
-<li><img src="https://latex.codecogs.com/png.latex?%5Chat%7By%7D%20=%20A%5E%7B(2)%7D%20=%20%5Csigma(Z%5E%7B(2)%7D)%5Chspace%7B.75em%7D"> (32x1)</li>
-</ul>
-<p>The final output, <img src="https://latex.codecogs.com/png.latex?%5Chat%7By%7D">, represents the probability that each sample is the number 8 or not.</p>
-<p>With the actual labels <img src="https://latex.codecogs.com/png.latex?y"> and our predicted probabilities <img src="https://latex.codecogs.com/png.latex?%5Chat%7By%7D">, we can define our loss function, the cross-entropy loss for binary classification:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathcal%7BL%7D%20=%20-%5Cfrac%7B1%7D%7Bn%7D%5Cbig(y%20%5Ctimes%20%5Cmathrm%7Blog%7D(%5Chat%7By%7D)%20-%20(1%20-%20y)%5Ctimes%20%5Cmathrm%7Blog%7D(1%20-%20%5Chat%7By%7D)%5Cbig)%0A"></p>
-</section>
-<section id="backward-pass-backpropagation" class="level3">
-<h3 class="anchored" data-anchor-id="backward-pass-backpropagation">Backward Pass (Backpropagation)</h3>
-<p>The goal of backpropagation is to compute the partial derivatives of the loss function <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BL%7D"> with respect to any weight <img src="https://latex.codecogs.com/png.latex?W"> or <img src="https://latex.codecogs.com/png.latex?b"> in the network. In order to update our weights, we need to take derivatives of <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BL%7D"> w.r.t. <img src="https://latex.codecogs.com/png.latex?W"> and <img src="https://latex.codecogs.com/png.latex?b">, then update <img src="https://latex.codecogs.com/png.latex?W"> and <img src="https://latex.codecogs.com/png.latex?b"> using the derivatives. Backpropagation starts by taking the derivative of the loss function. We first compute the derivatives of the loss function w.r.t. <img src="https://latex.codecogs.com/png.latex?W%5E%7B(2)%7D"> and <img src="https://latex.codecogs.com/png.latex?b%5E%7B(2)%7D">. Here we make use of the chain rule:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%5C%5C%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Once we have <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D">, <img src="https://latex.codecogs.com/png.latex?W%5E%7B(2)%7D"> and <img src="https://latex.codecogs.com/png.latex?b%5E%7B(2)%7D"> are updated as follows:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AW%5E%7B(2)%7D%20&amp;:=%20W%5E%7B(2)%7D%20-%20%5Calpha%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%5C%5C%0Ab%5E%7B(2)%7D%20&amp;:=%20b%5E%7B(2)%7D%20-%20%5Calpha%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%0A%5Cend%7Balign*%7D%0A"></p>
-<p>for some learning rate <img src="https://latex.codecogs.com/png.latex?%5Calpha">. This holds for all layers. For given layer <img src="https://latex.codecogs.com/png.latex?i">, the update rule for <img src="https://latex.codecogs.com/png.latex?W%5E%7B(i)%7D"> and <img src="https://latex.codecogs.com/png.latex?b%5E%7B(i)%7D"> is:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AW%5E%7B(i)%7D%20&amp;:=%20W%5E%7B(i)%7D%20-%20%5Calpha%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(i)%7D%7D%5C%5C%0Ab%5E%7B(i)%7D%20&amp;:=%20b%5E%7B(i)%7D%20-%20%5Calpha%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(i)%7D%7D.%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Let’s start with unpacking <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D">. The first entry on the r.h.s., <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D">, represents the derivative of the loss function w.r.t. <img src="https://latex.codecogs.com/png.latex?A%5E%7B(2)%7D%20=%20%5Chat%7By%7D">, which is</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20=%20-%5Cfrac%7By%7D%7BA%5E%7B(2)%7D%7D%20+%20%5Cfrac%7B1%20-%20y%7D%7B1%20-%20A%5E%7B(2)%7D%7D.%0A"></p>
-<p>The second term on the r.h.s., <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D">, is the derivative of the sigmoid activation (<img src="https://latex.codecogs.com/png.latex?A%5E%7B(2)%7D%20=%20%5Csigma(Z%5E%7B(2)%7D)">). The derivative of the sigmoid function is given by</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7Bd%5Csigma%7D%7Bdx%7D%20=%20%5Csigma(x)(1-%5Csigma(x)),%0A"></p>
-<p>therefore <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D"> is given by</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20=%20A%5E%7B(2)%7D(1%20-%20A%5E%7B(2)%7D).%0A"></p>
-<p>For the third term on the r.h.s., <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D">, recall that <img src="https://latex.codecogs.com/png.latex?Z%5E%7B(2)%7D%20=%20A%5E%7B(1)%7D%20W%5E%7B(2)%7D%20+%20b%5E%7B(2)%7D">. Therefore</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%20=%20A%5E%7B(1)%7D.%0A"></p>
-<p>Finally, we have</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%5C%5C%0A&amp;=%20%5CBig(-%5Cfrac%7By%7D%7BA%5E%7B(2)%7D%7D%20+%20%5Cfrac%7B1%20-%20y%7D%7B1%20-%20A%5E%7B(2)%7D%7D%5CBig)%20%5Ccdot%20%5Cbig(A%5E%7B(2)%7D(1%20-%20A%5E%7B(2)%7D)%5Cbig)%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D%5Cbig)%5C%5C%0A&amp;=%20(A%5E%7B(2)%7D%20-%20y)%20%5Ccdot%20A%5E%7B(1)%7D.%0A%5Cend%7Balign*%7D%0A"></p>
-<p>As a notational convenience, we define <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20=%20(A%5E%7B(2)%7D%20-%20y).%0A"></p>
-<p>This way, <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D"> can be expressed as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20A%5E%7B(1)%7D.%0A"></p>
-<p>We proceed in a similar fashion for <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%5C%5C%0A&amp;=%20(A%5E%7B(2)%7D%20-%20y),%0A%5Cend%7Balign*%7D%0A"></p>
-<p>since <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%20=%201">.</p>
-<p>For the first layer we re-use many of these calculations, but for new terms on the r.h.s., we employ the chain rule in the same way. For reference, restate the terms from the forward pass:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AA%5E%7B(0)%7D%20&amp;=%20X%5C%5C%0AZ%5E%7B(1)%7D%20&amp;=%20A%5E%7B(0)%7D%20W%5E%7B(1)%7D%20+%20b%5E%7B(1)%7D%5C%5C%0AA%5E%7B1%7D%20&amp;=%20%5Csigma(Z%5E%7B(1)%7D)%5C%5C%0AZ%5E%7B(2)%7D%20&amp;=%20A%5E%7B(1)%7D%20W%5E%7B(2)%7D%20+%20b%5E%7B(2)%7D%5C%5C%0AA%5E%7B(2)%7D%20&amp;=%20%5Chat%7By%7D%20=%20%5Csigma(Z%5E%7B(2)%7D)%0A%5Cend%7Balign*%7D%0A"></p>
-<p>We next consider <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Considering each term on the r.h.s:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20&amp;=%20(A%5E%7B(2)%7D%20-%20y)%5C%5C%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20&amp;=%20W%5E%7B(2)%7D%5C%5C%0A%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20&amp;=%20%5Csigma(Z%5E%7B(1)%7D)%20(1%20-%20%5Csigma(Z%5E%7B(1)%7D))%20=%20A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5C%5C%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%20&amp;=%20A%5E%7B(0)%7D%20=%20X%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Resulting in:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%20&amp;=%20(A%5E%7B(2)%7D%20-%20y)%20%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig)%20%5Ccdot%20A%5E%7B(0)%7D%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig)%20%5Ccdot%20A%5E%7B(0)%7D%5C%5C%0A%5Cend%7Balign*%7D%0A"></p>
-<p>As before, we define <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D"> as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig),%0A"></p>
-<p>which allows us to write <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D"> as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20A%5E%7B(0)%7D.%0A"></p>
-<p>Similarly for <img src="https://latex.codecogs.com/png.latex?b%5E%7B(1)%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D.%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Considering each term on the r.h.s:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20&amp;=%20(A%5E%7B(2)%7D%20-%20y)%5C%5C%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20&amp;=%20W%5E%7B(2)%7D%5C%5C%0A%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20&amp;=%20%5Csigma(Z%5E%7B(1)%7D)%20(1%20-%20%5Csigma(Z%5E%7B(1)%7D))%20=%20A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5C%5C%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D%20&amp;=%201%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Therefore</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D%20&amp;=%20(A%5E%7B(2)%7D%20-%20y)%20%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig)%20%5Ccdot%201%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig)%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D.%0A%5Cend%7Balign*%7D%0A"></p>
-<p>To complete the backpropagation algorithm, it is necessary to define <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20W%5E%7B(2)%7D.%0A"></p>
-<p>Assume <img src="https://latex.codecogs.com/png.latex?X"> is a 32x784 batch of MNIST images, and our network has one hidden layer of size 256. Our task is to identify which digit 0-9 a sample most closely resembles. We first declare a number of functions, then implement the forward and backward passes along with weights update.</p>
-<div id="b0bf5cc5" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
-<span id="cb1-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb1-3"></span>
-<span id="cb1-4"></span>
-<span id="cb1-5"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> sigmoid(X):</span>
-<span id="cb1-6">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Compute the sigmoid activation for the input.</span></span>
-<span id="cb1-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-9">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> np.exp(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span>X))</span>
-<span id="cb1-10"></span>
-<span id="cb1-11"></span>
-<span id="cb1-12"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> sigmoid_dev(X):</span>
-<span id="cb1-13">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    The analytical derivative of sigmoid function at X.</span></span>
-<span id="cb1-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-16">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> sigmoid(X) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> sigmoid(X))</span>
-<span id="cb1-17"></span>
-<span id="cb1-18"></span>
-<span id="cb1-19"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> softmax(scores):</span>
-<span id="cb1-20">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-21"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Compute softmax scores given the raw output from the model.</span></span>
-<span id="cb1-22"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Returns softmax probabilities (N, num_classes).</span></span>
-<span id="cb1-23"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-24">    numer <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.exp(scores <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> scores.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">max</span>(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, keepdims<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>))</span>
-<span id="cb1-25">    denom <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> numer.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, keepdims<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb1-26">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> np.divide(numer, denom)</span>
-<span id="cb1-27"></span>
-<span id="cb1-28"></span>
-<span id="cb1-29"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> cross_entropy_loss(ypred, yactual):</span>
-<span id="cb1-30">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-31"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Compute Cross-Entropy Loss based on prediction of the network and labels</span></span>
-<span id="cb1-32"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-33">    yactual <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.asarray(yactual)</span>
-<span id="cb1-34">    ypred <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> ypred[np.arange(<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">len</span>(yactual)), yactual]</span>
-<span id="cb1-35">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span>np.mean(np.log(ypred))</span>
-<span id="cb1-36"></span>
-<span id="cb1-37"></span>
-<span id="cb1-38"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> compute_accuracy(ypred, yactual):</span>
-<span id="cb1-39">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-40"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Compute the accuracy of current batch.</span></span>
-<span id="cb1-41"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-42">    yactual <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.asarray(yactual)</span>
-<span id="cb1-43">    yhat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.argmax(ypred, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb1-44">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> (y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> yhat).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> y.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span></code></pre></div>
-</div>
-<div id="83a0efc0" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
-<span id="cb2-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Stand in for batch of 32 MNIST images. </span></span>
-<span id="cb2-3">X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.random.randint(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">256</span>, size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">784</span>))</span>
-<span id="cb2-4">y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.random.randint(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>)</span>
-<span id="cb2-5"></span>
-<span id="cb2-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Reshape labels to 32 x 10. </span></span>
-<span id="cb2-7">Y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros((<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>))</span>
-<span id="cb2-8">Y[np.arange(X.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]), y] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 10)</span></span>
-<span id="cb2-9"></span>
-<span id="cb2-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Learning rate.</span></span>
-<span id="cb2-11">alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.05</span> </span>
-<span id="cb2-12"></span>
-<span id="cb2-13"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize weights.</span></span>
-<span id="cb2-14">b1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">256</span>)</span>
-<span id="cb2-15">b2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb2-16">W1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.001</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> np.random.randn(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">784</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">256</span>)</span>
-<span id="cb2-17">W2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.001</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> np.random.randn(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">256</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb2-18"></span>
-<span id="cb2-19"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Forward pass.</span></span>
-<span id="cb2-20">Z1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> W1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> b1   <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 256)</span></span>
-<span id="cb2-21">A1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> sigmoid(Z1)   <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 256)</span></span>
-<span id="cb2-22">Z2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> A1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> W2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> b2  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 10)</span></span>
-<span id="cb2-23">A2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> softmax(Z2)   <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 10)</span></span>
-<span id="cb2-24"></span>
-<span id="cb2-25"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute loss and accuracy.</span></span>
-<span id="cb2-26">loss <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> cross_entropy_loss(A2, y)</span>
-<span id="cb2-27">accuracy <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> compute_accuracy(A2, y)</span>
-<span id="cb2-28"></span>
-<span id="cb2-29"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Backward pass.</span></span>
-<span id="cb2-30">dZ2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> A2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> Y                            <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 10)</span></span>
-<span id="cb2-31">dW2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (A1.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> dZ2) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>                 <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (256, 10)</span></span>
-<span id="cb2-32">db2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(dZ2, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>          <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (10,)</span></span>
-<span id="cb2-33">dA1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dZ2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> W2.T                        <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 256)</span></span>
-<span id="cb2-34">dZ1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.multiply(dA1, sigmoid_dev(Z1)) <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 256)</span></span>
-<span id="cb2-35">dW1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (X.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> dZ1) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>                  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (784, 256)</span></span>
-<span id="cb2-36">db1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(dZ1, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>          <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (256,)</span></span>
-<span id="cb2-37"></span>
-<span id="cb2-38"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Update weights.</span></span>
-<span id="cb2-39">W2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> W2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> dW2</span>
-<span id="cb2-40">b2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> b2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> db2</span>
-<span id="cb2-41">W1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> W1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> dW1</span>
-<span id="cb2-42">b1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> b1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> db1</span></code></pre></div>
-</div>
-<p>The code starting with the forward pass would be iterated over a set of batches for a pre-determined number of epochs. The final weights would then be used for inference.</p>
-
-
-</section>
-
- ]]></description>
-  <category>Machine Learning</category>
-  <category>Python</category>
-  <guid>https://www.jtrive.com/posts/backprop-python/backprop-python.html</guid>
-  <pubDate>Wed, 28 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>

@@ -10,7 +10,1130 @@
 <atom:link href="https://www.jtrive.com/index-python.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Tue, 05 Nov 2024 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 22 Nov 2024 06:00:00 GMT</lastBuildDate>
+<item>
+  <title>GIS Algorithms in Python, Part I - Point-to-Point and Point-to-Line Distances</title>
+  <link>https://www.jtrive.com/posts/gis-algorithms-in-python-1/gis-algorithms-in-python-1.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>I’ve been spending time exploring Ningchuan Xiao’s excellent book, <em>GIS Algorithms</em>. This text offers a comprehensive dive into fundamental geospatial concepts including geometric algorithms, spatial indexing, and spatial analysis. The author thoroughly explains the theoretical foundations of each concept and provides practical Python implementations as examples.</p>
+<p>In a series of upcoming posts, I’ll break down and share insights on these concepts one-by-one. In this post, we’ll focus on two straightforward geometric algorithms: calculating point-to-point and point-to-line distances. The accompanying code leverages the Shapely library to handle geometric primitives such as points and lines and to validate our custom implementations of each algorithm.</p>
+<section id="point-to-point-distance" class="level2">
+<h2 class="anchored" data-anchor-id="point-to-point-distance">Point-to-Point Distance</h2>
+<p>We begin by computing the distance between two points in a rectilinear coordinate system. This can be accomplished using the Pythagorean theorem. For <img src="https://latex.codecogs.com/png.latex?p_%7B0%7D%20=%20(x_%7B0%7D,%20y_%7B0%7D)"> and <img src="https://latex.codecogs.com/png.latex?p_%7B1%7D%20=%20(x_%7B1%7D,%20y_%7B1%7D)">, the straight line distance <img src="https://latex.codecogs.com/png.latex?D"> between <img src="https://latex.codecogs.com/png.latex?p_%7B0%7D"> and <img src="https://latex.codecogs.com/png.latex?p_%7B2%7D"> is given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AD%20=%20%5Csqrt%7B(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%20+%20(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%7D.%0A"></p>
+<p>In the next cell, <code>point2point</code> computes the distance between two points using the Pythagorean theorem:</p>
+<div id="cell-3" class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> math <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> sqrt</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> shapely.geometry <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Point</span>
+<span id="cb1-4"></span>
+<span id="cb1-5"></span>
+<span id="cb1-6"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> point2point(p0, p1):</span>
+<span id="cb1-7">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Return the distance between p1 and p2. </span></span>
+<span id="cb1-9"></span>
+<span id="cb1-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb1-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb1-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    p0: shapely.geometry.point.Point</span></span>
+<span id="cb1-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        First point.</span></span>
+<span id="cb1-14"></span>
+<span id="cb1-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    p1: shapely.geometry.point.Point</span></span>
+<span id="cb1-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Second point.</span></span>
+<span id="cb1-17"></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb1-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb1-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    float</span></span>
+<span id="cb1-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Straight-line distance between p0 and p1. </span></span>
+<span id="cb1-22"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-23">    x0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.x</span>
+<span id="cb1-24">    y0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.y</span>
+<span id="cb1-25">    x1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1.x</span>
+<span id="cb1-26">    y1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1.y</span>
+<span id="cb1-27">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> sqrt((x1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x0)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> (y1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> y0)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb1-28"></span>
+<span id="cb1-29"></span>
+<span id="cb1-30"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Define two points.</span></span>
+<span id="cb1-31">p0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.</span>)</span>
+<span id="cb1-32">p1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7.</span>)</span>
+<span id="cb1-33"></span>
+<span id="cb1-34"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute distances using point2point and shapely. </span></span>
+<span id="cb1-35">p2p <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> point2point(p0, p1)</span>
+<span id="cb1-36">shp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.distance(p1)</span>
+<span id="cb1-37"></span>
+<span id="cb1-38"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Distance using point2point: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>p2p<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-39"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Distance using shapely    : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>shp<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Distance using point2point: 4.47214
+Distance using shapely    : 4.47214</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>If it is necessary to compute distance between two points on a sphere separated by a large extent, using <code>point2point</code> will not be accurate. We can instead opt for the haversine formula, which calculates the great-circle distance between two points on the Earth’s surface. It is especially suited for applications where accuracy over large distances is critical. The <code>haversine</code> function in the next cell accepts two points, with <code>x</code> representing longitude and <code>y</code> latitude, and returns the great circle distance between them. To use the haversine formula, it is necessary to specify a value for the radius of the Earth. We use 6,371 km, a generally accepted value for the Earth’s mean radius (see <a href="https://www.movable-type.co.uk/scripts/latlong.html">here</a>):</p>
+<div id="cell-5" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> math <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> asin, cos, sin, radians</span>
+<span id="cb3-3"></span>
+<span id="cb3-4"></span>
+<span id="cb3-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> get_haversine(p0, p1):</span>
+<span id="cb3-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb3-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Calculate the great circle distance between two points on the earth </span></span>
+<span id="cb3-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    (specified in decimal degrees).</span></span>
+<span id="cb3-9"></span>
+<span id="cb3-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb3-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb3-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        p0: shapely.geometry.point.Point</span></span>
+<span id="cb3-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        First point with x = longitude and y = latitude.</span></span>
+<span id="cb3-14"></span>
+<span id="cb3-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    p1: shapely.geometry.point.Point</span></span>
+<span id="cb3-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Second point with x = longitude and y = latitude.</span></span>
+<span id="cb3-17"></span>
+<span id="cb3-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb3-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb3-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    float</span></span>
+<span id="cb3-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Great circle distance between p0 and p1 in km.</span></span>
+<span id="cb3-22"></span>
+<span id="cb3-23"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    References</span></span>
+<span id="cb3-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb3-25"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    http://www.movable-type.co.uk/scripts/latlong.html</span></span>
+<span id="cb3-26"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb3-27">    R: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6371.</span></span>
+<span id="cb3-28">    lon0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.x</span>
+<span id="cb3-29">    lat0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p0.y</span>
+<span id="cb3-30">    lon1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1.x</span>
+<span id="cb3-31">    lat1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1.y</span>
+<span id="cb3-32">    </span>
+<span id="cb3-33">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Convert lat and lon degrees to radians.</span></span>
+<span id="cb3-34">    rlon0, rlat0, rlon1, rlat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">map</span>(radians, (lon0, lat0, lon1, lat1))</span>
+<span id="cb3-35">    dlon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rlon1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> rlon0</span>
+<span id="cb3-36">    dlat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rlat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> rlat0</span>
+<span id="cb3-37">    a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> sin(dlat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> cos(rlat0) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> cos(rlat1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> sin(dlon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb3-38">    c <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> asin(sqrt(a))</span>
+<span id="cb3-39">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> c</span></code></pre></div>
+</div>
+<p><br></p>
+<p>The pyproj library can be used to validate our haversine distance calculation. <code>p0</code> represents Chicago, Illinois and <code>p1</code> Burlington, Vermont. <code>pyproj.inv</code> returns the distance in meters, so we divide by 1000 to covert to km:</p>
+<div id="cell-7" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pyproj</span>
+<span id="cb4-3"></span>
+<span id="cb4-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># p0 = Chicago, IL, p1 = Burlington, VT. </span></span>
+<span id="cb4-5">p0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">87.6298</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">41.8781</span>)</span>
+<span id="cb4-6">p1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">73.2121</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">44.4759</span>) </span>
+<span id="cb4-7"></span>
+<span id="cb4-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute distances using get_haversine and geopy. </span></span>
+<span id="cb4-9">get_haversine_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> get_haversine(p0, p1)</span>
+<span id="cb4-10">geodesic <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pyproj.Geod(ellps<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"WGS84"</span>)</span>
+<span id="cb4-11">_, _, pyproj_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> geodesic.inv(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>p0.coords[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>p1.coords[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>])</span>
+<span id="cb4-12"></span>
+<span id="cb4-13"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Distance (km) via get_haversine: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>get_haversine_dist<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,.0f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb4-14"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Distance (km) via pyproj       : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>pyproj_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,.0f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Distance (km) via get_haversine: 1,203
+Distance (km) via pyproj       : 1,205</code></pre>
+</div>
+</div>
+<p>The results are very close. We could get them to match exactly by tweaking the value used for the Earth’s radius.</p>
+<p><br></p>
+</section>
+<section id="point-to-line-distance" class="level2">
+<h2 class="anchored" data-anchor-id="point-to-line-distance">Point-to-Line Distance</h2>
+<p>In Chapter 2 of <em>GIS Algorithms</em>, a general expression for the distance from a point to a line in rectilinear coordinates is presented. The distance <img src="https://latex.codecogs.com/png.latex?D"> is defined as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AD%20=%20%5Cfrac%7B%7Cax_%7B0%7D%20+%20by_%7B0%7D%20+%20c%7C%7D%7B%5Csqrt%7Ba%5E%7B2%7D%20+%20b%5E%7B2%7D%7D%7D,%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?ax_%7B0%7D%20+%20by_%7B0%7D%20+%20c"> is a line on the 2-D plane where <img src="https://latex.codecogs.com/png.latex?a,%20b"> and <img src="https://latex.codecogs.com/png.latex?c"> are constants. To obtain this expression, we calculate the distance from the point to the intersection point <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> between the line and a perpendicular line passing through <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)">.</p>
+<p>Let <img src="https://latex.codecogs.com/png.latex?L%20=%20ax_%7B0%7D%20+%20by_%7B0%7D%20+%20c">. The slope of the line perpendicular to <img src="https://latex.codecogs.com/png.latex?L"> is <img src="https://latex.codecogs.com/png.latex?b%20/%20a">, therefore</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7By_%7B1%7D%20-%20y_%7B0%7D%7D%7Bx_%7B1%7D%20-%20x_%7B0%7D%7D%20=%20%5Cfrac%7Bb%7D%7Ba%7D,%0A"></p>
+<p>resulting in</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Aa(y_%7B1%7D%20-%20y_%7B0%7D)%20-%20b(x_%7B1%7D%20-%20x_%7B0%7D)%20=%200.%0A"></p>
+<p>Squaring both sides and rearranging yields</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Aa%5E%7B2%7D(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20b%5E%7B2%7D(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%20=%202ab(x_%7B1%7D%20-%20x_%7B0%7D)(y_%7B1%7D%20-%20y_%7B0%7D).%0A"></p>
+<p>After adding <img src="https://latex.codecogs.com/png.latex?a%5E%7B2%7D(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%20+%20b%5E%7B2%7D(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D"> to both sides, the L.H.S. can be rewritten as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A(a%5E%7B2%7D%20+%20b%5E%7B2%7D)%5Cbig((y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%5Cbig),%0A"></p>
+<p>and the R.H.S. as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A(ax_%7B1%7D%20+%20by_%7B1%7D%20-%20ax_%7B0%7D%20-%20by_%7B0%7D)%5E%7B2%7D.%0A"></p>
+<p>Since the intersection point <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> also falls on the original line <img src="https://latex.codecogs.com/png.latex?L">, <img src="https://latex.codecogs.com/png.latex?ax_%7B1%7D%20+%20by_%7B1%7D%20=%20-c">. Substituting this result within the R.H.S expression above gives us</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A(a%5E%7B2%7D%20+%20b%5E%7B2%7D)%5Cbig((y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%5Cbig)%20=%20(ax_%7B0%7D%20+%20by_%7B0%7D%20+%20c)%5E%7B2%7D.%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D"> is the square of the distance between <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)"> and <img src="https://latex.codecogs.com/png.latex?L">. Rearranging, we obtain the original expression for <img src="https://latex.codecogs.com/png.latex?D">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AD%20=%20%5Cfrac%7B%7Cax_%7B0%7D%20+%20by_%7B0%7D%20+%20c%7C%7D%7B%5Csqrt%7Ba%5E%7B2%7D%20+%20b%5E%7B2%7D%7D%7D.%0A"></p>
+<p><br></p>
+<p>In order to obtain the values for <img src="https://latex.codecogs.com/png.latex?a,%20b"> and <img src="https://latex.codecogs.com/png.latex?c">, we assume two endpoints that define a line segment <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> and <img src="https://latex.codecogs.com/png.latex?(x_%7B2%7D,%20y_%7B2%7D)">. Let</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Adx%20&amp;=%20x_%7B1%7D%20-%20x_%7B2%7D%5C%5C%0Ady%20&amp;=%20y_%7B1%7D%20-%20y_%7B2%7D%5C%5C%0Ay%20&amp;=%20%5Cfrac%7Bdy%7D%7Bdx%7Dx%20+%20n,%0A%5Cend%7Balign*%7D%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?n"> is a constant we need to compute. Plugging <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> into the last equation and solving for <img src="https://latex.codecogs.com/png.latex?n"> yields</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0An%20=%20y_%7B1%7D%20-%20%5Cfrac%7Bdy%7D%7Bdx%7Dx_%7B1%7D.%0A"></p>
+<p>Thus, a general form for the line can be expressed as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ay%20=%20%5Cfrac%7Bdy%7D%7Bdx%7Dx%20+%20y_%7B1%7D%20-%20%5Cfrac%7Bdy%7D%7Bdx%7Dx_%7B1%7D.%0A"></p>
+<p>Multiplying through by <img src="https://latex.codecogs.com/png.latex?dx"> and rearranging results in</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Axdy%20-%20ydx%20+%20y_%7B1%7Ddx%20-x_%7B1%7Ddy%20=%200.%0A"></p>
+<p>Referring back to our original expression for <img src="https://latex.codecogs.com/png.latex?L">, it is easy to see that</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Aa%20&amp;=%20dy%5C%5C%0Ab%20&amp;=%20-dx%5C%5C%0Ac%20&amp;=%20y_%7B1%7Ddx%20-%20x_%7B1%7Ddy.%0A%5Cend%7Balign*%7D%0A"></p>
+<p><br></p>
+<p>Given a point <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)"> and a line segment <img src="https://latex.codecogs.com/png.latex?L"> defined by two endpoints <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> and <img src="https://latex.codecogs.com/png.latex?(x_%7B2%7D,%20y_%7B2%7D)">, we can now determine the distance from <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)"> to the intersection point between <img src="https://latex.codecogs.com/png.latex?L"> and the perpendicular line passing through <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)">:</p>
+<div id="cell-9" class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> shapely.geometry <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> LineString</span>
+<span id="cb6-3"></span>
+<span id="cb6-4"></span>
+<span id="cb6-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> point2line(p, l):</span>
+<span id="cb6-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb6-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Compute distance between point p and line l.</span></span>
+<span id="cb6-8"></span>
+<span id="cb6-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb6-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb6-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    p: shapely.geometry.point.Point</span></span>
+<span id="cb6-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Point of interest.</span></span>
+<span id="cb6-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    l: shapely.geometry.linestring.LineString</span></span>
+<span id="cb6-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Line defined by two end points. </span></span>
+<span id="cb6-15"></span>
+<span id="cb6-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb6-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb6-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    float</span></span>
+<span id="cb6-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Distance from p to l. </span></span>
+<span id="cb6-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb6-21">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get endpoints from l. </span></span>
+<span id="cb6-22">    p1, p2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> l.coords[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]</span>
+<span id="cb6-23">    x0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p.x</span>
+<span id="cb6-24">    y0: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p.y</span>
+<span id="cb6-25">    x1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb6-26">    y1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p1[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb6-27">    x2: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p2[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb6-28">    y2: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p2[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb6-29">    dx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> x1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x2</span>
+<span id="cb6-30">    dy <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> y2</span>
+<span id="cb6-31">    a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dy</span>
+<span id="cb6-32">    b <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>dx</span>
+<span id="cb6-33">    c <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> dy</span>
+<span id="cb6-34">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>(a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> b <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> y0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> c) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> sqrt(a<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> b<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span></code></pre></div>
+</div>
+<p><br></p>
+<p>We create a line and point and use <code>point2line</code> to calculate the distance. The distance is also calculated using shapely to for verification:</p>
+<div id="cell-11" class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2">p <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3.</span>)</span>
+<span id="cb7-3">l <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> LineString([[<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.</span>], [<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10.</span>]])</span>
+<span id="cb7-4"></span>
+<span id="cb7-5">point2line_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> point2line(p, l)</span>
+<span id="cb7-6">shapely_dist <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p.distance(l)</span>
+<span id="cb7-7"></span>
+<span id="cb7-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"point2line distance: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>point2line_dist<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb7-9"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"shapely distance   : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>shapely_dist<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>point2line distance: 5.58440
+shapely distance   : 5.58440</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Let’s visualize <code>p</code> and <code>l</code>, along with the line perpendicular to <code>l</code> passing through <code>p</code>:</p>
+<div id="cell-13" class="cell" data-execution_count="61">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
+<span id="cb9-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb9-3"></span>
+<span id="cb9-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Determine slope and intercept of line perpendicular to l passing through p.</span></span>
+<span id="cb9-5">x0, y0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> p.coords[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb9-6">(x1, y1), (x2, y2) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> l.coords[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]</span>
+<span id="cb9-7"></span>
+<span id="cb9-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get slope and intercept of l.</span></span>
+<span id="cb9-9">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (y2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> y1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (x2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> x1)</span>
+<span id="cb9-10">b <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x1</span>
+<span id="cb9-11"></span>
+<span id="cb9-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get slope of line perpendicular to l.</span></span>
+<span id="cb9-13">mp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> m</span>
+<span id="cb9-14"></span>
+<span id="cb9-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get intercept of line perpendicular to l that passes through (x0, y0).</span></span>
+<span id="cb9-16">bp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> y0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> mp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x0</span>
+<span id="cb9-17"></span>
+<span id="cb9-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Determine x and y where l and line perpendicular to l intersect. </span></span>
+<span id="cb9-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The two points that define the line perpendicular to l are (x0, y0) </span></span>
+<span id="cb9-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># and (x_intersect, y_intersect).</span></span>
+<span id="cb9-21">x_intersect <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (bp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> b) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> (m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> mp)</span>
+<span id="cb9-22">y_intersect <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x_intersect <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> b</span>
+<span id="cb9-23"></span>
+<span id="cb9-24"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Group coordinates for plotting.</span></span>
+<span id="cb9-25">xx, yy <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [x1, x2], [y1, y2]</span>
+<span id="cb9-26">xxp, yyp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [x0, x_intersect], [y0, y_intersect]</span>
+<span id="cb9-27"></span>
+<span id="cb9-28"></span>
+<span id="cb9-29">fig, ax <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7.5</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5.</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>) </span>
+<span id="cb9-30"></span>
+<span id="cb9-31"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plot point p.</span></span>
+<span id="cb9-32">ax.plot(x0, y0, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"o"</span>, markersize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"original point"</span>)</span>
+<span id="cb9-33"></span>
+<span id="cb9-34"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plot line segment l.</span></span>
+<span id="cb9-35">ax.plot(xx, yy, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"original line"</span>)</span>
+<span id="cb9-36"></span>
+<span id="cb9-37"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plot line segment perpendicular to l.</span></span>
+<span id="cb9-38">ax.plot(xxp, yyp, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"green"</span>, linestyle<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"perpendicular line"</span>)</span>
+<span id="cb9-39"></span>
+<span id="cb9-40"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Plot intersection point.</span></span>
+<span id="cb9-41">ax.plot(x_intersect, y_intersect, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"o"</span>, markersize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"green"</span>, label<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"intersection point"</span>)</span>
+<span id="cb9-42"></span>
+<span id="cb9-43">ax.annotate(</span>
+<span id="cb9-44">    <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"(</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>x0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">, </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>y0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">)"</span>, xy<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(x0, y0), xycoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data"</span>, ha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bottom"</span>, </span>
+<span id="cb9-45">    textcoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"offset points"</span>, xytext<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>), fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, rotation<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"normal"</span>, </span>
+<span id="cb9-46">    color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#000000"</span></span>
+<span id="cb9-47">) </span>
+<span id="cb9-48"></span>
+<span id="cb9-49">ax.annotate(</span>
+<span id="cb9-50">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"p"</span>, xy<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(x0, y0), xycoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data"</span>, ha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bottom"</span>, textcoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"offset points"</span>, </span>
+<span id="cb9-51">    xytext<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">12</span>), fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, rotation<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#000000"</span></span>
+<span id="cb9-52">) </span>
+<span id="cb9-53"></span>
+<span id="cb9-54">ax.annotate(</span>
+<span id="cb9-55">    <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"(</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>x_intersect<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">, </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>y_intersect<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">)"</span>, xy<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(x_intersect, y_intersect), </span>
+<span id="cb9-56">    xycoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data"</span>, ha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bottom"</span>, textcoords<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"offset points"</span>, </span>
+<span id="cb9-57">    xytext<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>), fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, rotation<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"#000000"</span></span>
+<span id="cb9-58">) </span>
+<span id="cb9-59"></span>
+<span id="cb9-60">ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'equal'</span>)</span>
+<span id="cb9-61">ax.tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb9-62">ax.tick_params(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>)</span>
+<span id="cb9-63">ax.xaxis.set_ticks_position(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"none"</span>)</span>
+<span id="cb9-64">ax.yaxis.set_ticks_position(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"none"</span>)</span>
+<span id="cb9-65">ax.legend(loc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"upper right"</span>, fancybox<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, framealpha<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"small"</span>)</span>
+<span id="cb9-66">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/gis-algorithms-in-python-1/gis-algorithms-in-python-1_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Since we have the endpoints of the line perpendicular to <code>l</code> passing through <code>p</code>, we can show that <code>point2point</code> returns the same distance as <code>point2line</code>:</p>
+<div id="cell-15" class="cell">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
+<span id="cb10-2">p1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(x0, y0)</span>
+<span id="cb10-3">p2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Point(x_intersect, y_intersect)</span>
+<span id="cb10-4"></span>
+<span id="cb10-5">point2point(p1, p2)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="60">
+<pre><code>5.584403908234904</code></pre>
+</div>
+</div>
+
+
+</section>
+
+ ]]></description>
+  <category>Geospatial</category>
+  <category>Python</category>
+  <guid>https://www.jtrive.com/posts/gis-algorithms-in-python-1/gis-algorithms-in-python-1.html</guid>
+  <pubDate>Fri, 22 Nov 2024 06:00:00 GMT</pubDate>
+</item>
 <item>
   <title>The Bootstrap Chain Ladder from Scratch in Python</title>
   <link>https://www.jtrive.com/posts/boostrap-chainladder-python/bootstrap-chainladder-python.html</link>
@@ -32316,607 +33439,6 @@ Online calculation variance: 66,794.61111</code></pre>
   <category>Python</category>
   <guid>https://www.jtrive.com/posts/online-updates/online-updates.html</guid>
   <pubDate>Sun, 18 Feb 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Accessing C Library Functions from Python</title>
-  <link>https://www.jtrive.com/posts/c-libs-python/c-libs-python.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>ctypes is part of the Python standard library which provides C compatible data types and allows calling functions in shared libraries. It can be used to wrap libraries written in compiled languages from Python.</p>
-<p>In this post, we’ll demonstrate how to call functions written in C from Python using ctypes. The functions take as input an array of normal variates with specified mean and variance, then compute the normal CDF for each input array element. The sample code also demonstrates how to link to the C math library during compilation.</p>
-<section id="normal-cdf" class="level3">
-<h3 class="anchored" data-anchor-id="normal-cdf">Normal CDF</h3>
-<p>Our goal is to be able to call a C-implemented normal cumulative distribution function (CDF) from Python, which takes as input a value <img src="https://latex.codecogs.com/png.latex?x">, mean <img src="https://latex.codecogs.com/png.latex?%5Cmu">, standard deviation <img src="https://latex.codecogs.com/png.latex?%5Csigma"> and returns the corresponding CDF of <img src="https://latex.codecogs.com/png.latex?x"> (which ranges from 0 to 1). In addition, a second function that populates an array of evaluated normal quantiles for a given input array will be created.</p>
-<p>The standard C math library doesn’t expose a subroutine to calcuate the normal CDF directly, but it does expose the error function <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Berf%7D"> and the complementary error function <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Berfc%7D">. <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Berf%7D"> is defined as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7Berf%7D(x)%20=%20%5Cfrac%7B2%7D%7B%5Csqrt%7B%5Cpi%7D%7D%5Cint_%7B0%7D%5E%7Bx%7D%20%20e%5E%7B-t%5E%7B2%7D%7Ddt,%0A"></p>
-<p>and <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Berfc%7D"> is the complement of <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Berf%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7Berfc%7D(x)%20=%201%20-%20%5Cmathrm%7Berf%7D(x).%0A"></p>
-<p>Recall that the normal probability density function (PDF) is given by</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Af(x%7C%20%5Cmu,%5Csigma)%20=%20%5Cfrac%7B1%7D%7B%5Csqrt%7B2%20%5Cpi%20%5Csigma%5E%7B2%7D%7D%7D%20e%5E%7B-%5Cfrac%7B(x-%5Cmu)%5E%7B2%7D%7D%7B2%5Csigma%5E%7B2%7D%7D%7D.%0A"></p>
-<p>Given the similarity between <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Berf%7D"> and the normal PDF, it’s possible to use <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Berf%7D"> to calculate any normal quantiles of interest. Let <img src="https://latex.codecogs.com/png.latex?%5CPhi(x)"> represent the normal CDF evaluated at <img src="https://latex.codecogs.com/png.latex?x">. <img src="https://latex.codecogs.com/png.latex?%5CPhi(x)"> can be obtained using the following identity:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5CPhi(x)&amp;=%5Cfrac%7B1%7D%7B%5Csqrt%7B2%20%5Cpi%7D%7D%5Cint_%7B-%5Cinfty%7D%5E%7Bx%7D%20e%5E%7B%5Cfrac%7B-t%5E%7B2%7D%7D%7B2%7D%7Ddt%20%5C%5C%0A&amp;=%5Cfrac%7B1%7D%7B2%7D%5CBig%5B1%20+%20%5Cmathrm%7Berf%7D%20%5CBig(%5Cfrac%7Bx%7D%7B%5Csqrt%7B2%7D%7D%5CBig)%5CBig%5D%20%5C%5C%0A&amp;=%5Cfrac%7B1%7D%7B2%7D%5CBig%5B%5Cmathrm%7Berfc%7D%20%5CBig(-%5Cfrac%7Bx%7D%7B%5Csqrt%7B2%7D%7D%5CBig)%5CBig%5D.%0A%5Cend%7Balign*%7D%0A"></p>
-<p>When <img src="https://latex.codecogs.com/png.latex?x"> is large, <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Berfc%7D"> should be used in place of <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Berf%7D">.</p>
-<p>One final point: The identity relating the normal CDF and $: returns quantiles from the standard normal distribution which has zero mean and unit variance. To transform a normal distribution with arbitrary mean and variance into standard form, we use the familiar transformation:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Az%20=%20%5Cfrac%7Bx%20-%20%5Cmu%7D%7B%5Csigma%7D.%0A"></p>
-<p>We can then evaluate <img src="https://latex.codecogs.com/png.latex?z"> to obtain the corresponding normal quantile. We’ll use this point in our implementation as well.</p>
-<p>### C Implementation</p>
-<p>The actual implementation of our normal CDF computator will consist of a single .c file <em>norm.c</em>. What follows are the contents of <em>norm.c</em>:</p>
-<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode c code-with-copy"><code class="sourceCode c"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/*</span></span>
-<span id="cb1-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Determine the Normal CDF of x given mean `mu`</span></span>
-<span id="cb1-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">and standard deviation `sigma`.</span></span>
-<span id="cb1-4"></span>
-<span id="cb1-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    `x`     =&gt; value for which the normal CDF will be determined</span></span>
-<span id="cb1-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    `mu`    =&gt; mean of the corresponding normal distribution</span></span>
-<span id="cb1-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    `sigma` =&gt; standard deviation of the corresponding normal distribution</span></span>
-<span id="cb1-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*/</span></span>
-<span id="cb1-9"><span class="pp" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">#include </span><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">&lt;math.h&gt;</span></span>
-<span id="cb1-10"></span>
-<span id="cb1-11"></span>
-<span id="cb1-12"><span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span> norm_cdf<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">(</span><span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span> x<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span> mu<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span> sigma<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">)</span></span>
-<span id="cb1-13"><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span></span>
-<span id="cb1-14">    <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span> cdf<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span>  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">// variable to hold result</span></span>
-<span id="cb1-15">    <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span> z<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span>    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">// transformation to standard normal</span></span>
-<span id="cb1-16">    <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">const</span> <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span> SQRT_2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.4142135623730951</span><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span>
-<span id="cb1-17">    z <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">(</span>x <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> mu<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> sigma<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span>
-<span id="cb1-18"></span>
-<span id="cb1-19">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">// if x &gt; 3, call erfc; otherwise call erf </span></span>
-<span id="cb1-20">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">(</span>x <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&gt;=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">)</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span></span>
-<span id="cb1-21">        cdf <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> erfc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">(-</span> z <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> SQRT_2<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">);</span></span>
-<span id="cb1-22">    <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span></span>
-<span id="cb1-23">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span></span>
-<span id="cb1-24">        cdf <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.5</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> erf<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">(</span>z <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> SQRT_2<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">);</span>    </span>
-<span id="cb1-25">    <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span></span>
-<span id="cb1-26">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">(</span>cdf<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">);</span></span>
-<span id="cb1-27"><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span></span>
-<span id="cb1-28"></span>
-<span id="cb1-29"></span>
-<span id="cb1-30"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/*</span></span>
-<span id="cb1-31"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">For a given array of arbitrary normal variates, calculate </span></span>
-<span id="cb1-32"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">the corresponding quantiles using `norm_cdf`.</span></span>
-<span id="cb1-33"></span>
-<span id="cb1-34"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    `mu`           =&gt; mean of the corresponding normal distribution</span></span>
-<span id="cb1-35"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    `sigma`        =&gt; standard deviation of the corresponding normal distribution</span></span>
-<span id="cb1-36"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    `n`            =&gt; the length of input_array/output_array</span></span>
-<span id="cb1-37"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    `input_array`  =&gt; array of inputs (doubles)</span></span>
-<span id="cb1-38"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    `output_array` =&gt; array of computed normal CDFs</span></span>
-<span id="cb1-39"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*/</span></span>
-<span id="cb1-40"><span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">void</span> cdf_array<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">(</span><span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span> mu<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span> sigma<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">int</span> n<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">,</span> </span>
-<span id="cb1-41">                 <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> input_array<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">,</span> <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">double</span><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> output_array<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">)</span></span>
-<span id="cb1-42"><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span></span>
-<span id="cb1-43">    <span class="dt" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">int</span> i<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span></span>
-<span id="cb1-44"></span>
-<span id="cb1-45">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">// For each element of input_array, call norm.</span></span>
-<span id="cb1-46">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">(</span>i<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span> i<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&lt;</span>n<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">;</span> i<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">++)</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span></span>
-<span id="cb1-47"></span>
-<span id="cb1-48">        output_array<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">[</span>i<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">]</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm_cdf<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">(</span>input_array<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">[</span>i<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">],</span> mu<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">,</span> sigma<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">);</span></span>
-<span id="cb1-49"></span>
-<span id="cb1-50">    <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span>    </span>
-<span id="cb1-51"><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span></span></code></pre></div>
-<p>Our ultimate goal is to create a shared library that contains the C functions <code>norm_cdf</code> and <code>cdf_array</code> which can be accessed using ctypes and called from within Python. The first step is to compile <em>norm.c</em> into an object file. For gcc, the -c flag is used to compile a source file into an object file:</p>
-<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><span class="ex" style="color: null;
-background-color: null;
-font-style: inherit;">$</span> gcc <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">-Wall</span> <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">-fPIC</span> <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">-lm</span> <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">-c</span> norm.c    </span></code></pre></div>
-<p>The <code>-lm</code> flag precludes us from having to include the full path and name of the C math library. Upon completion, the object file <em>norm.o</em> will be output to the same directory in which <em>norm.c</em> resides.</p>
-<p>In the next step we create the shared library. Linux shared libraries have <em>.so</em> extensions. The following command creates <em>norm.so</em> in the same directory as <em>norm.c</em> and <em>norm.o</em>:</p>
-<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><span class="ex" style="color: null;
-background-color: null;
-font-style: inherit;">$</span> gcc <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">-shared</span> <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">-o</span> norm.so norm.o  </span></code></pre></div>
-<p>Brief aside: If we had a collection of files that we wanted to compile into a single shared library, we’d list them one after the other. If instead of <em>norm.o</em> we had <em>norm1.o, norm2.o and norm3.o</em>, the command would become:</p>
-<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><span class="ex" style="color: null;
-background-color: null;
-font-style: inherit;">$</span> gcc <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">-shared</span> <span class="at" style="color: #657422;
-background-color: null;
-font-style: inherit;">-o</span> norm.so norm1.o norm2.o norm3.o</span></code></pre></div>
-<p>Doing so would also produce a single <em>norm.so</em> file in the working directory, same as the command referencing a single object file.</p>
-</section>
-<section id="calling-c-functions-from-python" class="level2">
-<h2 class="anchored" data-anchor-id="calling-c-functions-from-python">Calling C Functions from Python</h2>
-<p>Prior to calling our C functions from Python, we need to specify the parameter and return types of <code>norm_cdf</code> and <code>cdf_array</code>. In addition, we need to coerce any Python data types that are passed to the library functions into C-compatible data types. This is demonstrated below, with each section commented to make it easier to follow along. This is a Python file named as <em>norm_main.py</em>:</p>
-<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#!/usr/bin/env python</span></span>
-<span id="cb5-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb5-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">norm_main.py</span></span>
-<span id="cb5-4"></span>
-<span id="cb5-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Calls 2 functions from the compiled C library `norm.so`:</span></span>
-<span id="cb5-6"></span>
-<span id="cb5-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    [+] double norm(double x, double mu, double sigma)</span></span>
-<span id="cb5-8"></span>
-<span id="cb5-9"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    [+] void cdf_array(double mu, double sigma, int n,</span></span>
-<span id="cb5-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">                     double* input_array, double* output_array)</span></span>
-<span id="cb5-11"></span>
-<span id="cb5-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb5-13"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> ctypes</span>
-<span id="cb5-14"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb5-15"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> scipy.stats <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> norm</span>
-<span id="cb5-16"></span>
-<span id="cb5-17">np.set_printoptions(suppress<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb5-18"></span>
-<span id="cb5-19"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Provide full path to shared library.</span></span>
-<span id="cb5-20">LIB_PATH <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"norm.so"</span></span>
-<span id="cb5-21"></span>
-<span id="cb5-22"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Bind reference to shared library `norm.so`.</span></span>
-<span id="cb5-23">normlib <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> ctypes.cdll.LoadLibrary(LIB_PATH)</span>
-<span id="cb5-24"></span>
-<span id="cb5-25"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Specify argument datatypes for norm_cdf and cdf_array.</span></span>
-<span id="cb5-26">normlib.norm_cdf.argtypes  <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [</span>
-<span id="cb5-27">    ctypes.c_double, ctypes.c_double, ctypes.c_double</span>
-<span id="cb5-28">    ]</span>
-<span id="cb5-29">    </span>
-<span id="cb5-30">normlib.cdf_array.argtypes <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [</span>
-<span id="cb5-31">    ctypes.c_double, ctypes.c_double, ctypes.c_int,</span>
-<span id="cb5-32">    ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)</span>
-<span id="cb5-33">    ]</span>
-<span id="cb5-34"></span>
-<span id="cb5-35"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Specify return datatypes for norm_cdf and cdf_array (cdf_array declared as void).</span></span>
-<span id="cb5-36">normlib.norm_cdf.restype  <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> ctypes.c_double</span>
-<span id="cb5-37">normlib.cdf_array.restype <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">None</span></span>
-<span id="cb5-38"></span>
-<span id="cb5-39"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Use scipy.stats to generate 10 standard normal random variates. This will </span></span>
-<span id="cb5-40"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># be `input_arr`. We also initialize `output_arr` to all zeros, and set the </span></span>
-<span id="cb5-41"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># random seed in numpy for reproducibility.</span></span>
-<span id="cb5-42">np.random.seed(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">516</span>)</span>
-<span id="cb5-43">mu, sigma, n <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span></span>
-<span id="cb5-44">input_arr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm.rvs(loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>mu, scale<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>sigma, size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>n)</span>
-<span id="cb5-45">output_arr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros(n, np.float_)</span>
-<span id="cb5-46"></span>
-<span id="cb5-47"></span>
-<span id="cb5-48"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize ctypes-compatible versions of mu, sigma, n, input_arr and output_arr.</span></span>
-<span id="cb5-49">ct_mu <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> ctypes.c_double(mu)</span>
-<span id="cb5-50">ct_sigma <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> ctypes.c_double(sigma)</span>
-<span id="cb5-51">ct_n <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> ctypes.c_int(n)</span>
-<span id="cb5-52">ct_input_arr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.ctypeslib.as_ctypes(input_arr)</span>
-<span id="cb5-53">ct_output_arr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.ctypeslib.as_ctypes(output_arr)</span>
-<span id="cb5-54"></span>
-<span id="cb5-55"></span>
-<span id="cb5-56"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">Normal variates w/ mean </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>mu<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> and standard deviation </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>sigma<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">:</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>input_arr<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb5-57"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">Output_arr before passing to cdf_array:</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>output_arr<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb5-58"></span>
-<span id="cb5-59"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Call `normlib.cdf_array` from C library.</span></span>
-<span id="cb5-60">normlib.cdf_array(ct_mu, ct_sigma, ct_n, ct_input_arr, ct_output_arr)</span>
-<span id="cb5-61"></span>
-<span id="cb5-62"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">Output_arr after passing to cdf_array:</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>output_arr<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb5-63"></span>
-<span id="cb5-64"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compare results returned by cdf_array to scipy's norm.cdf.</span></span>
-<span id="cb5-65">spcdfs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> norm.cdf(input_arr, loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>mu, scale<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>sigma)</span>
-<span id="cb5-66"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">scipy-evaluated CDFs:</span><span class="ch" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">\</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>spcdfs<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<p>To summarize, we read in <em>norm.so</em>, specify the parameter and return data types for the library functions, then call <code>cdf_array</code>. In the last few lines, we compare the output of <code>cdf_array</code> with <code>norm.cdf</code> from scipy.stats, and find the results to be identical.</p>
-<p>Note that we are not copying data, but simply passing pointers to the data from Python to C. In C, the data pointed to is operated on, which means we do not need to pass any data back. This explains why <code>cdf_array</code>’s return type is void.</p>
-<p>Also note that calculating normal CDFs for a sequence of normal variates can be accomplished more efficiently using Scipy. This particular example was chosen to demonstrate non-trival ctypes extensibility, but the example itself should be considered a demonstration of the method, not an optimal approach for computing normal CDFs.</p>
-<p>The following terminal capture verifies that CDFs calculated with cdf_array and scipy are the same:</p>
-<p><img src="https://www.jtrive.com/posts/c-libs-python/normc01.png" class="img-fluid"></p>
-<p>Finally, we compare CDFs for normal variates generated from a non-standard normal distribution. The only change we need to make in <em>norm_main.py</em> is to update mu and sigma. Setting mu=2.5 and sigma=5 yields:</p>
-<p><img src="https://www.jtrive.com/posts/c-libs-python/normc02.png" class="img-fluid"></p>
-
-
-</section>
-
- ]]></description>
-  <category>Python</category>
-  <guid>https://www.jtrive.com/posts/c-libs-python/c-libs-python.html</guid>
-  <pubDate>Thu, 08 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
