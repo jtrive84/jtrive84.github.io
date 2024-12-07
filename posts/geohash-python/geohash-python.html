@@ -538,12 +538,7 @@ pygeohash level-6 geohash   : 9zmke6</code></pre>
 <span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>w_lat <span class="op">=</span> (max_lat_nw <span class="op">+</span> min_lat_sw) <span class="op">/</span> <span class="dv">2</span></span>
 <span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>w_lon <span class="op">=</span> (min_lon_sw <span class="op">+</span> max_lon_sw) <span class="op">/</span> <span class="dv">2</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="image01.png" class="img-fluid figure-img"></p>
-<figcaption>image01</figcaption>
-</figure>
-</div>
+<p><img src="image01.png" class="img-fluid"></p>
 <p><br></p>
 <p>This logic can be encapsulated within a function identified as <code>get_neighbors</code>:</p>
 <div id="cell-13" class="cell" data-execution_count="6">
@@ -647,65 +642,59 @@ pygeohash level-6 geohash   : 9zmke6</code></pre>
 </div>
 <p><br></p>
 <p>Finally, we can visualize a geohash with its 8 surrounding neighbors:</p>
-<div id="cell-17" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="bu">list</span>(dn.keys())[:<span class="dv">5</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="8">
-<pre><code>['center', 'nw', 'ne', 'sw', 'se']</code></pre>
-</div>
-</div>
-<div id="cell-18" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> folium </span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> folium.features <span class="im">import</span> DivIcon</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib <span class="im">as</span> mpl</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>lat, lon, precision <span class="op">=</span> <span class="fl">41.58538</span>, <span class="op">-</span><span class="fl">93.71946</span>, <span class="dv">6</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Get  geohashes and bounding boxes. </span></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>dn <span class="op">=</span> get_neighbors(lat, lon, precision<span class="op">=</span><span class="dv">6</span>)</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Separate color for each cell.</span></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>fcolors <span class="op">=</span> mpl.colormaps[<span class="st">"gist_rainbow"</span>]</span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>colors_rgba <span class="op">=</span> [fcolors(ii) <span class="cf">for</span> ii <span class="kw">in</span> np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="bu">len</span>(dn))]</span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>colors_hex <span class="op">=</span> [mpl.colors.to_hex(ii, keep_alpha<span class="op">=</span><span class="va">False</span>) <span class="cf">for</span> ii <span class="kw">in</span> colors_rgba]</span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(</span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[lat, lon], </span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># width=900, </span></span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># height=600, </span></span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="dv">15</span>, </span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>    zoom_control<span class="op">=</span><span class="va">True</span>, </span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    no_touch<span class="op">=</span><span class="va">True</span>,</span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"OpenStreetMap"</span></span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ii, kk <span class="kw">in</span> <span class="bu">enumerate</span>(dn.keys()):</span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>    color <span class="op">=</span> colors_hex[ii]</span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>    geohash, bbox <span class="op">=</span> dn[kk][<span class="st">"geohash"</span>], dn[kk][<span class="st">"bbox"</span>]</span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>    min_lat, min_lon, max_lat, max_lon <span class="op">=</span> bbox</span>
-<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>    mid_lat <span class="op">=</span> (min_lat <span class="op">+</span> max_lat) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>    mid_lon <span class="op">=</span> (min_lon <span class="op">+</span> max_lon) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>    <span class="co"># geohash bounding box. </span></span>
-<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>    folium.Rectangle(</span>
-<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>        [(min_lat, min_lon), (max_lat, max_lon)], </span>
-<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span>color, fill_opacity<span class="op">=</span><span class="fl">.25</span></span>
-<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
-<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>    folium.<span class="bu">map</span>.Marker(</span>
-<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>        [mid_lat, mid_lon],</span>
-<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>        icon<span class="op">=</span>DivIcon(</span>
-<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>            icon_size<span class="op">=</span>(<span class="dv">250</span>,<span class="dv">36</span>),</span>
-<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a>            icon_anchor<span class="op">=</span>(<span class="dv">75</span>,<span class="dv">25</span>),</span>
-<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a>            html<span class="op">=</span><span class="ss">f'&lt;div style="font-size: 30pt"&gt;</span><span class="sc">{</span>geohash<span class="sc">}</span><span class="ss">&lt;/div&gt;'</span>,</span>
-<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
-<span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div id="cell-17" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> folium </span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> folium.features <span class="im">import</span> DivIcon</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib <span class="im">as</span> mpl</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>lat, lon, precision <span class="op">=</span> <span class="fl">41.58538</span>, <span class="op">-</span><span class="fl">93.71946</span>, <span class="dv">6</span></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Get  geohashes and bounding boxes. </span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>dn <span class="op">=</span> get_neighbors(lat, lon, precision<span class="op">=</span><span class="dv">6</span>)</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Separate color for each cell.</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>fcolors <span class="op">=</span> mpl.colormaps[<span class="st">"gist_rainbow"</span>]</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>colors_rgba <span class="op">=</span> [fcolors(ii) <span class="cf">for</span> ii <span class="kw">in</span> np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="bu">len</span>(dn))]</span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>colors_hex <span class="op">=</span> [mpl.colors.to_hex(ii, keep_alpha<span class="op">=</span><span class="va">False</span>) <span class="cf">for</span> ii <span class="kw">in</span> colors_rgba]</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> folium.Map(</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span>[lat, lon], </span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># width=900, </span></span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># height=600, </span></span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>    zoom_start<span class="op">=</span><span class="dv">15</span>, </span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>    zoom_control<span class="op">=</span><span class="va">True</span>, </span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>    no_touch<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>    tiles<span class="op">=</span><span class="st">"OpenStreetMap"</span></span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ii, kk <span class="kw">in</span> <span class="bu">enumerate</span>(dn.keys()):</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>    color <span class="op">=</span> colors_hex[ii]</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>    geohash, bbox <span class="op">=</span> dn[kk][<span class="st">"geohash"</span>], dn[kk][<span class="st">"bbox"</span>]</span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>    min_lat, min_lon, max_lat, max_lon <span class="op">=</span> bbox</span>
+<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>    mid_lat <span class="op">=</span> (min_lat <span class="op">+</span> max_lat) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>    mid_lon <span class="op">=</span> (min_lon <span class="op">+</span> max_lon) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>    <span class="co"># geohash bounding box. </span></span>
+<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>    folium.Rectangle(</span>
+<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>        [(min_lat, min_lon), (max_lat, max_lon)], </span>
+<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>        fill_color<span class="op">=</span>color, fill_opacity<span class="op">=</span><span class="fl">.25</span></span>
+<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
+<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>    folium.<span class="bu">map</span>.Marker(</span>
+<span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>        [mid_lat, mid_lon],</span>
+<span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>        icon<span class="op">=</span>DivIcon(</span>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>            icon_size<span class="op">=</span>(<span class="dv">250</span>,<span class="dv">36</span>),</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>            icon_anchor<span class="op">=</span>(<span class="dv">75</span>,<span class="dv">25</span>),</span>
+<span id="cb18-48"><a href="#cb18-48" aria-hidden="true" tabindex="-1"></a>            html<span class="op">=</span><span class="ss">f'&lt;div style="font-size: 30pt"&gt;</span><span class="sc">{</span>geohash<span class="sc">}</span><span class="ss">&lt;/div&gt;'</span>,</span>
+<span id="cb18-49"><a href="#cb18-49" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb18-50"><a href="#cb18-50" aria-hidden="true" tabindex="-1"></a>        ).add_to(m)</span>
+<span id="cb18-51"><a href="#cb18-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a>m</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="9">
 <div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
 <html>
