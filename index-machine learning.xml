@@ -9041,7 +9041,7 @@ font-style: inherit;">1</span>)</span>
        [0.96954978, 1.        ]])</code></pre>
 </div>
 </div>
-<p>Notice that when the probability is less that 0.50, the predicted class is 0. When the predicted probability is greater than 0.50, the predicted class is 1. For certain applications, the 0.50 threshold might make sense, for example when your target is balanced or close to balanced (when the number of 0s and 1s in the training set is approximately equal). But for unbalanced datasets, using the default threshold can give misleading results. In what follows, we walkthrough a few approaches that can be used to assess the optimal discrimination theshold for a classifier.</p>
+<p>Notice that when the probability is less that 0.50, the predicted class is 0. When the predicted probability is greater than 0.50, the predicted class is 1. For certain applications, the 0.50 threshold might make sense, for example when your target is balanced or close to balanced (when the number of 0s and 1s in the training set is approximately equal). But for unbalanced datasets, using the default threshold can give misleading results. In what follows, we walkthrough a few approaches that can be used to assess the optimal discrimination threshold for a classifier.</p>
 </section>
 <section id="use-0.50" class="level3">
 <h3 class="anchored" data-anchor-id="use-0.50">1. Use 0.50</h3>
@@ -9108,7 +9108,7 @@ font-style: inherit;">1</span>)</span></code></pre></div>
 <section id="use-best-f1-score" class="level3">
 <h3 class="anchored" data-anchor-id="use-best-f1-score">3. Use best f1-score</h3>
 <p>The f1-score is the geometric average of precision and recall. We can compute precision and recall for a number of different thresholds then select the threshold that maximizes the f1-score. This is a suitable approach if your classification task weighs precision and recall equally. Although this isn’t the case for our breast cancer classifier (we want to maximize recall since the cost of a false negative is high), the approach is demonstrated in the next cell:</p>
-<div id="cell-20" class="cell" data-execution_count="7">
+<div id="cell-20" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"></span>
 <span id="cb13-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -9163,7 +9163,7 @@ font-style: inherit;">."</span>)</span></code></pre></div>
 </div>
 </div>
 <p>Using this method, we would set the discrimination threshold to <strong>.471</strong>, and would obtain the predicted class labels the same way as before:</p>
-<div id="cell-22" class="cell" data-execution_count="8">
+<div id="cell-22" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"></span>
 <span id="cb15-2">thresh <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -9187,7 +9187,7 @@ font-style: inherit;">1</span>)</span></code></pre></div>
 <h3 class="anchored" data-anchor-id="inspection-of-roc-curve">4. Inspection of ROC curve</h3>
 <p>The Receiver Operating Characteristic (ROC) curve plots the true positive rate (TPR) against the false positive rate (FPR) at various classification thresholds. Typically we’re interested in using a threshold that maximizes TPR while minimizing FPR, which is the point (0, 1). The curve starts with a threshold of 1 at the far left and decreases towards 0 as the x-axis increases.</p>
 <p>We can plot the ROC curve in scikit-learn using the code below. Note that <code>ypred</code> are predicted probabilities and <code>yvalid</code> are class labels (1s or 0s).</p>
-<div id="cell-24" class="cell" data-execution_count="9">
+<div id="cell-24" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"></span>
 <span id="cb16-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -9236,7 +9236,7 @@ font-style: inherit;">True</span>)</span>
 <p>The curve starts from the rightmost part of the graph. As the threshold for classifying positive instances decreases, recall increases, and precision can either increase or decrease, but typically it decreases because the model starts to classify more instances as positive, including both true positives and false positives.</p>
 <p>The top-right corner of the graph (high precision, high recall) represents the ideal point, where the classifier perfectly identifies all positive cases with no false positives. Generally, we’d like to select a threshold that corresponds to a point closest to top-right corner of the graph.</p>
 <p>We can plot the precision-recall curve in scikit-learn using the code below. Note that <code>ypred</code> are predicted probabilities and <code>yvalid</code> are class labels (1s or 0s).</p>
-<div id="cell-27" class="cell" data-execution_count="10">
+<div id="cell-27" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"></span>
 <span id="cb17-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -9277,7 +9277,7 @@ font-style: inherit;">True</span>)</span>
 </div>
 </div>
 <p>Based on the plot, would want to select the threshold that corresponds to a recall of about .95, since this is close to the point (1, 1). This can be determined using the following code:</p>
-<div id="cell-29" class="cell" data-execution_count="11">
+<div id="cell-29" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"></span>
 <span id="cb18-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -9325,7 +9325,7 @@ font-style: inherit;">."</span>)</span></code></pre></div>
 <section id="inspection-of-precision-and-recall-as-a-function-of-threshold" class="level3">
 <h3 class="anchored" data-anchor-id="inspection-of-precision-and-recall-as-a-function-of-threshold">6. Inspection of precision and recall as a function of threshold</h3>
 <p>It is also possible to plot precision and recall as two separate series against threshold on the x-axis. The goal is to identify a point where precision and recall intersect. Using this approach may be suitable in some scenarios.</p>
-<div id="cell-31" class="cell" data-execution_count="12">
+<div id="cell-31" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"></span>
 <span id="cb20-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -9821,7 +9821,7 @@ Shat:
 </section>
 <section id="example-image-compression" class="level3">
 <h3 class="anchored" data-anchor-id="example-image-compression">Example: Image Compression</h3>
-<p>For the next example, we use an alternate cover photo from the Allman Brothers 1971 release <em>At the Fillmore East</em>, shown in color and grayscale side-by-side. We’ll work with the grayscale image going forward since it limits us to two dimensions:</p>
+<p>For the next example, we use an alternate cover photo from the Allman Brothers 1971 release <em>At Fillmore East</em>, shown in color and grayscale side-by-side. We’ll work with the grayscale image going forward since it limits us to two dimensions:</p>
 <div id="29d7c238-458a-40af-b6ac-643d5bed18d4" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
 <span id="cb3-2"><span class="im" style="color: #00769E;

@@ -10,7 +10,845 @@
 <atom:link href="https://www.jtrive.com/index-python.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Sat, 25 Jan 2025 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 19 Feb 2025 06:00:00 GMT</lastBuildDate>
+<item>
+  <title>Creating Animations with Folium</title>
+  <link>https://www.jtrive.com/posts/folium-annimations/folium-annimations.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p><a href="https://python-visualization.github.io/folium/latest/user_guide/plugins/timestamped_geojson.html">TimestampedGeoJson</a> is a Folium plugin that facilitates the visualization of geospatial data that evolves over time using the GeoJSON format with timestamps. This is useful for tracking vehicle trajectories, satellites, pedestrian traffic, changes in weather patterns or any other geospatial phenomena with time dependent characteristics. TimestampedGeoJson leverages Leaflet.js’s leaflet-timestamped plugin and provides controls for play, pause, and speed adjustment. When added to a Folium map, it animates the appearance of features that evolve with time.</p>
+<p>In what follows, I demonstrate how to create an animatio representing the trajectory of the International Space Station over the course of an hour using folium’s TimestampedGeoJson extension.</p>
+<p>We start by obtaining the coordinates of the International Space station every minute for one hour using <a href="http://open-notify.org/Open-Notify-API/ISS-Location-Now/">Open Notify</a>, a simple api which returns the current location of the ISS relative to the surface of the earth. The <code>get_iss_position</code> function queries the api and returns the latitude, longitude and timestamp as a dictionary:</p>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> datetime <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> datetime</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pickle</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> requests</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> time</span>
+<span id="cb1-6"></span>
+<span id="cb1-7"></span>
+<span id="cb1-8"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> get_iss_position():</span>
+<span id="cb1-9">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Get timestamped coordinates of International Space Station relative </span></span>
+<span id="cb1-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    to the surface of the Earth.   </span></span>
+<span id="cb1-12"></span>
+<span id="cb1-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb1-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb1-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    dict</span></span>
+<span id="cb1-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Dictionary with keys "latitude", "longitude" and </span></span>
+<span id="cb1-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        "timestamp" indicating time and position of ISS. </span></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-19">    dpos <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {}</span>
+<span id="cb1-20">    resp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> requests.get(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"http://api.open-notify.org/iss-now.json"</span>).json()</span>
+<span id="cb1-21">    dpos[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"timestamp"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> resp[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"timestamp"</span>]</span>
+<span id="cb1-22">    dpos[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"latitude"</span>]  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>(resp[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"iss_position"</span>][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"latitude"</span>])</span>
+<span id="cb1-23">    dpos[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"longitude"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>(resp[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"iss_position"</span>][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"longitude"</span>])</span>
+<span id="cb1-24">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> dpos</span></code></pre></div>
+</div>
+<p><br></p>
+<p>The <code>coords</code> list of dictionaries is created by querying the api once every minute for an hour:</p>
+<div id="cell-4" class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2">coords <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb2-3"></span>
+<span id="cb2-4"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>):</span>
+<span id="cb2-5">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">try</span>:</span>
+<span id="cb2-6">        tstmp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> datetime.now().strftime(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%c</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb2-7">        p <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> get_iss_position()</span>
+<span id="cb2-8">        coords.append(p)</span>
+<span id="cb2-9">       </span>
+<span id="cb2-10">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">except</span> <span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">Exception</span> <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> ee:</span>
+<span id="cb2-11">        <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Error: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>ee<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb2-12"></span>
+<span id="cb2-13">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">finally</span>:</span>
+<span id="cb2-14">        time.sleep(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">60</span>)</span>
+<span id="cb2-15"></span>
+<span id="cb2-16"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">with</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">open</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"coords.pkl"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"wb"</span>) <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> fpkl:</span>
+<span id="cb2-17">    pickle.dump(coords, fpkl, protocol<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span></code></pre></div>
+</div>
+<p>TimestampedGeoJson features expect coordinates and timestamps to be structured as GeoJSON. To do so, we first create <code>time_pos</code> which converts unix timestamps to a string representation (“YYYY-mm-dd HH:MM:ss”). The start and end points of the ISS position by are grouped together by shifting <code>time_pos</code> by a single index (see <code>end_pts</code> and <code>time_pos</code>), resulting in a LineString geometry for each time step.</p>
+<p><code>lines</code> is a list of dictionaries with start and end coordinates (longitude first), start and end timestamps, and line segment color. In our animation, the color of the line segment will alternate between red and blue at each update.</p>
+<p>The <code>features</code> list is what ultimately gets passed into TimestampedGeoJson. <code>features</code> is also a list of dictionaries, each element structured as:</p>
+<pre><code>{
+    "type": "Feature",
+    "geometry": {
+        "type": "LineString",
+        "coordinates": [[LON1, LAT1], [LON2, LAT2]]
+    },
+    "properties": {
+        "times": [TIMESTAMP1, TIMESTAMP2],
+        "style": {
+            "color": COLOR
+            "weight": 3
+        }
+    }
+}</code></pre>
+<div id="cell-6" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Unpack coords list of dicts. Use lon-lat ordering. </span></span>
+<span id="cb4-3">time_pos <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [[</span>
+<span id="cb4-4">    datetime.fromtimestamp(d[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"timestamp"</span>]).strftime(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%Y-%m-</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%d</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> %H:%M:%S"</span>),</span>
+<span id="cb4-5">    [d[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"longitude"</span>], d[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"latitude"</span>]]</span>
+<span id="cb4-6"> ] <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> d <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> coords</span>
+<span id="cb4-7">]</span>
+<span id="cb4-8"></span>
+<span id="cb4-9">end_pts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [tt <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> tt <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> time_pos[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>:]]</span>
+<span id="cb4-10">time_pos <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(time_pos[:<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], end_pts))</span>
+<span id="cb4-11"></span>
+<span id="cb4-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Combine timestamps and coordinates in separate lists for each time step. </span></span>
+<span id="cb4-13">lines <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [{</span>
+<span id="cb4-14">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"coordinates"</span>: [tp[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], tp[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]], </span>
+<span id="cb4-15">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"dates"</span>: [tp[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], tp[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]], </span>
+<span id="cb4-16">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"color"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"red"</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> idx <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">else</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"blue"</span></span>
+<span id="cb4-17">    } <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> idx, tp <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(time_pos)</span>
+<span id="cb4-18">]</span>
+<span id="cb4-19"></span>
+<span id="cb4-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create features list. Must be valid GeoJSON.</span></span>
+<span id="cb4-21">features <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb4-22">    {</span>
+<span id="cb4-23">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"type"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Feature"</span>,</span>
+<span id="cb4-24">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"geometry"</span>: {</span>
+<span id="cb4-25">            <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"type"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"LineString"</span>,</span>
+<span id="cb4-26">            <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"coordinates"</span>: line[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"coordinates"</span>]</span>
+<span id="cb4-27">        },</span>
+<span id="cb4-28">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"properties"</span>: {</span>
+<span id="cb4-29">            <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"times"</span>: line[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"dates"</span>],</span>
+<span id="cb4-30">            <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"style"</span>: {</span>
+<span id="cb4-31">                <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"color"</span>: line[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"color"</span>],</span>
+<span id="cb4-32">                <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"weight"</span>: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span></span>
+<span id="cb4-33">            }</span>
+<span id="cb4-34">        },</span>
+<span id="cb4-35">    }</span>
+<span id="cb4-36">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> line <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> lines</span>
+<span id="cb4-37">]</span></code></pre></div>
+</div>
+<p><br></p>
+<p>A brief mention of relevant TimestampedGeoJson’s arguments:</p>
+<ul>
+<li><p><code>transition_time</code>: The duration in milliseconds between transitions. I set this to 500, but can also be adjusted from the map interface.</p></li>
+<li><p><code>period</code>: Specifies the amount of time between observations in your data. By default, this is set to “P1D”, which represents one day. When I tried using the default, all of my points were displayed at once since I only had data that spanned one hour. Since the ISS location queries were separated by roughly 60 seconds, setting <code>period</code> to “PT60S” gave me what I was looking for.</p></li>
+<li><p><code>date_options</code> accepts a string representing the format of your timestamps.</p></li>
+</ul>
+<p>Once the features list has been created, it is straightforward to display the animation. Initialize a folium map as usual, the call <code>plugins.TimestampedGeoJson</code> as demonstrated in the next cell:</p>
+<div id="cell-8" class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
+<span id="cb5-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> folium</span>
+<span id="cb5-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> folium.plugins <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plugins</span>
+<span id="cb5-4"></span>
+<span id="cb5-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Center map.</span></span>
+<span id="cb5-6">dc <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> coords[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">35</span>] </span>
+<span id="cb5-7">mid_lat, mid_lon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dc[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"latitude"</span>], dc[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"longitude"</span>]</span>
+<span id="cb5-8"></span>
+<span id="cb5-9">f <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> folium.Figure(width<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">900</span>, height<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">650</span>)</span>
+<span id="cb5-10">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> folium.Map(location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[mid_lat, mid_lon], zoom_start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>).add_to(f)</span>
+<span id="cb5-11"></span>
+<span id="cb5-12">plugins.TimestampedGeoJson(</span>
+<span id="cb5-13">    {<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"type"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"FeatureCollection"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"features"</span>: features},</span>
+<span id="cb5-14">    transition_time<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">500</span>,</span>
+<span id="cb5-15">    period<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'PT60S'</span>,</span>
+<span id="cb5-16">    date_options<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'YYYY-MM-DD HH:mm:ss'</span>,</span>
+<span id="cb5-17">).add_to(m)</span>
+<span id="cb5-18"></span>
+<span id="cb5-19">m</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="23">
+<iframe srcdoc="<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
+    
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
+    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
+    
+            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
+            <style>
+                #map_684fd003ba0ed685e86c491ef31e85a4 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/iso8601-js-period@0.2.1/iso8601.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet-timedimension@1.1.1/dist/leaflet.timedimension.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/default.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet-timedimension@1.1.1/dist/leaflet.timedimension.control.css&quot;/>
+</head>
+<body>
+    
+    
+            <div class=&quot;folium-map&quot; id=&quot;map_684fd003ba0ed685e86c491ef31e85a4&quot; ></div>
+        
+</body>
+<script>
+    
+    
+            var map_684fd003ba0ed685e86c491ef31e85a4 = L.map(
+                &quot;map_684fd003ba0ed685e86c491ef31e85a4&quot;,
+                {
+                    center: [-51.6184, 82.354],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 2,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_3885e5befbbcdead22b300f3d6c7c5e6 = L.tileLayer(
+                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
+                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
+            );
+        
+    
+            tile_layer_3885e5befbbcdead22b300f3d6c7c5e6.addTo(map_684fd003ba0ed685e86c491ef31e85a4);
+        
+    
+            L.Control.TimeDimensionCustom = L.Control.TimeDimension.extend({
+                _getDisplayDateFormat: function(date){
+                    var newdate = new moment(date);
+                    console.log(newdate)
+                    return newdate.format(&quot;YYYY-MM-DD HH:mm:ss&quot;);
+                }
+            });
+            map_684fd003ba0ed685e86c491ef31e85a4.timeDimension = L.timeDimension(
+                {
+                    period: &quot;PT60S&quot;,
+                }
+            );
+            var timeDimensionControl = new L.Control.TimeDimensionCustom(
+                {&quot;autoPlay&quot;: true, &quot;loopButton&quot;: false, &quot;maxSpeed&quot;: 10, &quot;minSpeed&quot;: 0.1, &quot;playerOptions&quot;: {&quot;loop&quot;: true, &quot;startOver&quot;: true, &quot;transitionTime&quot;: 500}, &quot;position&quot;: &quot;bottomleft&quot;, &quot;speedSlider&quot;: true, &quot;timeSliderDragUpdate&quot;: false}
+            );
+            map_684fd003ba0ed685e86c491ef31e85a4.addControl(this.timeDimensionControl);
+
+            var geoJsonLayer = L.geoJson({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [{&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-44.8473, 42.5574], [-40.7992, 40.3836]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:35:49&quot;, &quot;2025-02-18 07:36:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-40.7992, 40.3836], [-37.0293, 38.0607]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:36:49&quot;, &quot;2025-02-18 07:37:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-37.0293, 38.0607], [-33.514, 35.6094]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:37:49&quot;, &quot;2025-02-18 07:38:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-33.514, 35.6094], [-30.2279, 33.048]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:38:49&quot;, &quot;2025-02-18 07:39:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-30.2279, 33.048], [-27.1446, 30.3913]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:39:49&quot;, &quot;2025-02-18 07:40:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-27.1446, 30.3913], [-24.2186, 27.6327]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:40:49&quot;, &quot;2025-02-18 07:41:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-24.2186, 27.6327], [-21.4736, 24.8289]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:41:50&quot;, &quot;2025-02-18 07:42:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-21.4736, 24.8289], [-18.863, 21.9681]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:42:50&quot;, &quot;2025-02-18 07:43:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-18.863, 21.9681], [-16.3668, 19.0599]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:43:50&quot;, &quot;2025-02-18 07:44:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-16.3668, 19.0599], [-13.9661, 16.1124]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:44:50&quot;, &quot;2025-02-18 07:45:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-13.9661, 16.1124], [-11.6058, 13.0835]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:45:50&quot;, &quot;2025-02-18 07:46:51&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-11.6058, 13.0835], [-9.2167, 9.9036]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:46:51&quot;, &quot;2025-02-18 07:47:55&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-9.2167, 9.9036], [-6.8973, 6.7287]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:47:55&quot;, &quot;2025-02-18 07:48:58&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-6.8973, 6.7287], [-4.6119, 3.5409]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:48:58&quot;, &quot;2025-02-18 07:50:01&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-4.6119, 3.5409], [-2.4518, 0.4982]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:50:01&quot;, &quot;2025-02-18 07:51:01&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-2.4518, 0.4982], [-0.2944, -2.5449]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:51:01&quot;, &quot;2025-02-18 07:52:01&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-0.2944, -2.5449], [1.9106, -5.6338]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:52:01&quot;, &quot;2025-02-18 07:53:02&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[1.9106, -5.6338], [4.1047, -8.6615]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:53:02&quot;, &quot;2025-02-18 07:54:02&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[4.1047, -8.6615], [6.3573, -11.6984]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:54:02&quot;, &quot;2025-02-18 07:55:03&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[6.3573, -11.6984], [8.6844, -14.7373]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:55:03&quot;, &quot;2025-02-18 07:56:04&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[8.6844, -14.7373], [11.044, -17.6973]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:56:04&quot;, &quot;2025-02-18 07:57:04&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[11.044, -17.6973], [13.4905, -20.6213]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:57:04&quot;, &quot;2025-02-18 07:58:04&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[13.4905, -20.6213], [16.1725, -23.6443]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:58:04&quot;, &quot;2025-02-18 07:59:07&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[16.1725, -23.6443], [22.7229, -30.1895]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:59:07&quot;, &quot;2025-02-18 08:01:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[22.7229, -30.1895], [25.8371, -32.8903]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:01:29&quot;, &quot;2025-02-18 08:02:30&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[25.8371, -32.8903], [29.2721, -35.5783]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:02:30&quot;, &quot;2025-02-18 08:03:33&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[29.2721, -35.5783], [32.7763, -38.026]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:03:33&quot;, &quot;2025-02-18 08:04:33&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[32.7763, -38.026], [36.5338, -40.3463]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:04:33&quot;, &quot;2025-02-18 08:05:33&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[36.5338, -40.3463], [40.6021, -42.5355]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:05:33&quot;, &quot;2025-02-18 08:06:34&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[40.6021, -42.5355], [46.0646, -45.0047]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:06:34&quot;, &quot;2025-02-18 08:07:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[46.0646, -45.0047], [57.9104, -48.8132]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:07:49&quot;, &quot;2025-02-18 08:10:13&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[57.9104, -48.8132], [63.3463, -49.9679]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:10:13&quot;, &quot;2025-02-18 08:11:13&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[63.3463, -49.9679], [69.0258, -50.8318]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:11:13&quot;, &quot;2025-02-18 08:12:13&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[69.0258, -50.8318], [76.3735, -51.4726]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:12:13&quot;, &quot;2025-02-18 08:13:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[76.3735, -51.4726], [82.354, -51.6184]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:13:29&quot;, &quot;2025-02-18 08:14:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[82.354, -51.6184], [88.33, -51.4332]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:14:29&quot;, &quot;2025-02-18 08:15:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[88.33, -51.4332], [94.2112, -50.922]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:15:29&quot;, &quot;2025-02-18 08:16:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[94.2112, -50.922], [99.9194, -50.0976]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:16:29&quot;, &quot;2025-02-18 08:17:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[99.9194, -50.0976], [105.3919, -48.979]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:17:29&quot;, &quot;2025-02-18 08:18:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[105.3919, -48.979], [110.584, -47.5903]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:18:29&quot;, &quot;2025-02-18 08:19:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[110.584, -47.5903], [115.5513, -45.9281]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:19:29&quot;, &quot;2025-02-18 08:20:30&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[115.5513, -45.9281], [120.1944, -44.0424]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:20:30&quot;, &quot;2025-02-18 08:21:31&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[120.1944, -44.0424], [124.6569, -41.889]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:21:31&quot;, &quot;2025-02-18 08:22:34&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[124.6569, -41.889], [128.6089, -39.6691]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:22:34&quot;, &quot;2025-02-18 08:23:35&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[128.6089, -39.6691], [132.7046, -37.0229]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:23:35&quot;, &quot;2025-02-18 08:24:42&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[132.7046, -37.0229], [136.2796, -34.3969]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:24:42&quot;, &quot;2025-02-18 08:25:45&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[136.2796, -34.3969], [139.6162, -31.658]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:25:45&quot;, &quot;2025-02-18 08:26:48&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[139.6162, -31.658], [142.5987, -28.9603]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:26:48&quot;, &quot;2025-02-18 08:27:48&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[142.5987, -28.9603], [145.4152, -26.1886]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:27:48&quot;, &quot;2025-02-18 08:28:48&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[145.4152, -26.1886], [148.2393, -23.1876]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:28:48&quot;, &quot;2025-02-18 08:29:52&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[148.2393, -23.1876], [150.9066, -20.1521]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:29:52&quot;, &quot;2025-02-18 08:30:55&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[150.9066, -20.1521], [153.4608, -17.0701]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:30:55&quot;, &quot;2025-02-18 08:31:58&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[153.4608, -17.0701], [155.8462, -14.0494]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:31:58&quot;, &quot;2025-02-18 08:32:59&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[155.8462, -14.0494], [158.1252, -11.0506]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:32:59&quot;, &quot;2025-02-18 08:33:59&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[158.1252, -11.0506], [160.3529, -8.0309]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:33:59&quot;, &quot;2025-02-18 08:34:59&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[160.3529, -8.0309], [162.6536, -4.8432]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:34:59&quot;, &quot;2025-02-18 08:36:02&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[162.6536, -4.8432], [164.8217, -1.799]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:36:02&quot;, &quot;2025-02-18 08:37:03&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[164.8217, -1.799], [167.2342, 1.6045]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:37:03&quot;, &quot;2025-02-18 08:38:10&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[167.2342, 1.6045], [172.3649, 8.7475]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:38:10&quot;, &quot;2025-02-18 08:40:31&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}]}, {
+                    pointToLayer: function (feature, latLng) {
+                        if (feature.properties.icon == 'marker') {
+                            if(feature.properties.iconstyle){
+                                return new L.Marker(latLng, {
+                                    icon: L.icon(feature.properties.iconstyle)});
+                            }
+                            //else
+                            return new L.Marker(latLng);
+                        }
+                        if (feature.properties.icon == 'circle') {
+                            if (feature.properties.iconstyle) {
+                                return new L.circleMarker(latLng, feature.properties.iconstyle)
+                                };
+                            //else
+                            return new L.circleMarker(latLng);
+                        }
+                        //else
+
+                        return new L.Marker(latLng);
+                    },
+                    style: function (feature) {
+                        return feature.properties.style;
+                    },
+                    onEachFeature: function(feature, layer) {
+                        if (feature.properties.popup) {
+                        layer.bindPopup(feature.properties.popup);
+                        }
+                        if (feature.properties.tooltip) {
+                        layer.bindTooltip(feature.properties.tooltip);
+                        }
+                    }
+                })
+
+            var timestamped_geo_json_14e97978e8824516bd2c4cd063429150 = L.timeDimension.layer.geoJson(
+                geoJsonLayer,
+                {
+                    updateTimeDimension: true,
+                    addlastPoint: true,
+                    duration: undefined,
+                }
+            ).addTo(map_684fd003ba0ed685e86c491ef31e85a4);
+        
+</script>
+</html>" width="900" height="650" style="border:none !important;" "allowfullscreen"="" "webkitallowfullscreen"="" "mozallowfullscreen"=""></iframe>
+</div>
+</div>
+<p><br></p>
+<p>The visual field appears too cluttered with the inclusion of markers. We can remove them by setting <code>add_last_point = False</code>:</p>
+<div id="cell-10" class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> folium</span>
+<span id="cb6-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> folium.plugins <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plugins</span>
+<span id="cb6-4"></span>
+<span id="cb6-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Center map.</span></span>
+<span id="cb6-6">dc <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> coords[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">35</span>] </span>
+<span id="cb6-7">mid_lat, mid_lon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> dc[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"latitude"</span>], dc[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"longitude"</span>]</span>
+<span id="cb6-8"></span>
+<span id="cb6-9">f <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> folium.Figure(width<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">900</span>, height<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">650</span>)</span>
+<span id="cb6-10">m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> folium.Map(location<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[mid_lat, mid_lon], zoom_start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>).add_to(f)</span>
+<span id="cb6-11"></span>
+<span id="cb6-12">plugins.TimestampedGeoJson(</span>
+<span id="cb6-13">    {</span>
+<span id="cb6-14">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"type"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"FeatureCollection"</span>,</span>
+<span id="cb6-15">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"features"</span>: features,</span>
+<span id="cb6-16">    },</span>
+<span id="cb6-17">    transition_time<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">500</span>,</span>
+<span id="cb6-18">    add_last_point<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>,</span>
+<span id="cb6-19">    period<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'PT60S'</span>,</span>
+<span id="cb6-20">    date_options<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'YYYY-MM-DD HH:mm:ss'</span>,</span>
+<span id="cb6-21">).add_to(m)</span>
+<span id="cb6-22"></span>
+<span id="cb6-23">m</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="21">
+<iframe srcdoc="<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
+    
+        <script>
+            L_NO_TOUCH = false;
+            L_DISABLE_3D = false;
+        </script>
+    
+    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
+    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
+    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
+    
+            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
+            <style>
+                #map_6b2f73ddc181a0691f65b5c8c3180651 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+        
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/iso8601-js-period@0.2.1/iso8601.min.js&quot;></script>
+    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet-timedimension@1.1.1/dist/leaflet.timedimension.min.js&quot;></script>
+    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js&quot;></script>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/default.min.css&quot;/>
+    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet-timedimension@1.1.1/dist/leaflet.timedimension.control.css&quot;/>
+</head>
+<body>
+    
+    
+            <div class=&quot;folium-map&quot; id=&quot;map_6b2f73ddc181a0691f65b5c8c3180651&quot; ></div>
+        
+</body>
+<script>
+    
+    
+            var map_6b2f73ddc181a0691f65b5c8c3180651 = L.map(
+                &quot;map_6b2f73ddc181a0691f65b5c8c3180651&quot;,
+                {
+                    center: [-51.6184, 82.354],
+                    crs: L.CRS.EPSG3857,
+                    zoom: 2,
+                    zoomControl: true,
+                    preferCanvas: false,
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_351abc866f463a909f424438e88cfa88 = L.tileLayer(
+                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
+                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
+            );
+        
+    
+            tile_layer_351abc866f463a909f424438e88cfa88.addTo(map_6b2f73ddc181a0691f65b5c8c3180651);
+        
+    
+            L.Control.TimeDimensionCustom = L.Control.TimeDimension.extend({
+                _getDisplayDateFormat: function(date){
+                    var newdate = new moment(date);
+                    console.log(newdate)
+                    return newdate.format(&quot;YYYY-MM-DD HH:mm:ss&quot;);
+                }
+            });
+            map_6b2f73ddc181a0691f65b5c8c3180651.timeDimension = L.timeDimension(
+                {
+                    period: &quot;PT60S&quot;,
+                }
+            );
+            var timeDimensionControl = new L.Control.TimeDimensionCustom(
+                {&quot;autoPlay&quot;: true, &quot;loopButton&quot;: false, &quot;maxSpeed&quot;: 10, &quot;minSpeed&quot;: 0.1, &quot;playerOptions&quot;: {&quot;loop&quot;: true, &quot;startOver&quot;: true, &quot;transitionTime&quot;: 500}, &quot;position&quot;: &quot;bottomleft&quot;, &quot;speedSlider&quot;: true, &quot;timeSliderDragUpdate&quot;: false}
+            );
+            map_6b2f73ddc181a0691f65b5c8c3180651.addControl(this.timeDimensionControl);
+
+            var geoJsonLayer = L.geoJson({&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: [{&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-44.8473, 42.5574], [-40.7992, 40.3836]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:35:49&quot;, &quot;2025-02-18 07:36:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-40.7992, 40.3836], [-37.0293, 38.0607]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:36:49&quot;, &quot;2025-02-18 07:37:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-37.0293, 38.0607], [-33.514, 35.6094]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:37:49&quot;, &quot;2025-02-18 07:38:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-33.514, 35.6094], [-30.2279, 33.048]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:38:49&quot;, &quot;2025-02-18 07:39:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-30.2279, 33.048], [-27.1446, 30.3913]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:39:49&quot;, &quot;2025-02-18 07:40:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-27.1446, 30.3913], [-24.2186, 27.6327]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:40:49&quot;, &quot;2025-02-18 07:41:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-24.2186, 27.6327], [-21.4736, 24.8289]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:41:50&quot;, &quot;2025-02-18 07:42:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-21.4736, 24.8289], [-18.863, 21.9681]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:42:50&quot;, &quot;2025-02-18 07:43:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-18.863, 21.9681], [-16.3668, 19.0599]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:43:50&quot;, &quot;2025-02-18 07:44:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-16.3668, 19.0599], [-13.9661, 16.1124]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:44:50&quot;, &quot;2025-02-18 07:45:50&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-13.9661, 16.1124], [-11.6058, 13.0835]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:45:50&quot;, &quot;2025-02-18 07:46:51&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-11.6058, 13.0835], [-9.2167, 9.9036]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:46:51&quot;, &quot;2025-02-18 07:47:55&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-9.2167, 9.9036], [-6.8973, 6.7287]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:47:55&quot;, &quot;2025-02-18 07:48:58&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-6.8973, 6.7287], [-4.6119, 3.5409]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:48:58&quot;, &quot;2025-02-18 07:50:01&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-4.6119, 3.5409], [-2.4518, 0.4982]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:50:01&quot;, &quot;2025-02-18 07:51:01&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-2.4518, 0.4982], [-0.2944, -2.5449]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:51:01&quot;, &quot;2025-02-18 07:52:01&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[-0.2944, -2.5449], [1.9106, -5.6338]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:52:01&quot;, &quot;2025-02-18 07:53:02&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[1.9106, -5.6338], [4.1047, -8.6615]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:53:02&quot;, &quot;2025-02-18 07:54:02&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[4.1047, -8.6615], [6.3573, -11.6984]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:54:02&quot;, &quot;2025-02-18 07:55:03&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[6.3573, -11.6984], [8.6844, -14.7373]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:55:03&quot;, &quot;2025-02-18 07:56:04&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[8.6844, -14.7373], [11.044, -17.6973]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:56:04&quot;, &quot;2025-02-18 07:57:04&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[11.044, -17.6973], [13.4905, -20.6213]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:57:04&quot;, &quot;2025-02-18 07:58:04&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[13.4905, -20.6213], [16.1725, -23.6443]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:58:04&quot;, &quot;2025-02-18 07:59:07&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[16.1725, -23.6443], [22.7229, -30.1895]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 07:59:07&quot;, &quot;2025-02-18 08:01:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[22.7229, -30.1895], [25.8371, -32.8903]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:01:29&quot;, &quot;2025-02-18 08:02:30&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[25.8371, -32.8903], [29.2721, -35.5783]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:02:30&quot;, &quot;2025-02-18 08:03:33&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[29.2721, -35.5783], [32.7763, -38.026]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:03:33&quot;, &quot;2025-02-18 08:04:33&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[32.7763, -38.026], [36.5338, -40.3463]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:04:33&quot;, &quot;2025-02-18 08:05:33&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[36.5338, -40.3463], [40.6021, -42.5355]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:05:33&quot;, &quot;2025-02-18 08:06:34&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[40.6021, -42.5355], [46.0646, -45.0047]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:06:34&quot;, &quot;2025-02-18 08:07:49&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[46.0646, -45.0047], [57.9104, -48.8132]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:07:49&quot;, &quot;2025-02-18 08:10:13&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[57.9104, -48.8132], [63.3463, -49.9679]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:10:13&quot;, &quot;2025-02-18 08:11:13&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[63.3463, -49.9679], [69.0258, -50.8318]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:11:13&quot;, &quot;2025-02-18 08:12:13&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[69.0258, -50.8318], [76.3735, -51.4726]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:12:13&quot;, &quot;2025-02-18 08:13:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[76.3735, -51.4726], [82.354, -51.6184]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:13:29&quot;, &quot;2025-02-18 08:14:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[82.354, -51.6184], [88.33, -51.4332]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:14:29&quot;, &quot;2025-02-18 08:15:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[88.33, -51.4332], [94.2112, -50.922]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:15:29&quot;, &quot;2025-02-18 08:16:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[94.2112, -50.922], [99.9194, -50.0976]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:16:29&quot;, &quot;2025-02-18 08:17:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[99.9194, -50.0976], [105.3919, -48.979]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:17:29&quot;, &quot;2025-02-18 08:18:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[105.3919, -48.979], [110.584, -47.5903]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:18:29&quot;, &quot;2025-02-18 08:19:29&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[110.584, -47.5903], [115.5513, -45.9281]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:19:29&quot;, &quot;2025-02-18 08:20:30&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[115.5513, -45.9281], [120.1944, -44.0424]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:20:30&quot;, &quot;2025-02-18 08:21:31&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[120.1944, -44.0424], [124.6569, -41.889]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:21:31&quot;, &quot;2025-02-18 08:22:34&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[124.6569, -41.889], [128.6089, -39.6691]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:22:34&quot;, &quot;2025-02-18 08:23:35&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[128.6089, -39.6691], [132.7046, -37.0229]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:23:35&quot;, &quot;2025-02-18 08:24:42&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[132.7046, -37.0229], [136.2796, -34.3969]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:24:42&quot;, &quot;2025-02-18 08:25:45&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[136.2796, -34.3969], [139.6162, -31.658]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:25:45&quot;, &quot;2025-02-18 08:26:48&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[139.6162, -31.658], [142.5987, -28.9603]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:26:48&quot;, &quot;2025-02-18 08:27:48&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[142.5987, -28.9603], [145.4152, -26.1886]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:27:48&quot;, &quot;2025-02-18 08:28:48&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[145.4152, -26.1886], [148.2393, -23.1876]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:28:48&quot;, &quot;2025-02-18 08:29:52&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[148.2393, -23.1876], [150.9066, -20.1521]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:29:52&quot;, &quot;2025-02-18 08:30:55&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[150.9066, -20.1521], [153.4608, -17.0701]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:30:55&quot;, &quot;2025-02-18 08:31:58&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[153.4608, -17.0701], [155.8462, -14.0494]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:31:58&quot;, &quot;2025-02-18 08:32:59&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[155.8462, -14.0494], [158.1252, -11.0506]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:32:59&quot;, &quot;2025-02-18 08:33:59&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[158.1252, -11.0506], [160.3529, -8.0309]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:33:59&quot;, &quot;2025-02-18 08:34:59&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[160.3529, -8.0309], [162.6536, -4.8432]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:34:59&quot;, &quot;2025-02-18 08:36:02&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[162.6536, -4.8432], [164.8217, -1.799]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:36:02&quot;, &quot;2025-02-18 08:37:03&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[164.8217, -1.799], [167.2342, 1.6045]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:37:03&quot;, &quot;2025-02-18 08:38:10&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;blue&quot;, &quot;weight&quot;: 3}}}, {&quot;type&quot;: &quot;Feature&quot;, &quot;geometry&quot;: {&quot;type&quot;: &quot;LineString&quot;, &quot;coordinates&quot;: [[167.2342, 1.6045], [172.3649, 8.7475]]}, &quot;properties&quot;: {&quot;times&quot;: [&quot;2025-02-18 08:38:10&quot;, &quot;2025-02-18 08:40:31&quot;], &quot;style&quot;: {&quot;color&quot;: &quot;red&quot;, &quot;weight&quot;: 3}}}]}, {
+                    pointToLayer: function (feature, latLng) {
+                        if (feature.properties.icon == 'marker') {
+                            if(feature.properties.iconstyle){
+                                return new L.Marker(latLng, {
+                                    icon: L.icon(feature.properties.iconstyle)});
+                            }
+                            //else
+                            return new L.Marker(latLng);
+                        }
+                        if (feature.properties.icon == 'circle') {
+                            if (feature.properties.iconstyle) {
+                                return new L.circleMarker(latLng, feature.properties.iconstyle)
+                                };
+                            //else
+                            return new L.circleMarker(latLng);
+                        }
+                        //else
+
+                        return new L.Marker(latLng);
+                    },
+                    style: function (feature) {
+                        return feature.properties.style;
+                    },
+                    onEachFeature: function(feature, layer) {
+                        if (feature.properties.popup) {
+                        layer.bindPopup(feature.properties.popup);
+                        }
+                        if (feature.properties.tooltip) {
+                        layer.bindTooltip(feature.properties.tooltip);
+                        }
+                    }
+                })
+
+            var timestamped_geo_json_7c2687c86a6037189666baefde7834b0 = L.timeDimension.layer.geoJson(
+                geoJsonLayer,
+                {
+                    updateTimeDimension: true,
+                    addlastPoint: false,
+                    duration: undefined,
+                }
+            ).addTo(map_6b2f73ddc181a0691f65b5c8c3180651);
+        
+</script>
+</html>" width="900" height="650" style="border:none !important;" "allowfullscreen"="" "webkitallowfullscreen"="" "mozallowfullscreen"=""></iframe>
+</div>
+</div>
+
+
+
+ ]]></description>
+  <category>Python</category>
+  <category>Geospatial</category>
+  <guid>https://www.jtrive.com/posts/folium-annimations/folium-annimations.html</guid>
+  <pubDate>Wed, 19 Feb 2025 06:00:00 GMT</pubDate>
+</item>
 <item>
   <title>The Bootstrap Chain Ladder from Scratch using Polars</title>
   <link>https://www.jtrive.com/posts/boostrap-chainladder-polars/bootstrap-chainladder-polars.html</link>
@@ -36822,7 +37660,7 @@ font-style: inherit;">1</span>)</span>
        [0.96954978, 1.        ]])</code></pre>
 </div>
 </div>
-<p>Notice that when the probability is less that 0.50, the predicted class is 0. When the predicted probability is greater than 0.50, the predicted class is 1. For certain applications, the 0.50 threshold might make sense, for example when your target is balanced or close to balanced (when the number of 0s and 1s in the training set is approximately equal). But for unbalanced datasets, using the default threshold can give misleading results. In what follows, we walkthrough a few approaches that can be used to assess the optimal discrimination theshold for a classifier.</p>
+<p>Notice that when the probability is less that 0.50, the predicted class is 0. When the predicted probability is greater than 0.50, the predicted class is 1. For certain applications, the 0.50 threshold might make sense, for example when your target is balanced or close to balanced (when the number of 0s and 1s in the training set is approximately equal). But for unbalanced datasets, using the default threshold can give misleading results. In what follows, we walkthrough a few approaches that can be used to assess the optimal discrimination threshold for a classifier.</p>
 </section>
 <section id="use-0.50" class="level3">
 <h3 class="anchored" data-anchor-id="use-0.50">1. Use 0.50</h3>
@@ -36889,7 +37727,7 @@ font-style: inherit;">1</span>)</span></code></pre></div>
 <section id="use-best-f1-score" class="level3">
 <h3 class="anchored" data-anchor-id="use-best-f1-score">3. Use best f1-score</h3>
 <p>The f1-score is the geometric average of precision and recall. We can compute precision and recall for a number of different thresholds then select the threshold that maximizes the f1-score. This is a suitable approach if your classification task weighs precision and recall equally. Although this isn’t the case for our breast cancer classifier (we want to maximize recall since the cost of a false negative is high), the approach is demonstrated in the next cell:</p>
-<div id="cell-20" class="cell" data-execution_count="7">
+<div id="cell-20" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"></span>
 <span id="cb13-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -36944,7 +37782,7 @@ font-style: inherit;">."</span>)</span></code></pre></div>
 </div>
 </div>
 <p>Using this method, we would set the discrimination threshold to <strong>.471</strong>, and would obtain the predicted class labels the same way as before:</p>
-<div id="cell-22" class="cell" data-execution_count="8">
+<div id="cell-22" class="cell" data-execution_count="9">
 <div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"></span>
 <span id="cb15-2">thresh <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -36968,7 +37806,7 @@ font-style: inherit;">1</span>)</span></code></pre></div>
 <h3 class="anchored" data-anchor-id="inspection-of-roc-curve">4. Inspection of ROC curve</h3>
 <p>The Receiver Operating Characteristic (ROC) curve plots the true positive rate (TPR) against the false positive rate (FPR) at various classification thresholds. Typically we’re interested in using a threshold that maximizes TPR while minimizing FPR, which is the point (0, 1). The curve starts with a threshold of 1 at the far left and decreases towards 0 as the x-axis increases.</p>
 <p>We can plot the ROC curve in scikit-learn using the code below. Note that <code>ypred</code> are predicted probabilities and <code>yvalid</code> are class labels (1s or 0s).</p>
-<div id="cell-24" class="cell" data-execution_count="9">
+<div id="cell-24" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"></span>
 <span id="cb16-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -37017,7 +37855,7 @@ font-style: inherit;">True</span>)</span>
 <p>The curve starts from the rightmost part of the graph. As the threshold for classifying positive instances decreases, recall increases, and precision can either increase or decrease, but typically it decreases because the model starts to classify more instances as positive, including both true positives and false positives.</p>
 <p>The top-right corner of the graph (high precision, high recall) represents the ideal point, where the classifier perfectly identifies all positive cases with no false positives. Generally, we’d like to select a threshold that corresponds to a point closest to top-right corner of the graph.</p>
 <p>We can plot the precision-recall curve in scikit-learn using the code below. Note that <code>ypred</code> are predicted probabilities and <code>yvalid</code> are class labels (1s or 0s).</p>
-<div id="cell-27" class="cell" data-execution_count="10">
+<div id="cell-27" class="cell" data-execution_count="11">
 <div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"></span>
 <span id="cb17-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -37058,7 +37896,7 @@ font-style: inherit;">True</span>)</span>
 </div>
 </div>
 <p>Based on the plot, would want to select the threshold that corresponds to a recall of about .95, since this is close to the point (1, 1). This can be determined using the following code:</p>
-<div id="cell-29" class="cell" data-execution_count="11">
+<div id="cell-29" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"></span>
 <span id="cb18-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -37106,7 +37944,7 @@ font-style: inherit;">."</span>)</span></code></pre></div>
 <section id="inspection-of-precision-and-recall-as-a-function-of-threshold" class="level3">
 <h3 class="anchored" data-anchor-id="inspection-of-precision-and-recall-as-a-function-of-threshold">6. Inspection of precision and recall as a function of threshold</h3>
 <p>It is also possible to plot precision and recall as two separate series against threshold on the x-axis. The goal is to identify a point where precision and recall intersect. Using this approach may be suitable in some scenarios.</p>
-<div id="cell-31" class="cell" data-execution_count="12">
+<div id="cell-31" class="cell" data-execution_count="13">
 <div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"></span>
 <span id="cb20-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -37602,7 +38440,7 @@ Shat:
 </section>
 <section id="example-image-compression" class="level3">
 <h3 class="anchored" data-anchor-id="example-image-compression">Example: Image Compression</h3>
-<p>For the next example, we use an alternate cover photo from the Allman Brothers 1971 release <em>At the Fillmore East</em>, shown in color and grayscale side-by-side. We’ll work with the grayscale image going forward since it limits us to two dimensions:</p>
+<p>For the next example, we use an alternate cover photo from the Allman Brothers 1971 release <em>At Fillmore East</em>, shown in color and grayscale side-by-side. We’ll work with the grayscale image going forward since it limits us to two dimensions:</p>
 <div id="29d7c238-458a-40af-b6ac-643d5bed18d4" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
 <span id="cb3-2"><span class="im" style="color: #00769E;
@@ -40467,524 +41305,6 @@ p: 0.5324737429618835</code></pre>
   <category>Python</category>
   <guid>https://www.jtrive.com/posts/gof-python-scipy/gof-python-scipy.html</guid>
   <pubDate>Sat, 02 Mar 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Backpropagation for Fully-Connected Neural Networks</title>
-  <link>https://www.jtrive.com/posts/backprop-python/backprop-python.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>Backpropagation is a key algorithm used in training fully connected neural networks, also known as feed-forward neural networks. In this algorithm, the network’s output error is propagated backward, layer by layer, to adjust the weights of connections between neurons.</p>
-<p><img src="https://www.jtrive.com/posts/backprop-python/fc.png" class="img-fluid"></p>
-<p>The process starts by comparing the network’s output to the desired output, calculating the error. Then, starting from the output layer and moving backward, the algorithm computes the gradients of the error with respect to each weight in the network using the chain rule of calculus. These gradients indicate how much each weight contributes to the error.</p>
-<p>Next, the weights are updated using gradient descent, where they are adjusted in the direction that minimizes the error. This adjustment is proportional to the gradient and a predefined learning rate, ensuring the network converges towards a solution. Backpropagation continues iteratively over the training data until the network’s performance reaches a satisfactory level or a predetermined number of iterations is reached.</p>
-<p>Overall, backpropagation efficiently adjusts the weights of a fully connected network, enabling it to learn complex relationships between input and output data through iterative optimization of the network’s parameters.</p>
-<p>In what follows, we walkthrough the mathematics and pseudocode required to train a 2-layer fully connected network for a classification task.</p>
-<section id="forward-pass" class="level3">
-<h3 class="anchored" data-anchor-id="forward-pass">Forward Pass</h3>
-<p>In the following, superscripts represent the layer associated with each variable:</p>
-<ul>
-<li><p><img src="https://latex.codecogs.com/png.latex?X%20=%20A%5E%7B(0)%7D">: Input data having dimension n-by-f, where n is the number of samples and f the number of features. For a batch of 32 MNIST samples, <img src="https://latex.codecogs.com/png.latex?X"> would have dimension (32, 784).</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?y">: Target variable. classifying a single digit from MINST, a vector populated with 0s and 1s indicating the ground truth label for the sample (8 or not 8). Has the same length as the first dimension of <img src="https://latex.codecogs.com/png.latex?X">.</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?W%5E%7B(l)%7D">: Trainable weights. Projects previous layer activations to lower dimensional representation. Again referring to the first set of weights for a batch of 32 MNIST samples, <img src="https://latex.codecogs.com/png.latex?W%5E%7B(1)%7D">’s first dimension will match the second dimension of the activations from the previous layer (784), and <img src="https://latex.codecogs.com/png.latex?W%5E%7B(1)%7D">’s second dimension will be some lower dimension, say 256. <img src="https://latex.codecogs.com/png.latex?W%5E%7B(1)%7D"> will therefore have dimension (784, 256).</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?b%5E%7B(l)%7D">: Bias term, a one-dimensional vector associated with each hidden layer having length equal to the second dimension of the hidden layer. <img src="https://latex.codecogs.com/png.latex?b%5E%7B(1)%7D"> will have dimension (256,).</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(l)%7D%20=%20A%5E%7B(l-1)%7D%20W%5E%7B(l)%7D%20+%20b%5E%7B(l)%7D">: Output of layer <img src="https://latex.codecogs.com/png.latex?l">, which is the matrix product of the previous layer activations <img src="https://latex.codecogs.com/png.latex?A%5E%7B(l-1)%7D"> and current layer weights (plus bias term).</p></li>
-<li><p><img src="https://latex.codecogs.com/png.latex?A%5E%7B(l)%7D%20=%20%5Csigma(Z%5E%7B(l)%7D)">: Activations associated with layer <img src="https://latex.codecogs.com/png.latex?l">. Passes <img src="https://latex.codecogs.com/png.latex?Z%5E%7B(l)%7D"> through a non-linearity such as sigmoid or ReLU.</p></li>
-</ul>
-<p>More concretely, assume a 2-layer fully-connected neural network with one hidden layer of size 256, through which a dataset of dimension 32-by-784 is passed to predict whether each of the 32 images is an 8 or not. The forward pass looks like:</p>
-<ul>
-<li>Randomly initialize <img src="https://latex.codecogs.com/png.latex?W%5E%7B(1)%7D"> (784x256), <img src="https://latex.codecogs.com/png.latex?W%5E%7B(2)%7D"> (256x1), <img src="https://latex.codecogs.com/png.latex?b%5E%7B(1)%7D"> (256x1) and <img src="https://latex.codecogs.com/png.latex?b%5E%7B(2)%7D"> (1x1)</li>
-<li><img src="https://latex.codecogs.com/png.latex?X%20=%20A%5E%7B(0)%7D%5Chspace%7B.75em%7D"> (32x784)</li>
-<li><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(1)%7D%20=%20A%5E%7B(0)%7D%20W%5E%7B(1)%7D%20+%20b%5E%7B(1)%7D%5Chspace%7B.75em%7D"> (32x256)</li>
-<li><img src="https://latex.codecogs.com/png.latex?A%5E%7B1%7D%20=%20%5Csigma(Z%5E%7B(1)%7D)%5Chspace%7B.75em%7D"> (32x256)</li>
-<li><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(2)%7D%20=%20A%5E%7B(1)%7D%20W%5E%7B(2)%7D%20+%20b%5E%7B(2)%7D%5Chspace%7B.75em%7D"> (32x1)</li>
-<li><img src="https://latex.codecogs.com/png.latex?%5Chat%7By%7D%20=%20A%5E%7B(2)%7D%20=%20%5Csigma(Z%5E%7B(2)%7D)%5Chspace%7B.75em%7D"> (32x1)</li>
-</ul>
-<p>The final output, <img src="https://latex.codecogs.com/png.latex?%5Chat%7By%7D">, represents the probability that each sample is the number 8 or not.</p>
-<p>With the actual labels <img src="https://latex.codecogs.com/png.latex?y"> and our predicted probabilities <img src="https://latex.codecogs.com/png.latex?%5Chat%7By%7D">, we can define our loss function, the cross-entropy loss for binary classification:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathcal%7BL%7D%20=%20-%5Cfrac%7B1%7D%7Bn%7D%5Cbig(y%20%5Ctimes%20%5Cmathrm%7Blog%7D(%5Chat%7By%7D)%20-%20(1%20-%20y)%5Ctimes%20%5Cmathrm%7Blog%7D(1%20-%20%5Chat%7By%7D)%5Cbig)%0A"></p>
-</section>
-<section id="backward-pass-backpropagation" class="level3">
-<h3 class="anchored" data-anchor-id="backward-pass-backpropagation">Backward Pass (Backpropagation)</h3>
-<p>The goal of backpropagation is to compute the partial derivatives of the loss function <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BL%7D"> with respect to any weight <img src="https://latex.codecogs.com/png.latex?W"> or <img src="https://latex.codecogs.com/png.latex?b"> in the network. In order to update our weights, we need to take derivatives of <img src="https://latex.codecogs.com/png.latex?%5Cmathcal%7BL%7D"> w.r.t. <img src="https://latex.codecogs.com/png.latex?W"> and <img src="https://latex.codecogs.com/png.latex?b">, then update <img src="https://latex.codecogs.com/png.latex?W"> and <img src="https://latex.codecogs.com/png.latex?b"> using the derivatives. Backpropagation starts by taking the derivative of the loss function. We first compute the derivatives of the loss function w.r.t. <img src="https://latex.codecogs.com/png.latex?W%5E%7B(2)%7D"> and <img src="https://latex.codecogs.com/png.latex?b%5E%7B(2)%7D">. Here we make use of the chain rule:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%5C%5C%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Once we have <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D"> and <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D">, <img src="https://latex.codecogs.com/png.latex?W%5E%7B(2)%7D"> and <img src="https://latex.codecogs.com/png.latex?b%5E%7B(2)%7D"> are updated as follows:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AW%5E%7B(2)%7D%20&amp;:=%20W%5E%7B(2)%7D%20-%20%5Calpha%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%5C%5C%0Ab%5E%7B(2)%7D%20&amp;:=%20b%5E%7B(2)%7D%20-%20%5Calpha%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%0A%5Cend%7Balign*%7D%0A"></p>
-<p>for some learning rate <img src="https://latex.codecogs.com/png.latex?%5Calpha">. This holds for all layers. For given layer <img src="https://latex.codecogs.com/png.latex?i">, the update rule for <img src="https://latex.codecogs.com/png.latex?W%5E%7B(i)%7D"> and <img src="https://latex.codecogs.com/png.latex?b%5E%7B(i)%7D"> is:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AW%5E%7B(i)%7D%20&amp;:=%20W%5E%7B(i)%7D%20-%20%5Calpha%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(i)%7D%7D%5C%5C%0Ab%5E%7B(i)%7D%20&amp;:=%20b%5E%7B(i)%7D%20-%20%5Calpha%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(i)%7D%7D.%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Let’s start with unpacking <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D">. The first entry on the r.h.s., <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D">, represents the derivative of the loss function w.r.t. <img src="https://latex.codecogs.com/png.latex?A%5E%7B(2)%7D%20=%20%5Chat%7By%7D">, which is</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20=%20-%5Cfrac%7By%7D%7BA%5E%7B(2)%7D%7D%20+%20%5Cfrac%7B1%20-%20y%7D%7B1%20-%20A%5E%7B(2)%7D%7D.%0A"></p>
-<p>The second term on the r.h.s., <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D">, is the derivative of the sigmoid activation (<img src="https://latex.codecogs.com/png.latex?A%5E%7B(2)%7D%20=%20%5Csigma(Z%5E%7B(2)%7D)">). The derivative of the sigmoid function is given by</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7Bd%5Csigma%7D%7Bdx%7D%20=%20%5Csigma(x)(1-%5Csigma(x)),%0A"></p>
-<p>therefore <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D"> is given by</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20=%20A%5E%7B(2)%7D(1%20-%20A%5E%7B(2)%7D).%0A"></p>
-<p>For the third term on the r.h.s., <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D">, recall that <img src="https://latex.codecogs.com/png.latex?Z%5E%7B(2)%7D%20=%20A%5E%7B(1)%7D%20W%5E%7B(2)%7D%20+%20b%5E%7B(2)%7D">. Therefore</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%20=%20A%5E%7B(1)%7D.%0A"></p>
-<p>Finally, we have</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%5C%5C%0A&amp;=%20%5CBig(-%5Cfrac%7By%7D%7BA%5E%7B(2)%7D%7D%20+%20%5Cfrac%7B1%20-%20y%7D%7B1%20-%20A%5E%7B(2)%7D%7D%5CBig)%20%5Ccdot%20%5Cbig(A%5E%7B(2)%7D(1%20-%20A%5E%7B(2)%7D)%5Cbig)%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D%5Cbig)%5C%5C%0A&amp;=%20(A%5E%7B(2)%7D%20-%20y)%20%5Ccdot%20A%5E%7B(1)%7D.%0A%5Cend%7Balign*%7D%0A"></p>
-<p>As a notational convenience, we define <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20=%20(A%5E%7B(2)%7D%20-%20y).%0A"></p>
-<p>This way, <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D"> can be expressed as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(2)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20A%5E%7B(1)%7D.%0A"></p>
-<p>We proceed in a similar fashion for <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%5C%5C%0A&amp;=%20(A%5E%7B(2)%7D%20-%20y),%0A%5Cend%7Balign*%7D%0A"></p>
-<p>since <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20b%5E%7B(2)%7D%7D%20=%201">.</p>
-<p>For the first layer we re-use many of these calculations, but for new terms on the r.h.s., we employ the chain rule in the same way. For reference, restate the terms from the forward pass:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AA%5E%7B(0)%7D%20&amp;=%20X%5C%5C%0AZ%5E%7B(1)%7D%20&amp;=%20A%5E%7B(0)%7D%20W%5E%7B(1)%7D%20+%20b%5E%7B(1)%7D%5C%5C%0AA%5E%7B1%7D%20&amp;=%20%5Csigma(Z%5E%7B(1)%7D)%5C%5C%0AZ%5E%7B(2)%7D%20&amp;=%20A%5E%7B(1)%7D%20W%5E%7B(2)%7D%20+%20b%5E%7B(2)%7D%5C%5C%0AA%5E%7B(2)%7D%20&amp;=%20%5Chat%7By%7D%20=%20%5Csigma(Z%5E%7B(2)%7D)%0A%5Cend%7Balign*%7D%0A"></p>
-<p>We next consider <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Considering each term on the r.h.s:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20&amp;=%20(A%5E%7B(2)%7D%20-%20y)%5C%5C%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20&amp;=%20W%5E%7B(2)%7D%5C%5C%0A%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20&amp;=%20%5Csigma(Z%5E%7B(1)%7D)%20(1%20-%20%5Csigma(Z%5E%7B(1)%7D))%20=%20A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5C%5C%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%20&amp;=%20A%5E%7B(0)%7D%20=%20X%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Resulting in:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%20&amp;=%20(A%5E%7B(2)%7D%20-%20y)%20%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig)%20%5Ccdot%20A%5E%7B(0)%7D%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig)%20%5Ccdot%20A%5E%7B(0)%7D%5C%5C%0A%5Cend%7Balign*%7D%0A"></p>
-<p>As before, we define <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D"> as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig),%0A"></p>
-<p>which allows us to write <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D"> as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20W%5E%7B(1)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20A%5E%7B(0)%7D.%0A"></p>
-<p>Similarly for <img src="https://latex.codecogs.com/png.latex?b%5E%7B(1)%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D%20&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D.%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Considering each term on the r.h.s:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20&amp;=%20(A%5E%7B(2)%7D%20-%20y)%5C%5C%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20&amp;=%20W%5E%7B(2)%7D%5C%5C%0A%5Cfrac%7B%5Cpartial%20A%5E%7B(1)%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%20&amp;=%20%5Csigma(Z%5E%7B(1)%7D)%20(1%20-%20%5Csigma(Z%5E%7B(1)%7D))%20=%20A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5C%5C%0A%5Cfrac%7B%5Cpartial%20Z%5E%7B(1)%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D%20&amp;=%201%0A%5Cend%7Balign*%7D%0A"></p>
-<p>Therefore</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20b%5E%7B(1)%7D%7D%20&amp;=%20(A%5E%7B(2)%7D%20-%20y)%20%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig)%20%5Ccdot%201%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20W%5E%7B(2)%7D%20%5Ccdot%20%5Cbig(A%5E%7B(1)%7D(1%20-%20A%5E%7B(1)%7D)%5Cbig)%5C%5C%0A&amp;=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(1)%7D%7D.%0A%5Cend%7Balign*%7D%0A"></p>
-<p>To complete the backpropagation algorithm, it is necessary to define <img src="https://latex.codecogs.com/png.latex?%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20A%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20A%5E%7B(2)%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20%5Cfrac%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%7B%5Cpartial%20A%5E%7B(1)%7D%7D%20=%20%5Cfrac%7B%5Cpartial%20%5Cmathcal%7BL%7D%7D%7B%5Cpartial%20Z%5E%7B(2)%7D%7D%20%5Ccdot%20W%5E%7B(2)%7D.%0A"></p>
-<p>Assume <img src="https://latex.codecogs.com/png.latex?X"> is a 32x784 batch of MNIST images, and our network has one hidden layer of size 256. Our task is to identify which digit 0-9 a sample most closely resembles. We first declare a number of functions, then implement the forward and backward passes along with weights update.</p>
-<div id="b0bf5cc5" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
-<span id="cb1-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb1-3"></span>
-<span id="cb1-4"></span>
-<span id="cb1-5"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> sigmoid(X):</span>
-<span id="cb1-6">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Compute the sigmoid activation for the input.</span></span>
-<span id="cb1-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-9">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> np.exp(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span>X))</span>
-<span id="cb1-10"></span>
-<span id="cb1-11"></span>
-<span id="cb1-12"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> sigmoid_dev(X):</span>
-<span id="cb1-13">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    The analytical derivative of sigmoid function at X.</span></span>
-<span id="cb1-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-16">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> sigmoid(X) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> sigmoid(X))</span>
-<span id="cb1-17"></span>
-<span id="cb1-18"></span>
-<span id="cb1-19"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> softmax(scores):</span>
-<span id="cb1-20">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-21"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Compute softmax scores given the raw output from the model.</span></span>
-<span id="cb1-22"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Returns softmax probabilities (N, num_classes).</span></span>
-<span id="cb1-23"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-24">    numer <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.exp(scores <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> scores.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">max</span>(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, keepdims<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>))</span>
-<span id="cb1-25">    denom <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> numer.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, keepdims<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb1-26">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> np.divide(numer, denom)</span>
-<span id="cb1-27"></span>
-<span id="cb1-28"></span>
-<span id="cb1-29"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> cross_entropy_loss(ypred, yactual):</span>
-<span id="cb1-30">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-31"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Compute Cross-Entropy Loss based on prediction of the network and labels</span></span>
-<span id="cb1-32"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-33">    yactual <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.asarray(yactual)</span>
-<span id="cb1-34">    ypred <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> ypred[np.arange(<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">len</span>(yactual)), yactual]</span>
-<span id="cb1-35">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span>np.mean(np.log(ypred))</span>
-<span id="cb1-36"></span>
-<span id="cb1-37"></span>
-<span id="cb1-38"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> compute_accuracy(ypred, yactual):</span>
-<span id="cb1-39">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-40"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Compute the accuracy of current batch.</span></span>
-<span id="cb1-41"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-42">    yactual <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.asarray(yactual)</span>
-<span id="cb1-43">    yhat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.argmax(ypred, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb1-44">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> (y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> yhat).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> y.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span></code></pre></div>
-</div>
-<div id="83a0efc0" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
-<span id="cb2-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Stand in for batch of 32 MNIST images. </span></span>
-<span id="cb2-3">X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.random.randint(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">256</span>, size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">784</span>))</span>
-<span id="cb2-4">y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.random.randint(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>)</span>
-<span id="cb2-5"></span>
-<span id="cb2-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Reshape labels to 32 x 10. </span></span>
-<span id="cb2-7">Y <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros((<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>))</span>
-<span id="cb2-8">Y[np.arange(X.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]), y] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 10)</span></span>
-<span id="cb2-9"></span>
-<span id="cb2-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Learning rate.</span></span>
-<span id="cb2-11">alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.05</span> </span>
-<span id="cb2-12"></span>
-<span id="cb2-13"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize weights.</span></span>
-<span id="cb2-14">b1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">256</span>)</span>
-<span id="cb2-15">b2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.zeros(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb2-16">W1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.001</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> np.random.randn(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">784</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">256</span>)</span>
-<span id="cb2-17">W2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0.001</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> np.random.randn(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">256</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>)</span>
-<span id="cb2-18"></span>
-<span id="cb2-19"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Forward pass.</span></span>
-<span id="cb2-20">Z1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> X <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> W1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> b1   <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 256)</span></span>
-<span id="cb2-21">A1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> sigmoid(Z1)   <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 256)</span></span>
-<span id="cb2-22">Z2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> A1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> W2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> b2  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 10)</span></span>
-<span id="cb2-23">A2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> softmax(Z2)   <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 10)</span></span>
-<span id="cb2-24"></span>
-<span id="cb2-25"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute loss and accuracy.</span></span>
-<span id="cb2-26">loss <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> cross_entropy_loss(A2, y)</span>
-<span id="cb2-27">accuracy <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> compute_accuracy(A2, y)</span>
-<span id="cb2-28"></span>
-<span id="cb2-29"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Backward pass.</span></span>
-<span id="cb2-30">dZ2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> A2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> Y                            <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 10)</span></span>
-<span id="cb2-31">dW2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (A1.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> dZ2) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>                 <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (256, 10)</span></span>
-<span id="cb2-32">db2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(dZ2, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>          <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (10,)</span></span>
-<span id="cb2-33">dA1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dZ2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> W2.T                        <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 256)</span></span>
-<span id="cb2-34">dZ1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.multiply(dA1, sigmoid_dev(Z1)) <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (32, 256)</span></span>
-<span id="cb2-35">dW1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (X.T <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">@</span> dZ1) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>                  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (784, 256)</span></span>
-<span id="cb2-36">db1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(dZ1, axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">32</span>          <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># (256,)</span></span>
-<span id="cb2-37"></span>
-<span id="cb2-38"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Update weights.</span></span>
-<span id="cb2-39">W2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> W2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> dW2</span>
-<span id="cb2-40">b2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> b2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> db2</span>
-<span id="cb2-41">W1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> W1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> dW1</span>
-<span id="cb2-42">b1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> b1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> alpha <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> db1</span></code></pre></div>
-</div>
-<p>The code starting with the forward pass would be iterated over a set of batches for a pre-determined number of epochs. The final weights would then be used for inference.</p>
-
-
-</section>
-
- ]]></description>
-  <category>Machine Learning</category>
-  <category>Python</category>
-  <guid>https://www.jtrive.com/posts/backprop-python/backprop-python.html</guid>
-  <pubDate>Wed, 28 Feb 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
