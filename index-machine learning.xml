@@ -10,7 +10,874 @@
 <atom:link href="https://www.jtrive.com/index-machine learning.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Sat, 14 Dec 2024 06:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sat, 22 Mar 2025 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Up and Running with JAX - JIT Compilation, Vectorizing Transformations and autodiff</title>
+  <link>https://www.jtrive.com/posts/intro-to-jax-part-1/intro-to-jax-part-1.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>I first learned about JAX a few years back in an article on functorch. Functorch was a library that brought JAX-like composable function transformations to PyTorch. It was initially developed as a separate library but has since been fully integrated into PyTorch’s core as of PyTorch 2.0.</p>
+<p>Recently I’ve been spending time getting familiar into JAX and it has definitely been worthwhile. The clean functional approach makes my code more maintainable and reproducible, and I’m continuing to find ways to significantly improve performance and efficiency with a surprisingly small number of changes to existing code.</p>
+<p>I’ve recently invested time in learning JAX, which has proven incredibly worthwhile. The clean functional approach makes my code more maintainable and reproducible, while delivering significant performance and efficiency improvements with surprisingly minimal changes to existing codebases.</p>
+<p>So, what is JAX? It is a high-performance numerical computing library developed by Google Research. It combines the ease of use of Python and Numpy with the speed and efficiency of XLA (Accelerated Linear Algebra), making it particularly well-suited for machine learning research and numerical computing that requires high performance.</p>
+<p>At its core, JAX extends Numpy’s functionality with automatic differentiation capabilities. This is essential for gradient-based optimization in machine learning. JAX also excels at just-in-time compilation, which translates Python functions into optimized machine code at runtime.</p>
+<p align="center">
+</p><p><img src="https://www.jtrive.com/posts/intro-to-jax-part-1/jax2.jpg" p=""></p>
+<p>JAX takes a functional programming approach (no side-effects), emphasizing immutability and pure functions. Operations don’t modify their inputs but instead return new values. This is particularly valuable for numerical computations since it enables better parallelization and optimization. Rather than changing arrays in place, JAX functions create new arrays with updated values, resulting in code that is more composable and reproducible. As highlighted in <a href="https://docs.jax.dev/en/latest/notebooks/Common_Gotchas_in_JAX.html#pure-functions">JAX: The Sharp Bits</a>:</p>
+<blockquote class="blockquote">
+<p>JAX transformation and compilation are designed to work only on Python functions that are functionally pure: all the input data is passed through the function parameters, all the results are output through the function results. A pure function will always return the same result if invoked with the same inputs.</p>
+</blockquote>
+<p>Of the JAX features I researched, <code>vmap</code> is the most readily applicable to the work I do. <code>vmap</code> is a vectorizing transformation that automatically adds a batch dimension to calculations. It stands for “vectorized map” and lets you run a function across multiple inputs in a vectorized fashion without explicitly writing code for batch processing. This enables writing simple, single example functions, while simultaneously taking advantage of the performance benefits resulting from vectorized execution.</p>
+<p>The JAX numpy submodule can often be used as drop-in replacement for Numpy since the API is almost identical. It provides the same API as Numpy, meaning that functions like <code>jnp.array</code>, <code>jnp.sin</code>, <code>jnp.dot</code>, <code>jnp.mean</code>, and many others work just as they do in standard Numpy. The key difference is that JAX arrays are immutable and are optimized for GPU execution.</p>
+<p>This post highlights three features of JAX: Just-in-time compilation, vectorizing transformations and automatic differentiation. In a future post, I’ll walk through the forward and backward pass for a fully-connected neural network implemented entirely in JAX. Those future posts will make heavy use of the content covered here.</p>
+<p><br></p>
+<section id="just-in-time-compilation" class="level3">
+<h3 class="anchored" data-anchor-id="just-in-time-compilation">Just-in-time Compilation</h3>
+<p>JIT compilation in JAX speeds up computations by transforming Python functions into optimized machine code. When you apply <code>jax.jit</code> or the <code>jit</code> decorator to a function, JAX traces its operations and compiles them into an efficient, reusable representation. This means that instead of executing Python loops and function calls directly, JAX compiles them into a single, optimized computation graph that runs much faster on virtually any hardware.</p>
+<p>The first time a JIT-compiled function is called, there’s a slight overhead as JAX compiles it, but subsequent calls run much faster since the compiled version is reused. JIT works best when inputs have a fixed shape and type, since changing them can trigger a recompilation. It can also be used in conjunction with <code>grad</code>, <code>vmap</code>, and <code>pmap</code> for even greater performance gains.</p>
+<p>To demonstrate, we’ll implement a function that computes the great circle distance between two sets of coordinate pairs. The Haversine formula is defined as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Aa%20&amp;=%20%5Csin%5E2%5Cleft(%5Cfrac%7B%5CDelta%5Cphi%7D%7B2%7D%5Cright)%20+%20%5Ccos%5Cphi_1%20%5Ccos%5Cphi_2%20%5Csin%5E2%5Cleft(%5Cfrac%7B%5CDelta%5Clambda%7D%7B2%7D%5Cright)%5C%5C%0Ac%20&amp;=%202%20%5Ctimes%20%5Carcsin%5Cleft(%5Cmin%20(1,%20%5Csqrt%7Ba%7D)%5Cright)%5C%5C%0Ad%20&amp;=%20R%20%5Ctimes%20c,%0A%5Cend%7Balign*%7D%0A"></p>
+<p>where:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?%5CDelta%20%5Cphi%20=%20%5Cphi_%7B1%7D%20-%20%5Cphi_2"> (latitude difference in radians)</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5CDelta%20%5Clambda%20=%20%5Clambda_%7B1%7D%20-%20%5Clambda_%7B2%7D"> (longitude difference in radians)</li>
+<li><img src="https://latex.codecogs.com/png.latex?R%20=%206,371"> km (globally average value of radius of the Earth in kilometers)</li>
+<li><img src="https://latex.codecogs.com/png.latex?d%20="> great-circle distance</li>
+</ul>
+<p><br></p>
+<p>A simple implementation of the Haversine formula using trigonometric functions from jax.numpy is provided below. I originally attempted using Python’s builtin trigonometric functions, but this caused JIT compilation to fail - the issue seemed to resolved itself when using the JAX-native variants. <code>get_haversine</code> accepts an array of <code>[lon0, lat0, lon1, lat1]</code> and returns the great circle distance between (lon0, lat0), (lon1, lat1):</p>
+<div id="cell-3" class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> jax.numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> jnp</span>
+<span id="cb1-3"></span>
+<span id="cb1-4"></span>
+<span id="cb1-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> get_haversine(coords):</span>
+<span id="cb1-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Calculate the great circle distance between two points on the earth </span></span>
+<span id="cb1-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    (specified in decimal degrees).</span></span>
+<span id="cb1-9"></span>
+<span id="cb1-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb1-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb1-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    coords: array-like</span></span>
+<span id="cb1-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Array containing the longitude and latitude of two points</span></span>
+<span id="cb1-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        arranged as [lon0, lat0, lon1, lat1].</span></span>
+<span id="cb1-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">   </span></span>
+<span id="cb1-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb1-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Great circle distance in km.</span></span>
+<span id="cb1-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-20"></span>
+<span id="cb1-21">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Average Earth radius in km.</span></span>
+<span id="cb1-22">    R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6371.0</span></span>
+<span id="cb1-23"></span>
+<span id="cb1-24">    lon0, lat0, lon1, lat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> coords</span>
+<span id="cb1-25"></span>
+<span id="cb1-26">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Convert degree latitudes and longitudes to radians.</span></span>
+<span id="cb1-27">    rlon0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.radians(lon0)</span>
+<span id="cb1-28">    rlat0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.radians(lat0)</span>
+<span id="cb1-29">    rlon1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.radians(lon1)</span>
+<span id="cb1-30">    rlat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.radians(lat1)</span>
+<span id="cb1-31">    dlon, dlat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rlon1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> rlon0, rlat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> rlat0</span>
+<span id="cb1-32">    a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.sin(dlat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> jnp.cos(rlat0) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> jnp.cos(rlat1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> jnp.sin(dlon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb1-33">    c <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> jnp.asin(jnp.sqrt(a))</span>
+<span id="cb1-34">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> c</span></code></pre></div>
+</div>
+<p><br></p>
+<p>To calculate the Haversine distance in kilometers between two points, say Durkin Park on the Southside of Chicago and Nectar’s in Burlington, Vermont, simply run:</p>
+<div id="cell-5" class="cell">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2">lon0, lat0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">87.7295</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">41.7390</span> <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Durkin Park, Chicago, IL</span></span>
+<span id="cb2-3">lon1, lat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">73.2117</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">44.4762</span> <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Nectar's, Burlington, VT</span></span>
+<span id="cb2-4"></span>
+<span id="cb2-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Put coordinates in JAX array.</span></span>
+<span id="cb2-6">coords <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.array([lon0, lat0, lon1, lat1])</span>
+<span id="cb2-7"></span>
+<span id="cb2-8">d <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> get_haversine(coords)</span>
+<span id="cb2-9"></span>
+<span id="cb2-10"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Distance between Durkin Park and Nectar's: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>d<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,.0f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> km"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Distance between Durkin Park and Nectar's: 1,215 km</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>We can JIT-compile <code>get_haversine</code> and compare the run-time against the original implementation. Notice that we call <code>get_haversine_jit</code> once outside of <code>timeit</code> to avoid the overhead associated with the initial compilation:</p>
+<div id="cell-7" class="cell">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> jax <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> jit</span>
+<span id="cb4-3"></span>
+<span id="cb4-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create jit-compiled version of get_haversine. </span></span>
+<span id="cb4-5">get_haversine_jit <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jit(get_haversine)</span>
+<span id="cb4-6">_ <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> get_haversine_jit([<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">80.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">40.</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">85.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">45.</span>])  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># compiles on first call.</span></span>
+<span id="cb4-7"></span>
+<span id="cb4-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Time the original.</span></span>
+<span id="cb4-9"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span>timeit <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>n100 get_haversine(coords).block_until_ready()</span>
+<span id="cb4-10"></span>
+<span id="cb4-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Time the jit-compiled function.</span></span>
+<span id="cb4-12"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span>timeit <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>n100 get_haversine_jit(coords).block_until_ready()</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>265 μs ± 38.2 μs per loop (mean ± std. dev. of 7 runs, 100 loops each)
+3.46 μs ± 1.03 μs per loop (mean ± std. dev. of 7 runs, 100 loops each)</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>We realized about a 75x speed up for very little work on our end. For this example, we created a new function <code>get_haversine_jit</code> so the jit-compiled version runtime could be compared against the original non-JITed version. It is possible to instead use the <code>@jit</code> decorator, allowing for the original function name to be re-used:</p>
+<div id="cell-9" class="cell">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Using jit decorator instead.</span></span>
+<span id="cb6-3"></span>
+<span id="cb6-4"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">@jit</span></span>
+<span id="cb6-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> get_haversine(coords):</span>
+<span id="cb6-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb6-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Calculate the great circle distance between two points on the earth </span></span>
+<span id="cb6-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    (specified in decimal degrees).</span></span>
+<span id="cb6-9"></span>
+<span id="cb6-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb6-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb6-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    coords: array-like</span></span>
+<span id="cb6-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Array containing the longitude and latitude of two points</span></span>
+<span id="cb6-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        arranged as [lon0, lat0, lon1, lat1]</span></span>
+<span id="cb6-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">   </span></span>
+<span id="cb6-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb6-17"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb6-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Great circle distance in km.</span></span>
+<span id="cb6-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb6-20">    R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">6371.0</span></span>
+<span id="cb6-21"></span>
+<span id="cb6-22">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Convert degree latitudes and longitudes to radians.</span></span>
+<span id="cb6-23">    lon0, lat0, lon1, lat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> coords</span>
+<span id="cb6-24">    rlon0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.radians(lon0)</span>
+<span id="cb6-25">    rlat0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.radians(lat0)</span>
+<span id="cb6-26">    rlon1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.radians(lon1)</span>
+<span id="cb6-27">    rlat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.radians(lat1)</span>
+<span id="cb6-28">    dlon, dlat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rlon1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> rlon0, rlat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> rlat0</span>
+<span id="cb6-29">    a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.sin(dlat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> jnp.cos(rlat0) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> jnp.cos(rlat1) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> jnp.sin(dlon <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb6-30">    c <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> jnp.asin(jnp.sqrt(a))</span>
+<span id="cb6-31">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> c</span>
+<span id="cb6-32"></span></code></pre></div>
+</div>
+<p><br></p>
+<p>There are some limitations to JIT-compilation in JAX. In particular, loops, if statements, and other control flow mechanisms may not work as expected. Refer to <a href="https://docs.jax.dev/en/latest/notebooks/Common_Gotchas_in_JAX.html#jax-the-sharp-bits">JAX: The Sharp Bits</a> for additional gotchas.</p>
+<p><br></p>
+</section>
+<section id="vectorizing-transformations" class="level3">
+<h3 class="anchored" data-anchor-id="vectorizing-transformations">Vectorizing Transformations</h3>
+<p><code>vmap</code> automatically vectorizes operations, enabling the application of a function across multiple inputs without writing explicit loops. It enables batch processing while taking advantage of JAX’s optimized execution. Instead of using loops, <code>vmap</code> efficiently maps a function over an array along a pre-specified axis.</p>
+<p>To demonstrate, I’ll apply <code>vmap</code> to <code>get_haversine</code>, allowing it to accept coordinate arrays of shape n x 4 as opposed to 1 x 4. We will generate a random coordinate array of 10,000 x 4 using JAX’s random generator utilities.</p>
+<p>In JAX, random number generation is handled a bit differently than in Numpy to ensure functional purity. JAX uses explicit PRNG keys to generate random numbers instead of relying on global state. A “key” is a special array that acts as a seed, and every time you use it, JAX produces the same random numbers for the same key.</p>
+<p>Since JAX enforces immutability, you can’t reuse a key for multiple random calls without getting the same result. Instead, you split a key using <code>jax.random.split</code>, which deterministically generates new, unique keys from the original one. Each split key is independent, allowing for the generation of different random numbers while maintaining reproducibility. This approach makes JAX’s random functions fully compatible with its JIT compilation and parallelization features.</p>
+<p>In the next cell, we create a 10,000 x 4 array of random coordinate pairs. We are interested in computing the Haversine distance for each pair of coordinates, but don’t want to rewrite <code>get_haversine</code> to process more than a single pair of points at a time.</p>
+<div id="cell-12" class="cell">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> jax.random <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> random</span>
+<span id="cb7-3"></span>
+<span id="cb7-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create a 1,000,000 x 4 array of random longitudes and latitudes.</span></span>
+<span id="cb7-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Longitudes are in the range -175 to 175.</span></span>
+<span id="cb7-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Latitudes are in the range -85 to 85.</span></span>
+<span id="cb7-7">n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10_000</span></span>
+<span id="cb7-8"></span>
+<span id="cb7-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Seed for reproducibility. Split key for different random sequences.</span></span>
+<span id="cb7-10">key <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> random.PRNGKey(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)  </span>
+<span id="cb7-11">keys <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> random.split(key, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)</span>
+<span id="cb7-12"></span>
+<span id="cb7-13">lon0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> random.uniform(keys[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], shape<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(n,), minval<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">175.</span>, maxval<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">175.</span>)</span>
+<span id="cb7-14">lat0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> random.uniform(keys[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], shape<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(n,), minval<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">85.</span>, maxval<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">85.</span>)</span>
+<span id="cb7-15">lon1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> random.uniform(keys[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>], shape<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(n,), minval<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">175.</span>, maxval<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">175.</span>)</span>
+<span id="cb7-16">lat1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> random.uniform(keys[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>], shape<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(n,), minval<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">85.</span>, maxval<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">85.</span>)</span>
+<span id="cb7-17">coords <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.stack([lon0, lat0, lon1, lat1], axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Shape (n, 4)</span></span>
+<span id="cb7-18"></span>
+<span id="cb7-19"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"coords.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>coords<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>coords.shape: (10000, 4)</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Then applying vectorization to <code>get_haversine</code> is as simple as wrapping the original function with <code>vmap</code>:</p>
+<div id="cell-14" class="cell">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
+<span id="cb9-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> jax <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> vmap</span>
+<span id="cb9-3"></span>
+<span id="cb9-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Vectorize get_haversine.</span></span>
+<span id="cb9-5">get_haversine_vmap <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> vmap(get_haversine)</span>
+<span id="cb9-6"></span>
+<span id="cb9-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Calculate distances between 10k coordinate pairs.</span></span>
+<span id="cb9-8">d <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> get_haversine_vmap(coords)</span>
+<span id="cb9-9"></span>
+<span id="cb9-10">d[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>]</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="19">
+<pre><code>Array([ 8697.932 ,  6449.9453,  8237.629 ,  7416.7593,  9463.392 ,
+        3435.566 ,  8059.4575, 10055.319 , 16480.527 ,  6943.8413],      dtype=float32)</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Not surprisingly, vectorization provides a massive speedup vs.&nbsp;native looping:</p>
+<div id="cell-17" class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"></span>
+<span id="cb11-2"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span>timeit <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>n1 <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> c <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> coords: get_haversine(c)</span>
+<span id="cb11-3"></span>
+<span id="cb11-4"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span>timeit <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>n1 get_haversine_vmap(coords)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2.42 s ± 20.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+5.45 ms ± 1.2 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>It is also possible to combine just-in-time compilation along with vectorized transformations for additional performance gains.</p>
+<p>Refer to the <a href="https://docs.jax.dev/en/latest/automatic-vectorization.html">JAX documentation on automatic vectorization</a> for more advanced use cases of <code>vmap</code>, specifically how to apply a vectorized transformation along a specific axis of a multi-dimensional array.</p>
+<p><br></p>
+</section>
+<section id="automatic-differentiation" class="level3">
+<h3 class="anchored" data-anchor-id="automatic-differentiation">Automatic Differentiation</h3>
+<p>Automatic differentiation (autodiff) in JAX is a method for computing derivatives efficiently and accurately using computational differentiation. Unlike numerical differentiation which relies on finite differences and can be prone to errors, or symbolic differentiation, which can become computationally expensive, autodiff in JAX works by systematically applying the chain rule at a computational level.</p>
+<p>JAX provides <code>grad</code> for computing gradients of scalar-valued functions, <code>jacfwd</code> and <code>jacrev</code> for Jacobians, and <code>hessian</code> for second-order derivatives. It uses forward-mode autodiff for computing derivatives of functions with a small number of inputs, while reverse-mode autodiff is well-suited for functions with many inputs but a single output, which is ideal for deep learning applications.</p>
+<p>As a simple example of using <code>grad</code> for a scalar-valued function, given a continuous random variable <img src="https://latex.codecogs.com/png.latex?X"> with CDF <img src="https://latex.codecogs.com/png.latex?F(x)">, the PDF <img src="https://latex.codecogs.com/png.latex?f(x)"> is obtained by differentiating <img src="https://latex.codecogs.com/png.latex?F(x)">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Af(x)%20=%20%5Cfrac%7Bd%7D%7Bdx%7DF(x).%0A"></p>
+<p>For the exponential distribution, the CDF and PDF are given by</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AF(x)%20&amp;=%201%20-%20e%5E%7B-%5Clambda%20x%7D%5C%5C%0Af(x)%20&amp;=%20F'(x)%20=%20%5Clambda%20e%5E%7B-%5Clambda%20x%7D%5C%5C%0A%5Cend%7Balign*%7D%0A"></p>
+<p>The exact value of the exponential PDF can be compared with the result returned by <code>grad</code> applied to the CDF to verify they are the same. The result will also be compared against the PDF at a given value of <img src="https://latex.codecogs.com/png.latex?x"> returned by <code>scipy.stats.expon</code>. For the purposes of demonstration, we set <img src="https://latex.codecogs.com/png.latex?%5Clambda%20=%201/%2010">, which is hard-coded within <code>expon_cdf</code> and <code>expon_pdf</code>:</p>
+<div id="cell-21" class="cell">
+<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"></span>
+<span id="cb13-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.stats <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> expon</span>
+<span id="cb13-3"></span>
+<span id="cb13-4"></span>
+<span id="cb13-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> expon_cdf(x):</span>
+<span id="cb13-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb13-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Exponential distribution CDF.</span></span>
+<span id="cb13-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb13-9">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> jnp.exp(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.10</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x)</span>
+<span id="cb13-10"></span>
+<span id="cb13-11"></span>
+<span id="cb13-12"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> expon_pdf(x):</span>
+<span id="cb13-13">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb13-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Exponential distribution PDF.</span></span>
+<span id="cb13-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb13-16"></span>
+<span id="cb13-17">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.10</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> jnp.exp(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.10</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x)</span>
+<span id="cb13-18"></span>
+<span id="cb13-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Exponential distribution with mean 10. </span></span>
+<span id="cb13-20">r <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> expon(scale<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span></code></pre></div>
+</div>
+<p><br></p>
+<p>In order to obtain the derivative of <code>expon_cdf</code> using JAX, pass <code>expon_cdf</code> into <code>grad</code>. The result is a callable that can accept any scalar value on <img src="https://latex.codecogs.com/png.latex?%5B0,%20%5Cinfty)"> and will return the exponential PDF at that point:</p>
+<div id="cell-23" class="cell">
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
+<span id="cb14-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> jax <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> grad</span>
+<span id="cb14-3"></span>
+<span id="cb14-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute derivative of exponential CDF.</span></span>
+<span id="cb14-5">jax_expon_pdf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> grad(expon_cdf)</span></code></pre></div>
+</div>
+<p><br></p>
+<p>Comparing the analytical PDF, <code>jax_expon_pdf</code> and the Scipy-generated PDF evaluated at 4.5:</p>
+<div id="cell-25" class="cell">
+<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"></span>
+<span id="cb15-2">v0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> expon_pdf(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.5</span>)</span>
+<span id="cb15-3">v1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jax_expon_pdf(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.5</span>)</span>
+<span id="cb15-4">v2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> r.pdf(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.5</span>)</span>
+<span id="cb15-5"></span>
+<span id="cb15-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Exact PDF : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>v0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb15-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"JAX PDF   : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>v1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb15-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Scipy PDF : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>v2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exact PDF : 0.063763
+JAX PDF   : 0.063763
+Scipy PDF : 0.063763</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>A particularly useful feature of <code>grad</code> is that we can pass <code>jax_expon_pdf</code> into <code>grad</code> and obtain the second derivative of the exponential CDF. Again we compare the JAX result against the exact analytical solution:</p>
+<div id="cell-27" class="cell" data-execution_count="69">
+<div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"></span>
+<span id="cb17-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Analytical solution for comparison.</span></span>
+<span id="cb17-3"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> expon_cdf_second_deriv(x):</span>
+<span id="cb17-4">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb17-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Second derivative of exponential CDF.</span></span>
+<span id="cb17-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb17-7">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.10</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> jnp.exp(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.10</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> x)</span>
+<span id="cb17-8"></span>
+<span id="cb17-9"></span>
+<span id="cb17-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compute second derivative of exponential CDF using grad.</span></span>
+<span id="cb17-11">jax_expon_cdf_second_deriv <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> grad(jax_expon_pdf)</span>
+<span id="cb17-12"></span>
+<span id="cb17-13">v0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> expon_cdf_second_deriv(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.5</span>)</span>
+<span id="cb17-14">v1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jax_expon_cdf_second_deriv(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4.5</span>)</span>
+<span id="cb17-15"></span>
+<span id="cb17-16"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Exact second derivative : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>v0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb17-17"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"JAX second derivative   : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>v1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb17-18"></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Exact second derivative : -0.00637628
+JAX second derivative   : -0.00637628</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>It is not an exaggeration to say <code>vmap</code>, <code>jit</code>, and <code>grad</code> have transformed my machine learning workflows. Vectorization without loops, lightning-fast compilation and flexible gradient computation let me build cleaner, faster models with less code. I’m finding new applications all the time and will continue to explore additional ways to leverage JAX and related libraries like flax.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Machine Learning</category>
+  <category>Python</category>
+  <guid>https://www.jtrive.com/posts/intro-to-jax-part-1/intro-to-jax-part-1.html</guid>
+  <pubDate>Sat, 22 Mar 2025 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Multimodal Neural Networks for Risk Classification</title>
   <link>https://www.jtrive.com/posts/mulitmodal-neural-networks/multimodal-neural-networks.html</link>
