@@ -10,7 +10,1155 @@
 <atom:link href="https://www.jtrive.com/index.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Sat, 22 Mar 2025 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 02 Apr 2025 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Up and Running with JAX - Fully-Connected Network Forward Pass</title>
+  <link>https://www.jtrive.com/posts/intro-to-jax-part-2/intro-to-jax-part-2.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>In a <a href="https://www.jtrive.com/posts/intro-to-jax-part-1/intro-to-jax-part-1.html">previous post</a>, I introduced JAX with particular emphasis on JIT compilation, vectorizing transformations and automatic differentiation. In this post, we walkthrough an implementation of the forward pass for a fully-connected neural network with the goal of classifying MNIST handwritten digits, incorporating concepts from the first post.</p>
+<p>We begin by loading MNIST training and validation sets, convert the PIL images to Numpy arrays, and create image-label batches of size 64:</p>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> warnings</span>
+<span id="cb1-3"></span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-6"></span>
+<span id="cb1-7"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> torch</span>
+<span id="cb1-8"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> torchvision</span>
+<span id="cb1-9"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> torch.nn <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> nn</span>
+<span id="cb1-10"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> torch.utils.data <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Dataset, DataLoader</span>
+<span id="cb1-11"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> torchvision <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> datasets</span>
+<span id="cb1-12"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> torchvision.transforms <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> ToTensor</span>
+<span id="cb1-13"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> torchvision.transforms <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> v2</span>
+<span id="cb1-14"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb1-15"></span>
+<span id="cb1-16">np.set_printoptions(suppress<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, precision<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, linewidth<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>)</span>
+<span id="cb1-17">pd.options.mode.chained_assignment <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb1-18">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.max_columns'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-19">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'display.width'</span>, <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-20">pd.set_option(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"display.precision"</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>)</span>
+<span id="cb1-21">warnings.filterwarnings(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ignore"</span>)</span>
+<span id="cb1-22"></span>
+<span id="cb1-23"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Batch size.</span></span>
+<span id="cb1-24">bs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">64</span></span>
+<span id="cb1-25"></span>
+<span id="cb1-26">train_data <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> datasets.MNIST(</span>
+<span id="cb1-27">    root<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data"</span>,</span>
+<span id="cb1-28">    train<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb1-29">    download<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb1-30">    transform<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>v2.Compose([ToTensor()])</span>
+<span id="cb1-31">)</span>
+<span id="cb1-32"></span>
+<span id="cb1-33">valid_data <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> datasets.MNIST(</span>
+<span id="cb1-34">    root<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"data"</span>,</span>
+<span id="cb1-35">    train<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>,</span>
+<span id="cb1-36">    download<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb1-37">    transform<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>v2.Compose([ToTensor()])</span>
+<span id="cb1-38">)</span>
+<span id="cb1-39"></span>
+<span id="cb1-40"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Convert PIL images to NumPy arrays.</span></span>
+<span id="cb1-41">train_data_arr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> train_data.data.numpy() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">255.0</span>      <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Normalize pixel values to [0, 1]</span></span>
+<span id="cb1-42">valid_data_arr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> valid_data.data.numpy() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">255.0</span>      <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Normalize pixel values to [0, 1] </span></span>
+<span id="cb1-43">train_data_arr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> train_data_arr.reshape(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span>)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Flatten images to 1D arrays</span></span>
+<span id="cb1-44">valid_data_arr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> valid_data_arr.reshape(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span>)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Flatten images to 1D arrays</span></span>
+<span id="cb1-45">train_labels <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> train_data.targets.numpy()</span>
+<span id="cb1-46">valid_labels <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> valid_data.targets.numpy()</span>
+<span id="cb1-47"></span>
+<span id="cb1-48"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create training and validation batches of 64.</span></span>
+<span id="cb1-49">train_batches <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb1-50">    (train_data_arr[(bs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> ii):(bs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (ii <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>))], train_labels[(bs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> ii):(bs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (ii <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>))]) </span>
+<span id="cb1-51">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(train_data_arr) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">//</span> bs)</span>
+<span id="cb1-52">]</span>
+<span id="cb1-53">valid_batches <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb1-54">    (valid_data_arr[(bs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> ii):(bs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (ii <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>))], valid_labels[(bs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> ii):(bs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> (ii <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>))]) </span>
+<span id="cb1-55">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(valid_data_arr) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">//</span> bs)</span>
+<span id="cb1-56">]</span>
+<span id="cb1-57"></span>
+<span id="cb1-58"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"train_data_arr.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>train_data_arr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-59"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"valid_data_arr.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>valid_data_arr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-60"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"train_labels.shape  : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>train_labels<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-61"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"valid_labels.shape  : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>valid_labels<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-62"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"len(train_batches)  : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(train_batches)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb1-63"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"len(valid_batches)  : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(valid_batches)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>train_data_arr.shape: (60000, 784)
+valid_data_arr.shape: (10000, 784)
+train_labels.shape  : (60000,)
+valid_labels.shape  : (10000,)
+len(train_batches)  : 937
+len(valid_batches)  : 156</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>We can visualize a batch of images and labels using matplotlib:</p>
+<div id="cell-4" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb3-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> mpl_toolkits.axes_grid1 <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> ImageGrid</span>
+<span id="cb3-4"></span>
+<span id="cb3-5">X, y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> train_batches[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb3-6">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.expand_dims(X.reshape(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">28</span>), <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb3-7"></span>
+<span id="cb3-8">fig <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> plt.figure(figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8.</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8.</span>), tight_layout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb3-9"></span>
+<span id="cb3-10">grid <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ImageGrid(fig, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">111</span>, nrows_ncols<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>), axes_pad<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.20</span>)</span>
+<span id="cb3-11"></span>
+<span id="cb3-12"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> ax, X_ii, y_ii <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(grid, X, y):</span>
+<span id="cb3-13">    X_ii <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.transpose(X_ii, (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>))</span>
+<span id="cb3-14">    ax.imshow(X_ii, cmap<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gray"</span>)</span>
+<span id="cb3-15">    ax.axis(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"off"</span>)</span>
+<span id="cb3-16">    ax.set_title(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>y_ii<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>, fontsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>)</span>
+<span id="cb3-17"></span>
+<span id="cb3-18">plt.show()</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/intro-to-jax-part-2/intro-to-jax-part-2_files/figure-html/cell-3-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Our goal is to create a model that accepts a batch of 64 images, and returns a class prediction for each image in the batch. Our architecture is presented in the image below:</p>
+<p align="center">
+<img src="https://www.jtrive.com/posts/intro-to-jax-part-2/mnist.png">
+</p>
+<p><br></p>
+<p>The pre-activations for layer <img src="https://latex.codecogs.com/png.latex?l"> are computed as <img src="https://latex.codecogs.com/png.latex?Z%5E%7B(l)%7D%20=%20A%5E%7B(l-1)%7D%20W%5E%7B(l)%7D%20+%20b%5E%7B(l)%7D">, where:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(l)%7D"> = layer <img src="https://latex.codecogs.com/png.latex?l"> pre-activations (value prior to applying non-linearity like ReLU).</li>
+<li><img src="https://latex.codecogs.com/png.latex?A%5E%7B(l-1)%7D"> = layer <img src="https://latex.codecogs.com/png.latex?l-1"> activations, with <img src="https://latex.codecogs.com/png.latex?A%5E%7B(0)%7D"> representing the original input.</li>
+<li><img src="https://latex.codecogs.com/png.latex?W%5E%7B(l)%7D"> = The weight matrix for layer <img src="https://latex.codecogs.com/png.latex?l">.</li>
+<li><img src="https://latex.codecogs.com/png.latex?b%5E%7B(l)%7D"> = bias vector for layer <img src="https://latex.codecogs.com/png.latex?l">.</li>
+</ul>
+<p><br></p>
+<p>For the network shown above assuming a batch size of 64:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(0)%7D%20=%20A%5E%7B(0)%7D">: Input matrix with dimension 64x784.</li>
+<li><img src="https://latex.codecogs.com/png.latex?W%5E%7B(1)%7D">: Weight matrix with dimension 784x128.</li>
+<li><img src="https://latex.codecogs.com/png.latex?b%5E%7B(1)%7D"> Bias vector of length 128.</li>
+<li><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(1)%7D%20=%20A%5E%7B(0)%7D%20W%5E%7B(1)%7D%20+%20b%5E%7B(1)%7D">: Matrix of pre-activations with dimension 64x128.</li>
+<li><img src="https://latex.codecogs.com/png.latex?A%5E%7B(1)%7D">: Non-linearity applied to <img src="https://latex.codecogs.com/png.latex?Z%5E%7B(1)%7D">. Activation matrix with dimension 64x128.</li>
+<li><img src="https://latex.codecogs.com/png.latex?W%5E%7B(2)%7D">: Weight matrix with dimension 128x10.</li>
+<li><img src="https://latex.codecogs.com/png.latex?b%5E%7B(2)%7D">: Bias vector of length 10.</li>
+<li><img src="https://latex.codecogs.com/png.latex?Z%5E%7B(2)%7D%20=%20A%5E%7B(1)%7D%20W%5E%7B(2)%7D%20+%20b%5E%7B(2)%7D">: Matrix of pre-activations with dimension 64x10.</li>
+<li><img src="https://latex.codecogs.com/png.latex?A%5E%7B(2)%7D">: Non-linearity applied to <img src="https://latex.codecogs.com/png.latex?Z%5E%7B(2)%7D">. Activation matrix with dimension 64x10.</li>
+</ul>
+<p><br></p>
+<p>The forward pass feeds an image of size 28x28 into the network, which produces a probability distribution over all classes. The class with the highest probability is our class prediction, which for MNIST will be one of 10 digits 0-9. Specifically:</p>
+<ul>
+<li>Each 28x28 image is flattened to have shape 1x784. The input layer has the same size as the flattened image (784,).</li>
+<li>The hidden layer consists of 128 neurons. The matrix of weights projecting from the input layer to the first hidden layer has dimension 784x128, plus a bias vector of length 128.</li>
+<li>The output layer consists of 10 neurons, which is the same the number of classes in the dataset. The matrix of weights projecting from the hidden layer to the output layer has dimension 128x10, along with a bias vector of length 10.</li>
+<li>Applying softmax to the output layer results in a probability distribution over classes.</li>
+</ul>
+<p>Weight initialization is handled automatically in PyTorch, but when working in JAX, The first step is to initialize the network weights. We can create a helper function to assist with randomly assigning values to the weight matrices and bias vectors.</p>
+<p>In JAX, random number generation is handled a bit differently than in Numpy to ensure functional purity. JAX uses explicit PRNG keys to generate random numbers instead of relying on global state. A “key” is a special array that acts as a seed, and every time you use it, JAX produces the same random numbers for the same key.</p>
+<p>Since JAX enforces immutability, you can’t reuse a key for multiple random calls without getting the same result. Instead, you split a key using <code>jax.random.split</code>, which deterministically generates new, unique keys from the original one. Each split key is independent, allowing for the generation of different random numbers while maintaining reproducibility. In the next cell, we initialize weights using small random normal values:</p>
+<div id="cell-7" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> jax <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> random</span>
+<span id="cb4-3"></span>
+<span id="cb4-4"></span>
+<span id="cb4-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> initialize_weights(sizes, key, scale<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.02</span>):</span>
+<span id="cb4-6">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb4-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    "Initialize weights and biases for each layer for simple fully-connected </span></span>
+<span id="cb4-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    network.</span></span>
+<span id="cb4-9"></span>
+<span id="cb4-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb4-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb4-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    sizes : list of int</span></span>
+<span id="cb4-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        List of integers representing the number of neurons in each layer.</span></span>
+<span id="cb4-14"></span>
+<span id="cb4-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    key : jax.random.PRNGKey</span></span>
+<span id="cb4-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Random key for JAX.</span></span>
+<span id="cb4-17"></span>
+<span id="cb4-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb4-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb4-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    List of iniitialized weights and biases for each layer.</span></span>
+<span id="cb4-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb4-22">    keys <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> random.split(key, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(sizes) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb4-23">    params <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb4-24">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> m, n, k <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(sizes[:<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>], sizes[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>:], keys):</span>
+<span id="cb4-25">        w_key, b_key <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> random.split(k)</span>
+<span id="cb4-26">        w <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> scale <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> random.normal(w_key, (m, n))</span>
+<span id="cb4-27">        b <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> scale <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> random.normal(b_key, (n,))</span>
+<span id="cb4-28">        params.append((w, b))</span>
+<span id="cb4-29">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> params</span>
+<span id="cb4-30"></span>
+<span id="cb4-31"></span>
+<span id="cb4-32"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Initialize weights and biases for each layer.</span></span>
+<span id="cb4-33">sizes <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">784</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">128</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>]</span>
+<span id="cb4-34"></span>
+<span id="cb4-35">params <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> initialize_weights(sizes, key<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>random.PRNGKey(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>), scale<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.02</span>)   </span>
+<span id="cb4-36"></span>
+<span id="cb4-37"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Print shape of each layer's weights and biases.</span></span>
+<span id="cb4-38"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"W1 shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>params[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb4-39"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"b1 shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>params[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb4-40"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"W2 shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>params[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)  </span>
+<span id="cb4-41"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"b2 shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>params[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>W1 shape: (784, 128)
+b1 shape: (128,)
+W2 shape: (128, 10)
+b2 shape: (10,)</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>In PyTorch, models inherit from <code>nn.Module</code> and must implement a <code>forward</code> method that defines the network’s computation flow. The forward method orchestrates how input tensors transform through pre-specified operations to produce outputs.</p>
+<p>For our JAX implementation we’ll create a similar function, but the weights must be explicitly passed as parameters rather than stored as internal state. Unlike PyTorch’s object-oriented approach where weights are hidden properties of the model instance, JAX follows a functional paradigm that requires all state to be passed explicitly between function calls, eliminating hidden state.</p>
+<p>In our <code>forward</code> function, we incorporate ReLU activation between layers to introduce non-linearity:</p>
+<div id="cell-9" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> jax.numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> jnp</span>
+<span id="cb6-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> jax.nn <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> relu</span>
+<span id="cb6-4"></span>
+<span id="cb6-5"></span>
+<span id="cb6-6"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> forward(params, X):</span>
+<span id="cb6-7">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb6-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Forward pass for simple fully-connected network.</span></span>
+<span id="cb6-9"></span>
+<span id="cb6-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Parameters</span></span>
+<span id="cb6-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    ----------</span></span>
+<span id="cb6-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    params : list of tuples</span></span>
+<span id="cb6-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        List of tuples containing weights and biases for each layer.</span></span>
+<span id="cb6-14"></span>
+<span id="cb6-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    X : jax.numpy.ndarray</span></span>
+<span id="cb6-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        Input data.</span></span>
+<span id="cb6-17"></span>
+<span id="cb6-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns</span></span>
+<span id="cb6-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    -------</span></span>
+<span id="cb6-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    jax.numpy.ndarray</span></span>
+<span id="cb6-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb6-22">    a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> X</span>
+<span id="cb6-23">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> W, b <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> params[:<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]:</span>
+<span id="cb6-24">        z <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.dot(a, W) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> b</span>
+<span id="cb6-25">        a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> relu(z)</span>
+<span id="cb6-26">    W, b <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> params[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb6-27">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> jnp.dot(a, W) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> b</span></code></pre></div>
+</div>
+<p><br></p>
+<p>We can pass a single flattened image array into <code>forward</code>, and it should return a 1x10 vector of activations. The output will not be a probability distribution since softmax hasn’t been applied, but we can still test it to ensure that the shape of the output is consistent with our expectations:</p>
+<div id="cell-11" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get first image from first training batch.</span></span>
+<span id="cb7-3">X, y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> train_batches[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb7-4"></span>
+<span id="cb7-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Convert to JAX array.</span></span>
+<span id="cb7-6">X0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> jnp.asarray(X[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].flatten())</span>
+<span id="cb7-7"></span>
+<span id="cb7-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Pass X0 into forward.</span></span>
+<span id="cb7-9">ypred <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> forward(params, X0)</span>
+<span id="cb7-10"></span>
+<span id="cb7-11"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"ypred.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>ypred<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb7-12"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"ypred: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>ypred<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>ypred.shape: (10,)
+ypred: [-0.01938  0.04435  0.01545  0.01266  0.00116 -0.07045 -0.03737  0.00276  0.01255 -0.00883]</code></pre>
+</div>
+</div>
+<p><br></p>
+<section id="auto-vectorizing-the-forward-pass" class="level3">
+<h3 class="anchored" data-anchor-id="auto-vectorizing-the-forward-pass">Auto-Vectorizing the Forward Pass</h3>
+<p>As implmented, <code>forward</code> is only capable of processing a single flattened image at a time. However, we can use <code>vmap</code>, introduced in the first post, to process a batch of images at a time without any modification to <code>forward</code>. <code>vmap</code> enables batch processing while taking advantage of JAX’s optimized execution. Instead of using loops, it efficiently maps a function over an array along a pre-specified axis:</p>
+<div id="cell-14" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
+<span id="cb9-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> jax <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> vmap</span>
+<span id="cb9-3"></span>
+<span id="cb9-4">batch_forward <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> vmap(forward, in_axes<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>))</span></code></pre></div>
+</div>
+<p><br></p>
+<p><code>in_axes</code> controls which input array axes to vectorize over, and its length must equal the number of positional arguments associated with the original function. In our case, the first argument to <code>forward</code> is <code>params</code>, which stays the same within the context of the forward pass. The second argument corresponds to our input image, and the ‘0’ indicates that vectorization should be applied along the 0th axis (which is batch dimension).</p>
+<p>We can pass a batch of size 64 x 784 into <code>batch_forward</code>, and return an output of size 64x10:</p>
+<div id="cell-16" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
+<span id="cb10-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get first batch of flattened training images.</span></span>
+<span id="cb10-3">X, y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> train_batches[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb10-4"></span>
+<span id="cb10-5">ypreds <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> batch_forward(params, X)</span>
+<span id="cb10-6"></span>
+<span id="cb10-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"ypreds.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>ypreds<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb10-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"ypreds:</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>ypreds<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>ypreds.shape: (64, 10)
+ypreds:
+[[-0.01938  0.04435  0.01545  0.01266  0.00116 -0.07045 -0.03737  0.00276  0.01255 -0.00883]
+ [ 0.00129  0.0109   0.00602 -0.00877 -0.01916 -0.05659 -0.0483  -0.02185 -0.02209  0.01736]
+ [-0.02005  0.00758  0.02579 -0.03333  0.00352 -0.0578  -0.04556 -0.0556  -0.04529  0.06416]
+ [ 0.02695  0.00363  0.02104 -0.00848  0.03085 -0.06641 -0.03336 -0.01503 -0.04532  0.0081 ]
+ [-0.02473 -0.01859  0.04075 -0.00455  0.01993 -0.04665 -0.03698 -0.0063  -0.03235  0.03909]
+ [-0.02891  0.02183  0.01171 -0.00624  0.02155 -0.07441 -0.04383 -0.01707 -0.01268  0.02351]
+ [ 0.01002 -0.01742  0.01145 -0.03244  0.01756 -0.04202 -0.04045 -0.03138 -0.01564  0.03871]
+ [-0.01686  0.04742  0.04909  0.01424 -0.00733 -0.04773 -0.0763  -0.03617  0.01079  0.0016 ]
+ [ 0.00961 -0.00337  0.01458 -0.01242  0.01239 -0.03938 -0.01167 -0.01025 -0.02025  0.03112]
+ [-0.00639 -0.01172  0.04447 -0.0033   0.0276  -0.08083 -0.0409  -0.023   -0.03266  0.03201]
+ [-0.01249  0.02364  0.03073 -0.0103   0.01524 -0.04002 -0.07046 -0.00143 -0.03037  0.03692]
+ [-0.01155 -0.00816  0.01417  0.01124  0.01693 -0.03797 -0.00644 -0.00504 -0.04066  0.02742]
+ [-0.03043  0.03531 -0.00233 -0.02903  0.02681 -0.07377 -0.09124 -0.0348  -0.02728  0.01781]
+ [-0.03805  0.0015   0.02286 -0.02599  0.02493 -0.02707 -0.0489   0.00085 -0.03588  0.01173]
+ [-0.00322 -0.00982  0.00318  0.00086  0.01338 -0.05927 -0.01745 -0.019   -0.02419  0.04078]
+ [-0.00524 -0.03266  0.04316 -0.00133  0.02968 -0.06335 -0.01557 -0.02004 -0.05118  0.04478]
+ [ 0.01196  0.00738  0.0139  -0.01251  0.02977 -0.0482  -0.04011 -0.04932 -0.01502  0.00449]
+ [ 0.01775 -0.00792  0.02539  0.01883  0.01768 -0.06387 -0.0317  -0.0299  -0.01473  0.02359]
+ [-0.01174  0.01263  0.01114 -0.02254  0.01541 -0.0507  -0.04069 -0.00546 -0.02738  0.03351]
+ [ 0.00519 -0.00914  0.04497  0.01114  0.02668 -0.07109 -0.02906  0.00836 -0.03017  0.02743]
+ [-0.01821 -0.00343  0.01697 -0.00879  0.03184 -0.06576 -0.04461 -0.02077 -0.0576   0.02691]
+ [ 0.02505 -0.00406  0.01754 -0.01299 -0.03357 -0.0621  -0.05533 -0.01607 -0.05241  0.00787]
+ [-0.00548 -0.0151   0.02098  0.00532 -0.0007  -0.06299 -0.02551  0.02606 -0.02592  0.02215]
+ [ 0.02538 -0.00074  0.01906 -0.00907  0.03593 -0.0677  -0.02988 -0.01161 -0.04277  0.01133]
+ [ 0.00403  0.00756  0.02052  0.02553  0.02037 -0.03283 -0.03985  0.01178 -0.02486 -0.00577]
+ [-0.00577  0.01179 -0.00397 -0.01612  0.006   -0.05153 -0.08116 -0.0568  -0.02216  0.02107]
+ [-0.01831 -0.00545  0.03149 -0.00173  0.02892 -0.01969 -0.03263 -0.01362 -0.03298  0.03155]
+ [-0.02663  0.047    0.01241 -0.00937 -0.00653 -0.07457 -0.08388 -0.00652 -0.00656  0.03299]
+ [-0.01582 -0.00341 -0.00549 -0.07723  0.03082 -0.08325 -0.02868 -0.03757 -0.03521  0.05039]
+ [ 0.01516 -0.02163  0.03846 -0.00524  0.03453 -0.07424 -0.00601 -0.01762 -0.04946  0.02805]
+ [ 0.02345  0.03865  0.0027  -0.03011  0.02129 -0.06911 -0.0642  -0.06447 -0.02161  0.0513 ]
+ [-0.00958  0.00089  0.00206  0.00014 -0.03024 -0.05849 -0.03403 -0.04682 -0.02192  0.02192]
+ [ 0.01296  0.01323 -0.00675 -0.02761  0.0001  -0.02599 -0.03824 -0.03056 -0.03029  0.00598]
+ [ 0.015    0.00759  0.03926  0.00927  0.0302  -0.08289 -0.04693  0.00788 -0.02175  0.031  ]
+ [-0.03891  0.03415  0.00166 -0.01509  0.0031  -0.05396 -0.07296 -0.00382 -0.02682  0.05255]
+ [ 0.01267  0.00989  0.02874  0.01091  0.04832 -0.05603 -0.01568 -0.00115 -0.02438  0.00899]
+ [-0.02444  0.03956 -0.00092 -0.01447 -0.00312 -0.06536 -0.05304 -0.00953 -0.0111   0.02981]
+ [-0.0344   0.04178  0.01164 -0.03304  0.01373 -0.06036 -0.07474  0.01716 -0.03821  0.02719]
+ [ 0.02056 -0.04235  0.02223 -0.03208  0.02435 -0.03469  0.0082  -0.01539 -0.02368  0.00596]
+ [-0.01846  0.01328 -0.01612 -0.0376  -0.0026  -0.01918 -0.03758 -0.0154  -0.01747  0.02746]
+ [-0.01283 -0.01919  0.0135   0.00131  0.01254 -0.04955 -0.02221 -0.01261 -0.02833  0.03626]
+ [ 0.01384  0.017    0.02705 -0.01914  0.03964 -0.05375 -0.05693 -0.01484 -0.01374  0.03448]
+ [-0.00959 -0.03199  0.0208   0.01219  0.01838 -0.04273  0.0039  -0.00971 -0.02165  0.02525]
+ [-0.00754 -0.02387  0.03144  0.01683  0.01158 -0.04538 -0.02697  0.00096 -0.02717  0.0279 ]
+ [-0.00149 -0.01607  0.03226  0.00932  0.03503 -0.04532 -0.02371 -0.04158 -0.02733  0.01295]
+ [-0.00841 -0.02569  0.02426 -0.01079  0.04106 -0.04494 -0.02315 -0.01234 -0.03156  0.03288]
+ [ 0.03858 -0.00225  0.03607  0.01419  0.05866 -0.04707 -0.0479  -0.0585  -0.03581  0.0068 ]
+ [ 0.00396  0.00229  0.03064  0.00296  0.04075 -0.05858 -0.02379  0.01113 -0.01696  0.02085]
+ [-0.0306   0.01159  0.01966 -0.0238   0.0085  -0.04504 -0.07059 -0.02362 -0.02067  0.04078]
+ [-0.03142  0.03721  0.02696  0.00428  0.00507 -0.06188 -0.07031 -0.00547 -0.01252  0.0217 ]
+ [-0.01006 -0.00553  0.009   -0.02372  0.00812 -0.04891 -0.06205 -0.01728 -0.02563  0.02564]
+ [ 0.00656  0.03307  0.01764  0.00273 -0.00087 -0.07939 -0.07847 -0.05009 -0.03572  0.00226]
+ [-0.01152  0.00209  0.01268 -0.02766  0.02629 -0.08758 -0.02191 -0.01157 -0.03755  0.07643]
+ [ 0.00849 -0.00357  0.04292  0.00966  0.01071 -0.06685 -0.01274 -0.03098 -0.04872  0.04148]
+ [-0.02366  0.01482  0.0214  -0.0017   0.03714 -0.06655 -0.00035 -0.03575 -0.00123  0.06236]
+ [-0.00574 -0.01814  0.01388 -0.01289  0.03698 -0.05857 -0.04548 -0.01367 -0.03049  0.05411]
+ [-0.00067  0.03152  0.01473 -0.00112  0.04264 -0.07165 -0.08533 -0.07986 -0.03663  0.02476]
+ [ 0.00238 -0.01577  0.03842 -0.01902  0.03321 -0.05336 -0.03538  0.00514 -0.03226  0.02748]
+ [-0.05187 -0.02097  0.04671 -0.02635  0.03248 -0.0399  -0.06063 -0.01354 -0.03793  0.04167]
+ [ 0.02789 -0.00258  0.01699 -0.01496  0.02993 -0.06447 -0.03116 -0.00742 -0.03525  0.01357]
+ [ 0.03633  0.0008   0.01882 -0.00777  0.00483 -0.0582  -0.05376 -0.08621 -0.0305   0.0121 ]
+ [ 0.00676  0.01654  0.03401  0.00623  0.035   -0.06879 -0.0183  -0.00864 -0.03068  0.02204]
+ [-0.04109  0.01182  0.00634 -0.02956 -0.00965 -0.064   -0.05708 -0.01416 -0.01804  0.03834]
+ [-0.00258  0.03007  0.04005 -0.00407 -0.04672 -0.05536 -0.07473 -0.01553 -0.01838 -0.00027]]</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>To ensure each row sums to 1, we can apply softmax to <code>ypreds</code>:</p>
+<div id="cell-18" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
+<span id="cb12-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> jax.nn <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> softmax</span>
+<span id="cb12-3"></span>
+<span id="cb12-4">yprobs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> softmax(ypreds, axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb12-5"></span>
+<span id="cb12-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"yprobs.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>yprobs<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb12-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"yprobs:</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>yprobs<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>yprobs.shape: (64, 10)
+yprobs:
+[[0.0985  0.10498 0.10199 0.10171 0.10054 0.09359 0.09674 0.1007  0.10169 0.09954]
+ [0.10153 0.10251 0.10201 0.10051 0.09947 0.09582 0.09661 0.0992  0.09918 0.10317]
+ [0.09949 0.10228 0.10416 0.09818 0.10186 0.0958  0.09698 0.09601 0.09701 0.10823]
+ [0.10349 0.1011  0.10288 0.09988 0.10389 0.09426 0.09743 0.09923 0.09627 0.10155]
+ [0.0982  0.09881 0.10485 0.1002  0.10269 0.09607 0.09701 0.10003 0.09746 0.10468]
+ [0.09813 0.10323 0.10219 0.10038 0.1032  0.09376 0.09667 0.09929 0.09973 0.10341]
+ [0.102   0.09924 0.10215 0.09776 0.10277 0.09683 0.09698 0.09787 0.09942 0.10497]
+ [0.09886 0.10543 0.1056  0.10198 0.09981 0.09586 0.09316 0.09697 0.10163 0.1007 ]
+ [0.10125 0.09994 0.10175 0.09904 0.10153 0.09641 0.09911 0.09926 0.09827 0.10345]
+ [0.10024 0.09971 0.10547 0.10055 0.10371 0.09305 0.09684 0.09859 0.09765 0.10417]
+ [0.09929 0.10294 0.10367 0.0995  0.10208 0.09659 0.09369 0.10039 0.09753 0.10432]
+ [0.09923 0.09956 0.10181 0.10151 0.10209 0.09664 0.09973 0.09987 0.09638 0.10317]
+ [0.09897 0.1057  0.1018  0.09911 0.10481 0.09478 0.09314 0.09854 0.09929 0.10387]
+ [0.09734 0.10127 0.10345 0.09852 0.10367 0.09841 0.09629 0.1012  0.09755 0.10231]
+ [0.10039 0.09973 0.10104 0.10081 0.10208 0.09492 0.09898 0.09882 0.09831 0.10491]
+ [0.10013 0.09742 0.1051  0.10052 0.10369 0.09448 0.0991  0.09866 0.09563 0.10527]
+ [0.10216 0.10169 0.10236 0.09969 0.104   0.0962  0.09698 0.09609 0.09944 0.1014 ]
+ [0.10221 0.09962 0.10299 0.10232 0.1022  0.0942  0.09728 0.09745 0.09894 0.10281]
+ [0.09965 0.10211 0.10196 0.09858 0.10239 0.09584 0.09681 0.10028 0.09811 0.10426]
+ [0.10063 0.09919 0.10471 0.10123 0.10281 0.09323 0.09724 0.10094 0.09713 0.10289]
+ [0.09956 0.10104 0.10313 0.1005  0.10467 0.09494 0.09697 0.09931 0.09572 0.10416]
+ [0.10442 0.10142 0.10364 0.10052 0.09847 0.0957  0.09635 0.10021 0.09663 0.10264]
+ [0.10003 0.09907 0.10271 0.10112 0.10051 0.09444 0.09805 0.10324 0.09801 0.10283]
+ [0.10324 0.10058 0.10259 0.09975 0.10434 0.09407 0.09769 0.09949 0.09644 0.1018 ]
+ [0.10052 0.10087 0.10219 0.1027  0.10217 0.09688 0.0962  0.1013  0.09765 0.09953]
+ [0.10137 0.10317 0.10155 0.10033 0.10257 0.09684 0.09401 0.09633 0.09972 0.10413]
+ [0.09848 0.09975 0.1035  0.10012 0.10324 0.09834 0.09708 0.09894 0.09704 0.10351]
+ [0.09849 0.10601 0.10241 0.1002  0.10049 0.09388 0.09301 0.10049 0.10049 0.10454]
+ [0.10039 0.10165 0.10144 0.09441 0.10519 0.09385 0.09911 0.09823 0.09847 0.10727]
+ [0.10206 0.09837 0.10446 0.1     0.10405 0.09333 0.09992 0.09876 0.09567 0.10338]
+ [0.10343 0.10502 0.10131 0.09804 0.10321 0.09429 0.09475 0.09473 0.09887 0.10635]
+ [0.10078 0.10184 0.10196 0.10176 0.09872 0.09597 0.09834 0.09709 0.09954 0.104  ]
+ [0.10258 0.10261 0.10058 0.0985  0.10127 0.09866 0.09746 0.09821 0.09824 0.10187]
+ [0.10156 0.10081 0.10405 0.10098 0.10312 0.09209 0.09546 0.10084 0.0979  0.1032 ]
+ [0.09728 0.10466 0.10131 0.09963 0.10146 0.09583 0.09403 0.10076 0.09846 0.1066 ]
+ [0.10101 0.10073 0.10265 0.10083 0.10468 0.0943  0.09819 0.09963 0.09734 0.10064]
+ [0.09864 0.10516 0.10099 0.09963 0.10077 0.09469 0.09586 0.10013 0.09997 0.10414]
+ [0.0978  0.10555 0.10241 0.09794 0.10263 0.0953  0.09394 0.10298 0.09743 0.10402]
+ [0.10273 0.09647 0.1029  0.09746 0.10312 0.09721 0.10147 0.0991  0.09829 0.10124]
+ [0.09937 0.10258 0.09961 0.09749 0.10096 0.0993  0.09749 0.09968 0.09947 0.10404]
+ [0.0995  0.09887 0.10216 0.10092 0.10206 0.09591 0.09857 0.09952 0.09797 0.10451]
+ [0.10161 0.10193 0.10296 0.09831 0.10426 0.09497 0.09466 0.09873 0.09884 0.10373]
+ [0.09937 0.09717 0.10244 0.10156 0.10219 0.09613 0.10072 0.09936 0.09818 0.10289]
+ [0.09964 0.09802 0.1036  0.1021  0.10156 0.09594 0.09772 0.10049 0.0977  0.10323]
+ [0.10047 0.09902 0.10392 0.10157 0.10421 0.09617 0.09827 0.09653 0.09791 0.10194]
+ [0.09971 0.098   0.10302 0.09947 0.10476 0.09613 0.09825 0.09932 0.09743 0.10391]
+ [0.10424 0.10007 0.10398 0.10173 0.10635 0.09568 0.0956  0.0946  0.09677 0.10098]
+ [0.10023 0.10006 0.10294 0.10013 0.10398 0.09415 0.09748 0.10095 0.09815 0.10193]
+ [0.09824 0.10248 0.10331 0.09891 0.10216 0.09684 0.09439 0.09893 0.09922 0.10551]
+ [0.09769 0.10463 0.10356 0.10124 0.10132 0.09476 0.09396 0.10026 0.09955 0.10302]
+ [0.10047 0.10092 0.1024  0.0991  0.10231 0.09664 0.09538 0.09974 0.09892 0.10412]
+ [0.10244 0.10519 0.10358 0.10205 0.10168 0.094   0.09409 0.09679 0.0982  0.102  ]
+ [0.09957 0.10093 0.10201 0.09797 0.10341 0.09228 0.09854 0.09956 0.09701 0.10872]
+ [0.1013  0.10008 0.10484 0.10141 0.10152 0.09394 0.09917 0.09738 0.09566 0.10469]
+ [0.09754 0.10137 0.10203 0.0997  0.10365 0.09344 0.09984 0.09637 0.09975 0.1063 ]
+ [0.10017 0.09894 0.10216 0.09946 0.10454 0.09502 0.09627 0.09938 0.09772 0.10635]
+ [0.10145 0.10477 0.10303 0.10141 0.10594 0.0945  0.09322 0.09373 0.09787 0.10407]
+ [0.10069 0.09888 0.10438 0.09856 0.10384 0.09523 0.09696 0.10097 0.09726 0.10325]
+ [0.09612 0.09914 0.10608 0.09861 0.10458 0.09728 0.09528 0.09988 0.09747 0.10555]
+ [0.10348 0.10038 0.10236 0.09914 0.10369 0.09435 0.09755 0.09989 0.09715 0.10201]
+ [0.10534 0.10166 0.10351 0.10079 0.10207 0.09584 0.09626 0.09319 0.09853 0.10282]
+ [0.10069 0.10168 0.10347 0.10064 0.10358 0.09336 0.0982  0.09915 0.09699 0.10224]
+ [0.09764 0.10295 0.10239 0.09878 0.10076 0.09543 0.0961  0.10031 0.09992 0.10572]
+ [0.10117 0.10452 0.10557 0.10102 0.0968  0.09596 0.09412 0.09986 0.09958 0.1014 ]]</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>At this point, the outputs are meaningless and are pretty close to uniformly distributed over classes. This is because we haven’t yet calculated the gradient of the loss function with respect to each weight, which allows the network to adjust its weights and biases to minimize prediction errors. In the next post, we’ll implement backpropagation entirely in JAX and walkthrough how to construct the training and validation loops.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Machine Learning</category>
+  <category>Python</category>
+  <guid>https://www.jtrive.com/posts/intro-to-jax-part-2/intro-to-jax-part-2.html</guid>
+  <pubDate>Wed, 02 Apr 2025 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Up and Running with JAX - JIT Compilation, Vectorizing Transformations and autodiff</title>
   <link>https://www.jtrive.com/posts/intro-to-jax-part-1/intro-to-jax-part-1.html</link>
@@ -43021,717 +44169,6 @@ font-style: inherit;">NA</span></span></code></pre></div>
   <category>Actuarial</category>
   <guid>https://www.jtrive.com/posts/runoff-triangles-in-r/runoff-triangles-in-r.html</guid>
   <pubDate>Wed, 31 Jul 2024 05:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Querying SQL Server from Pandas</title>
-  <link>https://www.jtrive.com/posts/sqlserver-from-python/sqlserver-from-python.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>If you research how to connect to a database from Python, many examples use the pyodbc library, which, aptly named, creates a connection to any ODBC-compatible database. However, connections with pyodbc itself are uni-directional: Data can be retrieved, but it cannot be uploaded into the database. To allow for simple, bi-directional database transactions, we use pyodbc along with <a href="https://www.sqlalchemy.org/">sqlalchemy</a>, a Python SQL toolkit and Object Relational Mapper that gives application developers the full power and flexibility of SQL. With pyodbc and sqlalchemy together, it becomes possible to retrieve and upload data from Pandas DataFrames with relative ease. Let’s assume we’re interested in connecting to a SQL Server database on some server. A connection using sqlalchemy is created as follows:</p>
-<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Creating a database connection with sqlalchemy. </span></span>
-<span id="cb1-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb1-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> sqlalchemy</span>
-<span id="cb1-6"></span>
-<span id="cb1-7">DRIVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SQL Server"</span></span>
-<span id="cb1-8">SERVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SERVER"</span></span>
-<span id="cb1-9">DATABASE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"DATABASE"</span></span>
-<span id="cb1-10"></span>
-<span id="cb1-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create connection uri.</span></span>
-<span id="cb1-12">conn_uri <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"mssql+pyodbc://</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>SERVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DATABASE<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">?driver=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DRIVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.replace(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" "</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"+"</span>)</span>
-<span id="cb1-13"></span>
-<span id="cb1-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize connection.</span></span>
-<span id="cb1-15">conn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>  sqlalchemy.create_engine(conn_uri)</span></code></pre></div>
-<p>A few points to highlight:</p>
-<ul>
-<li><p><code>conn_uri</code> is a string that contains information needed to connect to our database. The prefix <code>mssql+pyodbc://</code> indicates that we’re targeting a SQL Server database via the pyodbc connector. Also, if we weren’t using Windows authentication, or were working with a different RDBMS, it would be necessary to change <code>conn_uri</code>. For example, an Oracle connection uri would be specified as <code>oracle://[USERNAME]:[PASSWORD]@[DATABASE]</code>.</p></li>
-<li><p>Also in <code>conn_uri</code>, within the format substitution, whitespace in <code>DRIVER</code> is replaced with <code>+</code>. This is consistent with how whitespace is encoded for web addresses.</p></li>
-</ul>
-<p>Next, to query the French Motor Third-Party Liability Claims sample dataset in the table <em>SAMPLE_FREMTPL</em>, use the <code>read_sql</code> function. I’ve included the connection initialization logic for convenience:</p>
-<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb2-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Reading database data into Pandas DataFrame.</span></span>
-<span id="cb2-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb2-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb2-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> sqlalchemy</span>
-<span id="cb2-6"></span>
-<span id="cb2-7">DRIVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SQL Server"</span></span>
-<span id="cb2-8">SERVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SERVER"</span></span>
-<span id="cb2-9">DATABASE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"DATABASE"</span></span>
-<span id="cb2-10"></span>
-<span id="cb2-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create connection uri.</span></span>
-<span id="cb2-12">conn_uri <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"mssql+pyodbc://</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>SERVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DATABASE<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">?driver=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DRIVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.replace(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" "</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"+"</span>)</span>
-<span id="cb2-13"></span>
-<span id="cb2-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize connection.</span></span>
-<span id="cb2-15">conn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>  sqlalchemy.create_engine(conn_uri)</span>
-<span id="cb2-16"></span>
-<span id="cb2-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create query. </span></span>
-<span id="cb2-18">SQL <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SELECT * FROM SAMPLE_TABLE"</span></span>
-<span id="cb2-19"></span>
-<span id="cb2-20">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_sql(SQL, con<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>conn)</span></code></pre></div>
-<p>Instead of passing a query to <code>pd.read_sql</code>, the tablename could have been provided. <code>pd.read_sql</code> is convenience wrapper around <code>read_sql_table</code> and <code>read_sql_query</code> which will delegate to the specific function depending on the input (dispatches <code>read_sql_table</code> if input is a tablename, <code>read_sql_query</code> if input is a query). Refer to the <a href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_sql.html#pandas.read_sql">documentation</a> for more information.</p>
-<p>Let’s assume SAMPLE_TABLE represents the French Motor Third-Party Liability Claims dataset available <a href="https://www.kaggle.com/datasets/floser/french-motor-claims-datasets-fremtpl2freq">here</a>. Inspecting the first 10 records of the dataset yields:</p>
-<pre><code>  IDPOL CLAIMNB  EXPOSURE AREA  VEHPOWER VEHAGE  DRIVAGE  BONUSMALUS VEHBRAND     VEHGAS  DENSITY REGION
-0  1290       1   0.66000  'B'         7      0       28          60    'B12'  'Regular'       52  'R72'
-1  1292       1   0.12000  'B'         7      0       28          60    'B12'  'Regular'       52  'R72'
-2  1295       1   0.08000  'E'         5      0       36          50    'B12'  'Regular'     3274  'R11'
-3  1296       1   0.50000  'E'         5      0       36          50    'B12'  'Regular'     3274  'R11'
-4  1297       1   0.20000  'E'         5      0       36          50    'B12'  'Regular'     3274  'R11'
-5  1299       1   0.74000  'D'         6      0       76          50    'B12'  'Regular'      543  'R91'
-6  1301       1   0.05000  'D'         6      0       76          50    'B12'  'Regular'      543  'R91'
-7  1303       1   0.03000  'B'        11      0       39          50    'B12'   'Diesel'       55  'R52'
-8  1304       1   0.76000  'B'        11      0       39          50    'B12'   'Diesel'       55  'R52'
-9  1306       1   0.49000  'E'        10      0       38          50    'B12'  'Regular'     2715  'R93'</code></pre>
-<section id="iterative-data-retrieval" class="level3">
-<h3 class="anchored" data-anchor-id="iterative-data-retrieval">Iterative Data Retrieval</h3>
-<p>When working with large datasets, it may be inefficient to retrieve the entire dataset in a single pass. Pandas provides functionality to retrieve data in <code>chunksize</code>-record blocks, which can result in significant speedups. In the following example, the same French Motor Third-Party Liability Claims sample dataset is retrieved in 20,000-record blocks. The only change in the call to <code>read_sql</code> is the inclusion of <code>chunksize</code>, which specifies the maximum number of records to retrieve for a given iteration. We assume <code>conn</code> has already been initialized:</p>
-<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb4-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Using `read_sql`'s *chunksize* parameter for iterative retrieval.</span></span>
-<span id="cb4-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb4-4">CHUNKSIZE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">20000</span></span>
-<span id="cb4-5">SQL <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SELECT * FROM SAMPLE_TABLE"</span></span>
-<span id="cb4-6">dfiter <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_sql(SQL, con<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>conn, chunksize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>CHUNKSIZE)</span>
-<span id="cb4-7">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.concat([dd <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> dd <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> dfiter])</span></code></pre></div>
-<ul>
-<li><code>CHUNKSIZE</code> specifies the maximum number of records to retrieve at each iteration.</li>
-<li><code>dfiter</code> is a reference to the data targeted in our query. <code>dfiter</code> is not a DataFrame, rather it is a generator, a Python object which makes it easy to create iterators. Generators yield values lazily, so they are particularly memory efficient.</li>
-<li><code>df = pd.concat([dd for dd in dfiter])</code> can be decomposed into two parts: First, <code>[dd for dd in dfiter]</code> is a <em>list comprehension</em>, a very powerful tool that works similar to a flattened for loop. If we bound <code>[dd for dd in dfiter]</code> to a variable directly, the result would be a list of 34 DataFrames, each having no more than 20,000 records. Second, <code>pd.concat</code> takes the list of DataFrames, and performs a row-wise concatenation of each DataFrame, resulting in a single DataFrame with 678,013 records. <code>pd.concat</code> is akin to the SQL <code>UNION</code> operator. The final result, <code>df</code>, is a DataFrame having 678,013 rows and 12 columns.</li>
-</ul>
-</section>
-<section id="exporting-results-to-file" class="level3">
-<h3 class="anchored" data-anchor-id="exporting-results-to-file">Exporting Results to File</h3>
-<p>Instead of reading the data into memory, it may be necessary to retrieve the dataset, then write the results to file for later analysis. This can be accomplished in an iterative fashion so that no more than <code>CHUNKSIZE</code> records are in-memory at any point in time. Results will be saved to .csv in a file named <code>"FREMTPL.csv"</code> in 100,000 record blocks:</p>
-<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb5-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Writing queried results to file. </span></span>
-<span id="cb5-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb5-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> time</span>
-<span id="cb5-5"></span>
-<span id="cb5-6">CHUNKSIZE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">100000</span></span>
-<span id="cb5-7">CSV_PATH  <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"FREMTPL.csv"</span></span>
-<span id="cb5-8">SQL <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SELECT * FROM SAMPLE_TABLE"</span></span>
-<span id="cb5-9"></span>
-<span id="cb5-10">dfiter <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_sql(SQL, conn, chunksize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>CHUNKSIZE)</span>
-<span id="cb5-11"></span>
-<span id="cb5-12">t_i <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time()</span>
-<span id="cb5-13">trkr, nbrrecs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span></span>
-<span id="cb5-14"></span>
-<span id="cb5-15"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">with</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">open</span>(CSV_PATH, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"w"</span>, encoding<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"utf-8"</span>, newline<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>) <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> fcsv:</span>
-<span id="cb5-16">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> df <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> dfiter:</span>
-<span id="cb5-17">        fcsv.write(df.to_csv(header<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>nbrrecs<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span>, mode<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>))</span>
-<span id="cb5-18">        nbrrecs<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span>df.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span>
-<span id="cb5-19">        <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Retrieved records </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">-</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">format</span>((trkr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> CHUNKSIZE) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, nbrrecs))</span>
-<span id="cb5-20">        trkr<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb5-21"></span>
-<span id="cb5-22">t_tot <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> t_i</span>
-<span id="cb5-23">retrieval_rate <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nbrrecs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> t_tot</span>
-<span id="cb5-24"></span>
-<span id="cb5-25"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(</span>
-<span id="cb5-26">    <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Retrieved </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>nbrrecs<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> records in </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>t_tot<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.0f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> seconds (</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>retrieval_rate<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.0f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> recs/sec.)."</span></span>
-<span id="cb5-27">    )</span></code></pre></div>
-<p>Executing the code above produces the following output:</p>
-<pre><code>Retrieved records 1-100000
-Retrieved records 100001-200000
-Retrieved records 200001-300000
-Retrieved records 300001-400000
-Retrieved records 400001-500000
-Retrieved records 500001-600000
-Retrieved records 600001-678013
-Retrieved 678013 records in 20 seconds (33370 recs/sec.).</code></pre>
-</section>
-<section id="exporting-data" class="level3">
-<h3 class="anchored" data-anchor-id="exporting-data">Exporting Data</h3>
-<p>In order to export a DataFrame into a database, we leverage the DataFrame’s <code>to_sql</code> method. We provide the name of the table we wish to upload data into, along with a connection object, and what action to take if the table already exists. <code>if_exists</code> can be one of:</p>
-<ul>
-<li><p>“fail”: Raise a <code>ValueError</code>.</p></li>
-<li><p>“replace”: Drop the table before inserting new values.</p></li>
-<li><p>“append”: Insert new values to the existing table.</p></li>
-</ul>
-<p>As a simple transformation, we determine aggregate EXPOSURE by AREA, append a timestamp, then export the result as “SAMPLE_AREA_SUMM”. If the table exists, we want the query to fail:</p>
-<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb7-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Summary of aggregate EXPOSURE by AREA based on the French Motor Third-Party </span></span>
-<span id="cb7-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Liability Claims sample dataset.</span></span>
-<span id="cb7-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb7-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> datetime</span>
-<span id="cb7-6"></span>
-<span id="cb7-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute aggregate EXPOSURE by AREA.</span></span>
-<span id="cb7-8">dfsumm <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df.groupby(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"AREA"</span>, as_index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span>)[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"EXPOSURE"</span>].<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()</span>
-<span id="cb7-9"></span>
-<span id="cb7-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Append timestamp.</span></span>
-<span id="cb7-11">timestamp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> datetime.datetime.now().strftime(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"%Y-%m-</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">%d</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> %H:%M:%S.</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">%f</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb7-12">dfsumm[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"TIMESTAMP"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> timestamp</span>
-<span id="cb7-13"></span>
-<span id="cb7-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Export results.</span></span>
-<span id="cb7-15">dfsumm.to_sql(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SAMPLE_AREA_SUMM"</span>, con<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>conn, if_exists<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"fail"</span>)</span></code></pre></div>
-<p>If the table already exists, an error like the following will be generated:</p>
-<pre><code>ValueError: Table 'SAMPLE_AREA_SUMM' already exists.</code></pre>
-<p>Otherwise, no output will be generated.</p>
-</section>
-<section id="writing-queried-data-to-compressed-format" class="level3">
-<h3 class="anchored" data-anchor-id="writing-queried-data-to-compressed-format">Writing Queried Data to Compressed Format</h3>
-<p>Next we demonstrate how data can be queried iteratively and written directly to a compressed file format. This is especially useful when working with very large datasets, or when the data exceeds available system resources. Another reason to save datasets in compressed format is that Pandas can read compressed files just as easily as csvs. Once read into memory, the dataset will expand to the full uncompressed size, but by writing data to compressed format we reduce our overall storage footprint. Here’s the code to do it:</p>
-<div class="sourceCode" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> gzip</span>
-<span id="cb9-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> time</span>
-<span id="cb9-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb9-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> sqlalchemy</span>
-<span id="cb9-5"></span>
-<span id="cb9-6">DRIVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SQL Server"</span></span>
-<span id="cb9-7">SERVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SERVER"</span></span>
-<span id="cb9-8">DATABASE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"DATABASE"</span></span>
-<span id="cb9-9">CHUNKSIZE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">100000</span></span>
-<span id="cb9-10">DATA_PATH <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"COMPRESSED-SAMPLE-TABLE.csv.gz"</span></span>
-<span id="cb9-11"></span>
-<span id="cb9-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create connection uri.</span></span>
-<span id="cb9-13">conn_uri <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"mssql+pyodbc://</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>SERVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DATABASE<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">?driver=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DRIVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.replace(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" "</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"+"</span>)</span>
-<span id="cb9-14"></span>
-<span id="cb9-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize connection.</span></span>
-<span id="cb9-16">conn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>  sqlalchemy.create_engine(conn_uri)</span>
-<span id="cb9-17">SQL <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SELECT * FROM SAMPLE_TABLE"</span></span>
-<span id="cb9-18">dfiter <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_sql(SQL, con<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>conn, chunksize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>CHUNKSIZE)</span>
-<span id="cb9-19"></span>
-<span id="cb9-20">t_i <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time()</span>
-<span id="cb9-21">trkr, nbrrecs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span></span>
-<span id="cb9-22"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">with</span> gzip.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">open</span>(DATA_PATH, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"wb"</span>) <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> fgz:</span>
-<span id="cb9-23">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> df <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> dfiter:</span>
-<span id="cb9-24">        fgz.write(df.to_csv(header<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>nbrrecs<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span>, mode<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>).encode(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"utf-8"</span>))</span>
-<span id="cb9-25">        nbrrecs<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span>df.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span>
-<span id="cb9-26">        <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Retrieved records </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">-</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">format</span>((trkr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> CHUNKSIZE) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, nbrrecs))</span>
-<span id="cb9-27">        trkr<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb9-28"></span>
-<span id="cb9-29">t_tot <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> t_i</span>
-<span id="cb9-30">retrieval_rate <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nbrrecs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> t_tot</span>
-<span id="cb9-31"></span>
-<span id="cb9-32"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(</span>
-<span id="cb9-33">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Retrieved </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> records in </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{:.0f}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> seconds (</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{:.0f}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> recs/sec.)."</span>.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">format</span>(</span>
-<span id="cb9-34">        nbrrecs, t_tot, retrieval_rate</span>
-<span id="cb9-35">        )</span>
-<span id="cb9-36">    ) </span></code></pre></div>
-<p>The only expression requiring explanation is within <code>df.to_csv</code>, where <code>header=nbrrecs==0</code> is specified. This ensures that headers are written for the first batch of records only, and ignored for subsequent batches (100,000 record chunks are read in at each iteration).</p>
-<p>To read the compressed file back into Pandas, use the <code>pd.read_csv</code> function specifying the compression type (in this example we used “gzip” - other options are “zip”, “bz2” or “xz”):</p>
-<div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1">In [<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>]: df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_csv(DATA_PATH, compression<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"gzip"</span>)</span>
-<span id="cb10-2">In [<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>]: df.shape</span>
-<span id="cb10-3">Out[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>]: (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">678013</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">12</span>)</span></code></pre></div>
-
-
-</section>
-
- ]]></description>
-  <category>Python</category>
-  <guid>https://www.jtrive.com/posts/sqlserver-from-python/sqlserver-from-python.html</guid>
-  <pubDate>Sat, 01 Jun 2024 05:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>

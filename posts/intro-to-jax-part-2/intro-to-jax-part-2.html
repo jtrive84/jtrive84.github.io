@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2025-04-02">
+<meta name="description" content="Implementing the forward pass of a fully-connected neural network using JAX">
+
+<title>Up and Running with JAX - Fully-Connected Network Forward Pass – The Pleasure of Finding Things Out: A blog by James Triveri</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">The Pleasure of Finding Things Out: A blog by James Triveri</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About Me</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/jtrive84/"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://www.linkedin.com/in/jamestriveri/"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://python-bloggers.com/"> <i class="bi bi-p-square" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Up and Running with JAX - Fully-Connected Network Forward Pass</h1>
+                  <div>
+        <div class="description">
+          Implementing the forward pass of a fully-connected neural network using JAX
+        </div>
+      </div>
+                          <div class="quarto-categories">
+                <div class="quarto-category">Machine Learning</div>
+                <div class="quarto-category">Python</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">April 2, 2025</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content quarto-banner-title-block" id="quarto-document-content">
+
+
+
+
+
+<p>In a <a href="https://www.jtrive.com/posts/intro-to-jax-part-1/intro-to-jax-part-1.html">previous post</a>, I introduced JAX with particular emphasis on JIT compilation, vectorizing transformations and automatic differentiation. In this post, we walkthrough an implementation of the forward pass for a fully-connected neural network with the goal of classifying MNIST handwritten digits, incorporating concepts from the first post.</p>
+<p>We begin by loading MNIST training and validation sets, convert the PIL images to Numpy arrays, and create image-label batches of size 64:</p>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> warnings</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torchvision</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> Dataset, DataLoader</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchvision <span class="im">import</span> datasets</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchvision.transforms <span class="im">import</span> ToTensor</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchvision.transforms <span class="im">import</span> v2</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>np.set_printoptions(suppress<span class="op">=</span><span class="va">True</span>, precision<span class="op">=</span><span class="dv">5</span>, linewidth<span class="op">=</span><span class="dv">1000</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>pd.options.mode.chained_assignment <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">'display.max_columns'</span>, <span class="va">None</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">'display.width'</span>, <span class="va">None</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>pd.set_option(<span class="st">"display.precision"</span>, <span class="dv">5</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>warnings.filterwarnings(<span class="st">"ignore"</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Batch size.</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>bs <span class="op">=</span> <span class="dv">64</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>train_data <span class="op">=</span> datasets.MNIST(</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    root<span class="op">=</span><span class="st">"data"</span>,</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    train<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    download<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    transform<span class="op">=</span>v2.Compose([ToTensor()])</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>valid_data <span class="op">=</span> datasets.MNIST(</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    root<span class="op">=</span><span class="st">"data"</span>,</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>    train<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>    download<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>    transform<span class="op">=</span>v2.Compose([ToTensor()])</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert PIL images to NumPy arrays.</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>train_data_arr <span class="op">=</span> train_data.data.numpy() <span class="op">/</span> <span class="fl">255.0</span>      <span class="co"># Normalize pixel values to [0, 1]</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>valid_data_arr <span class="op">=</span> valid_data.data.numpy() <span class="op">/</span> <span class="fl">255.0</span>      <span class="co"># Normalize pixel values to [0, 1] </span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>train_data_arr <span class="op">=</span> train_data_arr.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">28</span> <span class="op">*</span> <span class="dv">28</span>)  <span class="co"># Flatten images to 1D arrays</span></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>valid_data_arr <span class="op">=</span> valid_data_arr.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">28</span> <span class="op">*</span> <span class="dv">28</span>)  <span class="co"># Flatten images to 1D arrays</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>train_labels <span class="op">=</span> train_data.targets.numpy()</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>valid_labels <span class="op">=</span> valid_data.targets.numpy()</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Create training and validation batches of 64.</span></span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>train_batches <span class="op">=</span> [</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>    (train_data_arr[(bs <span class="op">*</span> ii):(bs <span class="op">*</span> (ii <span class="op">+</span> <span class="dv">1</span>))], train_labels[(bs <span class="op">*</span> ii):(bs <span class="op">*</span> (ii <span class="op">+</span> <span class="dv">1</span>))]) </span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ii <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(train_data_arr) <span class="op">//</span> bs)</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>valid_batches <span class="op">=</span> [</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    (valid_data_arr[(bs <span class="op">*</span> ii):(bs <span class="op">*</span> (ii <span class="op">+</span> <span class="dv">1</span>))], valid_labels[(bs <span class="op">*</span> ii):(bs <span class="op">*</span> (ii <span class="op">+</span> <span class="dv">1</span>))]) </span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ii <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(valid_data_arr) <span class="op">//</span> bs)</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"train_data_arr.shape: </span><span class="sc">{</span>train_data_arr<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"valid_data_arr.shape: </span><span class="sc">{</span>valid_data_arr<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"train_labels.shape  : </span><span class="sc">{</span>train_labels<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"valid_labels.shape  : </span><span class="sc">{</span>valid_labels<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"len(train_batches)  : </span><span class="sc">{</span><span class="bu">len</span>(train_batches)<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"len(valid_batches)  : </span><span class="sc">{</span><span class="bu">len</span>(valid_batches)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>train_data_arr.shape: (60000, 784)
+valid_data_arr.shape: (10000, 784)
+train_labels.shape  : (60000,)
+valid_labels.shape  : (10000,)
+len(train_batches)  : 937
+len(valid_batches)  : 156</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>We can visualize a batch of images and labels using matplotlib:</p>
+<div id="cell-4" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> mpl_toolkits.axes_grid1 <span class="im">import</span> ImageGrid</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> train_batches[<span class="dv">0</span>]</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.expand_dims(X.reshape(<span class="op">-</span><span class="dv">1</span>, <span class="dv">28</span>, <span class="dv">28</span>), <span class="dv">1</span>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure(figsize<span class="op">=</span>(<span class="fl">8.</span>, <span class="fl">8.</span>), tight_layout<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>grid <span class="op">=</span> ImageGrid(fig, <span class="dv">111</span>, nrows_ncols<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">8</span>), axes_pad<span class="op">=</span><span class="fl">0.20</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, X_ii, y_ii <span class="kw">in</span> <span class="bu">zip</span>(grid, X, y):</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    X_ii <span class="op">=</span> np.transpose(X_ii, (<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">0</span>))</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    ax.imshow(X_ii, cmap<span class="op">=</span><span class="st">"gray"</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    ax.axis(<span class="st">"off"</span>)</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f"</span><span class="sc">{</span>y_ii<span class="sc">}</span><span class="ss">"</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="intro-to-jax-part-2_files/figure-html/cell-3-output-1.png" class="img-fluid figure-img"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Our goal is to create a model that accepts a batch of 64 images, and returns a class prediction for each image in the batch. Our architecture is presented in the image below:</p>
+<p align="center">
+<img src="mnist.png">
+</p>
+<p><br></p>
+<p>The pre-activations for layer <span class="math inline">\(l\)</span> are computed as <span class="math inline">\(Z^{(l)} = A^{(l-1)} W^{(l)} + b^{(l)}\)</span>, where:</p>
+<ul>
+<li><span class="math inline">\(Z^{(l)}\)</span> = layer <span class="math inline">\(l\)</span> pre-activations (value prior to applying non-linearity like ReLU).</li>
+<li><span class="math inline">\(A^{(l-1)}\)</span> = layer <span class="math inline">\(l-1\)</span> activations, with <span class="math inline">\(A^{(0)}\)</span> representing the original input.</li>
+<li><span class="math inline">\(W^{(l)}\)</span> = The weight matrix for layer <span class="math inline">\(l\)</span>.</li>
+<li><span class="math inline">\(b^{(l)}\)</span> = bias vector for layer <span class="math inline">\(l\)</span>.</li>
+</ul>
+<p><br></p>
+<p>For the network shown above assuming a batch size of 64:</p>
+<ul>
+<li><span class="math inline">\(Z^{(0)} = A^{(0)}\)</span>: Input matrix with dimension 64x784.</li>
+<li><span class="math inline">\(W^{(1)}\)</span>: Weight matrix with dimension 784x128.</li>
+<li><span class="math inline">\(b^{(1)}\)</span> Bias vector of length 128.</li>
+<li><span class="math inline">\(Z^{(1)} = A^{(0)} W^{(1)} + b^{(1)}\)</span>: Matrix of pre-activations with dimension 64x128.</li>
+<li><span class="math inline">\(A^{(1)}\)</span>: Non-linearity applied to <span class="math inline">\(Z^{(1)}\)</span>. Activation matrix with dimension 64x128.</li>
+<li><span class="math inline">\(W^{(2)}\)</span>: Weight matrix with dimension 128x10.</li>
+<li><span class="math inline">\(b^{(2)}\)</span>: Bias vector of length 10.</li>
+<li><span class="math inline">\(Z^{(2)} = A^{(1)} W^{(2)} + b^{(2)}\)</span>: Matrix of pre-activations with dimension 64x10.</li>
+<li><span class="math inline">\(A^{(2)}\)</span>: Non-linearity applied to <span class="math inline">\(Z^{(2)}\)</span>. Activation matrix with dimension 64x10.</li>
+</ul>
+<p><br></p>
+<p>The forward pass feeds an image of size 28x28 into the network, which produces a probability distribution over all classes. The class with the highest probability is our class prediction, which for MNIST will be one of 10 digits 0-9. Specifically:</p>
+<ul>
+<li>Each 28x28 image is flattened to have shape 1x784. The input layer has the same size as the flattened image (784,).</li>
+<li>The hidden layer consists of 128 neurons. The matrix of weights projecting from the input layer to the first hidden layer has dimension 784x128, plus a bias vector of length 128.</li>
+<li>The output layer consists of 10 neurons, which is the same the number of classes in the dataset. The matrix of weights projecting from the hidden layer to the output layer has dimension 128x10, along with a bias vector of length 10.</li>
+<li>Applying softmax to the output layer results in a probability distribution over classes.</li>
+</ul>
+<p>Weight initialization is handled automatically in PyTorch, but when working in JAX, The first step is to initialize the network weights. We can create a helper function to assist with randomly assigning values to the weight matrices and bias vectors.</p>
+<p>In JAX, random number generation is handled a bit differently than in Numpy to ensure functional purity. JAX uses explicit PRNG keys to generate random numbers instead of relying on global state. A “key” is a special array that acts as a seed, and every time you use it, JAX produces the same random numbers for the same key.</p>
+<p>Since JAX enforces immutability, you can’t reuse a key for multiple random calls without getting the same result. Instead, you split a key using <code>jax.random.split</code>, which deterministically generates new, unique keys from the original one. Each split key is independent, allowing for the generation of different random numbers while maintaining reproducibility. In the next cell, we initialize weights using small random normal values:</p>
+<div id="cell-7" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> random</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> initialize_weights(sizes, key, scale<span class="op">=</span><span class="fl">.02</span>):</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">    "Initialize weights and biases for each layer for simple fully-connected </span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">    network.</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">    sizes : list of int</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co">        List of integers representing the number of neurons in each layer.</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co">    key : jax.random.PRNGKey</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="co">        Random key for JAX.</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co">    List of iniitialized weights and biases for each layer.</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    keys <span class="op">=</span> random.split(key, <span class="bu">len</span>(sizes) <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    params <span class="op">=</span> []</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> m, n, k <span class="kw">in</span> <span class="bu">zip</span>(sizes[:<span class="op">-</span><span class="dv">1</span>], sizes[<span class="dv">1</span>:], keys):</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>        w_key, b_key <span class="op">=</span> random.split(k)</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        w <span class="op">=</span> scale <span class="op">*</span> random.normal(w_key, (m, n))</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        b <span class="op">=</span> scale <span class="op">*</span> random.normal(b_key, (n,))</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        params.append((w, b))</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> params</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="co"># Initialize weights and biases for each layer.</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>sizes <span class="op">=</span> [<span class="dv">784</span>, <span class="dv">128</span>, <span class="dv">10</span>]</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>params <span class="op">=</span> initialize_weights(sizes, key<span class="op">=</span>random.PRNGKey(<span class="dv">516</span>), scale<span class="op">=</span><span class="fl">.02</span>)   </span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Print shape of each layer's weights and biases.</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"W1 shape: </span><span class="sc">{</span>params[<span class="dv">0</span>][<span class="dv">0</span>]<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"b1 shape: </span><span class="sc">{</span>params[<span class="dv">0</span>][<span class="dv">1</span>]<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"W2 shape: </span><span class="sc">{</span>params[<span class="dv">1</span>][<span class="dv">0</span>]<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)  </span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"b2 shape: </span><span class="sc">{</span>params[<span class="dv">1</span>][<span class="dv">1</span>]<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>W1 shape: (784, 128)
+b1 shape: (128,)
+W2 shape: (128, 10)
+b2 shape: (10,)</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>In PyTorch, models inherit from <code>nn.Module</code> and must implement a <code>forward</code> method that defines the network’s computation flow. The forward method orchestrates how input tensors transform through pre-specified operations to produce outputs.</p>
+<p>For our JAX implementation we’ll create a similar function, but the weights must be explicitly passed as parameters rather than stored as internal state. Unlike PyTorch’s object-oriented approach where weights are hidden properties of the model instance, JAX follows a functional paradigm that requires all state to be passed explicitly between function calls, eliminating hidden state.</p>
+<p>In our <code>forward</code> function, we incorporate ReLU activation between layers to introduce non-linearity:</p>
+<div id="cell-9" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> jax.numpy <span class="im">as</span> jnp</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.nn <span class="im">import</span> relu</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> forward(params, X):</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">"""</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">    Forward pass for simple fully-connected network.</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">    Parameters</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">    ----------</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">    params : list of tuples</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">        List of tuples containing weights and biases for each layer.</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">    X : jax.numpy.ndarray</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">        Input data.</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="co">    Returns</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co">    -------</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="co">    jax.numpy.ndarray</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co">    """</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    a <span class="op">=</span> X</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> W, b <span class="kw">in</span> params[:<span class="op">-</span><span class="dv">1</span>]:</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        z <span class="op">=</span> jnp.dot(a, W) <span class="op">+</span> b</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> relu(z)</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    W, b <span class="op">=</span> params[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> jnp.dot(a, W) <span class="op">+</span> b</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><br></p>
+<p>We can pass a single flattened image array into <code>forward</code>, and it should return a 1x10 vector of activations. The output will not be a probability distribution since softmax hasn’t been applied, but we can still test it to ensure that the shape of the output is consistent with our expectations:</p>
+<div id="cell-11" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Get first image from first training batch.</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> train_batches[<span class="dv">0</span>]</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Convert to JAX array.</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>X0 <span class="op">=</span> jnp.asarray(X[<span class="dv">0</span>].flatten())</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Pass X0 into forward.</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>ypred <span class="op">=</span> forward(params, X0)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ypred.shape: </span><span class="sc">{</span>ypred<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ypred: </span><span class="sc">{</span>ypred<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>ypred.shape: (10,)
+ypred: [-0.01938  0.04435  0.01545  0.01266  0.00116 -0.07045 -0.03737  0.00276  0.01255 -0.00883]</code></pre>
+</div>
+</div>
+<p><br></p>
+<section id="auto-vectorizing-the-forward-pass" class="level3">
+<h3 class="anchored" data-anchor-id="auto-vectorizing-the-forward-pass">Auto-Vectorizing the Forward Pass</h3>
+<p>As implmented, <code>forward</code> is only capable of processing a single flattened image at a time. However, we can use <code>vmap</code>, introduced in the first post, to process a batch of images at a time without any modification to <code>forward</code>. <code>vmap</code> enables batch processing while taking advantage of JAX’s optimized execution. Instead of using loops, it efficiently maps a function over an array along a pre-specified axis:</p>
+<div id="cell-14" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax <span class="im">import</span> vmap</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>batch_forward <span class="op">=</span> vmap(forward, in_axes<span class="op">=</span>(<span class="va">None</span>, <span class="dv">0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p><br></p>
+<p><code>in_axes</code> controls which input array axes to vectorize over, and its length must equal the number of positional arguments associated with the original function. In our case, the first argument to <code>forward</code> is <code>params</code>, which stays the same within the context of the forward pass. The second argument corresponds to our input image, and the ‘0’ indicates that vectorization should be applied along the 0th axis (which is batch dimension).</p>
+<p>We can pass a batch of size 64 x 784 into <code>batch_forward</code>, and return an output of size 64x10:</p>
+<div id="cell-16" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Get first batch of flattened training images.</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>X, y <span class="op">=</span> train_batches[<span class="dv">0</span>]</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>ypreds <span class="op">=</span> batch_forward(params, X)</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ypreds.shape: </span><span class="sc">{</span>ypreds<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"ypreds:</span><span class="ch">\n</span><span class="sc">{</span>ypreds<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>ypreds.shape: (64, 10)
+ypreds:
+[[-0.01938  0.04435  0.01545  0.01266  0.00116 -0.07045 -0.03737  0.00276  0.01255 -0.00883]
+ [ 0.00129  0.0109   0.00602 -0.00877 -0.01916 -0.05659 -0.0483  -0.02185 -0.02209  0.01736]
+ [-0.02005  0.00758  0.02579 -0.03333  0.00352 -0.0578  -0.04556 -0.0556  -0.04529  0.06416]
+ [ 0.02695  0.00363  0.02104 -0.00848  0.03085 -0.06641 -0.03336 -0.01503 -0.04532  0.0081 ]
+ [-0.02473 -0.01859  0.04075 -0.00455  0.01993 -0.04665 -0.03698 -0.0063  -0.03235  0.03909]
+ [-0.02891  0.02183  0.01171 -0.00624  0.02155 -0.07441 -0.04383 -0.01707 -0.01268  0.02351]
+ [ 0.01002 -0.01742  0.01145 -0.03244  0.01756 -0.04202 -0.04045 -0.03138 -0.01564  0.03871]
+ [-0.01686  0.04742  0.04909  0.01424 -0.00733 -0.04773 -0.0763  -0.03617  0.01079  0.0016 ]
+ [ 0.00961 -0.00337  0.01458 -0.01242  0.01239 -0.03938 -0.01167 -0.01025 -0.02025  0.03112]
+ [-0.00639 -0.01172  0.04447 -0.0033   0.0276  -0.08083 -0.0409  -0.023   -0.03266  0.03201]
+ [-0.01249  0.02364  0.03073 -0.0103   0.01524 -0.04002 -0.07046 -0.00143 -0.03037  0.03692]
+ [-0.01155 -0.00816  0.01417  0.01124  0.01693 -0.03797 -0.00644 -0.00504 -0.04066  0.02742]
+ [-0.03043  0.03531 -0.00233 -0.02903  0.02681 -0.07377 -0.09124 -0.0348  -0.02728  0.01781]
+ [-0.03805  0.0015   0.02286 -0.02599  0.02493 -0.02707 -0.0489   0.00085 -0.03588  0.01173]
+ [-0.00322 -0.00982  0.00318  0.00086  0.01338 -0.05927 -0.01745 -0.019   -0.02419  0.04078]
+ [-0.00524 -0.03266  0.04316 -0.00133  0.02968 -0.06335 -0.01557 -0.02004 -0.05118  0.04478]
+ [ 0.01196  0.00738  0.0139  -0.01251  0.02977 -0.0482  -0.04011 -0.04932 -0.01502  0.00449]
+ [ 0.01775 -0.00792  0.02539  0.01883  0.01768 -0.06387 -0.0317  -0.0299  -0.01473  0.02359]
+ [-0.01174  0.01263  0.01114 -0.02254  0.01541 -0.0507  -0.04069 -0.00546 -0.02738  0.03351]
+ [ 0.00519 -0.00914  0.04497  0.01114  0.02668 -0.07109 -0.02906  0.00836 -0.03017  0.02743]
+ [-0.01821 -0.00343  0.01697 -0.00879  0.03184 -0.06576 -0.04461 -0.02077 -0.0576   0.02691]
+ [ 0.02505 -0.00406  0.01754 -0.01299 -0.03357 -0.0621  -0.05533 -0.01607 -0.05241  0.00787]
+ [-0.00548 -0.0151   0.02098  0.00532 -0.0007  -0.06299 -0.02551  0.02606 -0.02592  0.02215]
+ [ 0.02538 -0.00074  0.01906 -0.00907  0.03593 -0.0677  -0.02988 -0.01161 -0.04277  0.01133]
+ [ 0.00403  0.00756  0.02052  0.02553  0.02037 -0.03283 -0.03985  0.01178 -0.02486 -0.00577]
+ [-0.00577  0.01179 -0.00397 -0.01612  0.006   -0.05153 -0.08116 -0.0568  -0.02216  0.02107]
+ [-0.01831 -0.00545  0.03149 -0.00173  0.02892 -0.01969 -0.03263 -0.01362 -0.03298  0.03155]
+ [-0.02663  0.047    0.01241 -0.00937 -0.00653 -0.07457 -0.08388 -0.00652 -0.00656  0.03299]
+ [-0.01582 -0.00341 -0.00549 -0.07723  0.03082 -0.08325 -0.02868 -0.03757 -0.03521  0.05039]
+ [ 0.01516 -0.02163  0.03846 -0.00524  0.03453 -0.07424 -0.00601 -0.01762 -0.04946  0.02805]
+ [ 0.02345  0.03865  0.0027  -0.03011  0.02129 -0.06911 -0.0642  -0.06447 -0.02161  0.0513 ]
+ [-0.00958  0.00089  0.00206  0.00014 -0.03024 -0.05849 -0.03403 -0.04682 -0.02192  0.02192]
+ [ 0.01296  0.01323 -0.00675 -0.02761  0.0001  -0.02599 -0.03824 -0.03056 -0.03029  0.00598]
+ [ 0.015    0.00759  0.03926  0.00927  0.0302  -0.08289 -0.04693  0.00788 -0.02175  0.031  ]
+ [-0.03891  0.03415  0.00166 -0.01509  0.0031  -0.05396 -0.07296 -0.00382 -0.02682  0.05255]
+ [ 0.01267  0.00989  0.02874  0.01091  0.04832 -0.05603 -0.01568 -0.00115 -0.02438  0.00899]
+ [-0.02444  0.03956 -0.00092 -0.01447 -0.00312 -0.06536 -0.05304 -0.00953 -0.0111   0.02981]
+ [-0.0344   0.04178  0.01164 -0.03304  0.01373 -0.06036 -0.07474  0.01716 -0.03821  0.02719]
+ [ 0.02056 -0.04235  0.02223 -0.03208  0.02435 -0.03469  0.0082  -0.01539 -0.02368  0.00596]
+ [-0.01846  0.01328 -0.01612 -0.0376  -0.0026  -0.01918 -0.03758 -0.0154  -0.01747  0.02746]
+ [-0.01283 -0.01919  0.0135   0.00131  0.01254 -0.04955 -0.02221 -0.01261 -0.02833  0.03626]
+ [ 0.01384  0.017    0.02705 -0.01914  0.03964 -0.05375 -0.05693 -0.01484 -0.01374  0.03448]
+ [-0.00959 -0.03199  0.0208   0.01219  0.01838 -0.04273  0.0039  -0.00971 -0.02165  0.02525]
+ [-0.00754 -0.02387  0.03144  0.01683  0.01158 -0.04538 -0.02697  0.00096 -0.02717  0.0279 ]
+ [-0.00149 -0.01607  0.03226  0.00932  0.03503 -0.04532 -0.02371 -0.04158 -0.02733  0.01295]
+ [-0.00841 -0.02569  0.02426 -0.01079  0.04106 -0.04494 -0.02315 -0.01234 -0.03156  0.03288]
+ [ 0.03858 -0.00225  0.03607  0.01419  0.05866 -0.04707 -0.0479  -0.0585  -0.03581  0.0068 ]
+ [ 0.00396  0.00229  0.03064  0.00296  0.04075 -0.05858 -0.02379  0.01113 -0.01696  0.02085]
+ [-0.0306   0.01159  0.01966 -0.0238   0.0085  -0.04504 -0.07059 -0.02362 -0.02067  0.04078]
+ [-0.03142  0.03721  0.02696  0.00428  0.00507 -0.06188 -0.07031 -0.00547 -0.01252  0.0217 ]
+ [-0.01006 -0.00553  0.009   -0.02372  0.00812 -0.04891 -0.06205 -0.01728 -0.02563  0.02564]
+ [ 0.00656  0.03307  0.01764  0.00273 -0.00087 -0.07939 -0.07847 -0.05009 -0.03572  0.00226]
+ [-0.01152  0.00209  0.01268 -0.02766  0.02629 -0.08758 -0.02191 -0.01157 -0.03755  0.07643]
+ [ 0.00849 -0.00357  0.04292  0.00966  0.01071 -0.06685 -0.01274 -0.03098 -0.04872  0.04148]
+ [-0.02366  0.01482  0.0214  -0.0017   0.03714 -0.06655 -0.00035 -0.03575 -0.00123  0.06236]
+ [-0.00574 -0.01814  0.01388 -0.01289  0.03698 -0.05857 -0.04548 -0.01367 -0.03049  0.05411]
+ [-0.00067  0.03152  0.01473 -0.00112  0.04264 -0.07165 -0.08533 -0.07986 -0.03663  0.02476]
+ [ 0.00238 -0.01577  0.03842 -0.01902  0.03321 -0.05336 -0.03538  0.00514 -0.03226  0.02748]
+ [-0.05187 -0.02097  0.04671 -0.02635  0.03248 -0.0399  -0.06063 -0.01354 -0.03793  0.04167]
+ [ 0.02789 -0.00258  0.01699 -0.01496  0.02993 -0.06447 -0.03116 -0.00742 -0.03525  0.01357]
+ [ 0.03633  0.0008   0.01882 -0.00777  0.00483 -0.0582  -0.05376 -0.08621 -0.0305   0.0121 ]
+ [ 0.00676  0.01654  0.03401  0.00623  0.035   -0.06879 -0.0183  -0.00864 -0.03068  0.02204]
+ [-0.04109  0.01182  0.00634 -0.02956 -0.00965 -0.064   -0.05708 -0.01416 -0.01804  0.03834]
+ [-0.00258  0.03007  0.04005 -0.00407 -0.04672 -0.05536 -0.07473 -0.01553 -0.01838 -0.00027]]</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>To ensure each row sums to 1, we can apply softmax to <code>ypreds</code>:</p>
+<div id="cell-18" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> jax.nn <span class="im">import</span> softmax</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>yprobs <span class="op">=</span> softmax(ypreds, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"yprobs.shape: </span><span class="sc">{</span>yprobs<span class="sc">.</span>shape<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"yprobs:</span><span class="ch">\n</span><span class="sc">{</span>yprobs<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>yprobs.shape: (64, 10)
+yprobs:
+[[0.0985  0.10498 0.10199 0.10171 0.10054 0.09359 0.09674 0.1007  0.10169 0.09954]
+ [0.10153 0.10251 0.10201 0.10051 0.09947 0.09582 0.09661 0.0992  0.09918 0.10317]
+ [0.09949 0.10228 0.10416 0.09818 0.10186 0.0958  0.09698 0.09601 0.09701 0.10823]
+ [0.10349 0.1011  0.10288 0.09988 0.10389 0.09426 0.09743 0.09923 0.09627 0.10155]
+ [0.0982  0.09881 0.10485 0.1002  0.10269 0.09607 0.09701 0.10003 0.09746 0.10468]
+ [0.09813 0.10323 0.10219 0.10038 0.1032  0.09376 0.09667 0.09929 0.09973 0.10341]
+ [0.102   0.09924 0.10215 0.09776 0.10277 0.09683 0.09698 0.09787 0.09942 0.10497]
+ [0.09886 0.10543 0.1056  0.10198 0.09981 0.09586 0.09316 0.09697 0.10163 0.1007 ]
+ [0.10125 0.09994 0.10175 0.09904 0.10153 0.09641 0.09911 0.09926 0.09827 0.10345]
+ [0.10024 0.09971 0.10547 0.10055 0.10371 0.09305 0.09684 0.09859 0.09765 0.10417]
+ [0.09929 0.10294 0.10367 0.0995  0.10208 0.09659 0.09369 0.10039 0.09753 0.10432]
+ [0.09923 0.09956 0.10181 0.10151 0.10209 0.09664 0.09973 0.09987 0.09638 0.10317]
+ [0.09897 0.1057  0.1018  0.09911 0.10481 0.09478 0.09314 0.09854 0.09929 0.10387]
+ [0.09734 0.10127 0.10345 0.09852 0.10367 0.09841 0.09629 0.1012  0.09755 0.10231]
+ [0.10039 0.09973 0.10104 0.10081 0.10208 0.09492 0.09898 0.09882 0.09831 0.10491]
+ [0.10013 0.09742 0.1051  0.10052 0.10369 0.09448 0.0991  0.09866 0.09563 0.10527]
+ [0.10216 0.10169 0.10236 0.09969 0.104   0.0962  0.09698 0.09609 0.09944 0.1014 ]
+ [0.10221 0.09962 0.10299 0.10232 0.1022  0.0942  0.09728 0.09745 0.09894 0.10281]
+ [0.09965 0.10211 0.10196 0.09858 0.10239 0.09584 0.09681 0.10028 0.09811 0.10426]
+ [0.10063 0.09919 0.10471 0.10123 0.10281 0.09323 0.09724 0.10094 0.09713 0.10289]
+ [0.09956 0.10104 0.10313 0.1005  0.10467 0.09494 0.09697 0.09931 0.09572 0.10416]
+ [0.10442 0.10142 0.10364 0.10052 0.09847 0.0957  0.09635 0.10021 0.09663 0.10264]
+ [0.10003 0.09907 0.10271 0.10112 0.10051 0.09444 0.09805 0.10324 0.09801 0.10283]
+ [0.10324 0.10058 0.10259 0.09975 0.10434 0.09407 0.09769 0.09949 0.09644 0.1018 ]
+ [0.10052 0.10087 0.10219 0.1027  0.10217 0.09688 0.0962  0.1013  0.09765 0.09953]
+ [0.10137 0.10317 0.10155 0.10033 0.10257 0.09684 0.09401 0.09633 0.09972 0.10413]
+ [0.09848 0.09975 0.1035  0.10012 0.10324 0.09834 0.09708 0.09894 0.09704 0.10351]
+ [0.09849 0.10601 0.10241 0.1002  0.10049 0.09388 0.09301 0.10049 0.10049 0.10454]
+ [0.10039 0.10165 0.10144 0.09441 0.10519 0.09385 0.09911 0.09823 0.09847 0.10727]
+ [0.10206 0.09837 0.10446 0.1     0.10405 0.09333 0.09992 0.09876 0.09567 0.10338]
+ [0.10343 0.10502 0.10131 0.09804 0.10321 0.09429 0.09475 0.09473 0.09887 0.10635]
+ [0.10078 0.10184 0.10196 0.10176 0.09872 0.09597 0.09834 0.09709 0.09954 0.104  ]
+ [0.10258 0.10261 0.10058 0.0985  0.10127 0.09866 0.09746 0.09821 0.09824 0.10187]
+ [0.10156 0.10081 0.10405 0.10098 0.10312 0.09209 0.09546 0.10084 0.0979  0.1032 ]
+ [0.09728 0.10466 0.10131 0.09963 0.10146 0.09583 0.09403 0.10076 0.09846 0.1066 ]
+ [0.10101 0.10073 0.10265 0.10083 0.10468 0.0943  0.09819 0.09963 0.09734 0.10064]
+ [0.09864 0.10516 0.10099 0.09963 0.10077 0.09469 0.09586 0.10013 0.09997 0.10414]
+ [0.0978  0.10555 0.10241 0.09794 0.10263 0.0953  0.09394 0.10298 0.09743 0.10402]
+ [0.10273 0.09647 0.1029  0.09746 0.10312 0.09721 0.10147 0.0991  0.09829 0.10124]
+ [0.09937 0.10258 0.09961 0.09749 0.10096 0.0993  0.09749 0.09968 0.09947 0.10404]
+ [0.0995  0.09887 0.10216 0.10092 0.10206 0.09591 0.09857 0.09952 0.09797 0.10451]
+ [0.10161 0.10193 0.10296 0.09831 0.10426 0.09497 0.09466 0.09873 0.09884 0.10373]
+ [0.09937 0.09717 0.10244 0.10156 0.10219 0.09613 0.10072 0.09936 0.09818 0.10289]
+ [0.09964 0.09802 0.1036  0.1021  0.10156 0.09594 0.09772 0.10049 0.0977  0.10323]
+ [0.10047 0.09902 0.10392 0.10157 0.10421 0.09617 0.09827 0.09653 0.09791 0.10194]
+ [0.09971 0.098   0.10302 0.09947 0.10476 0.09613 0.09825 0.09932 0.09743 0.10391]
+ [0.10424 0.10007 0.10398 0.10173 0.10635 0.09568 0.0956  0.0946  0.09677 0.10098]
+ [0.10023 0.10006 0.10294 0.10013 0.10398 0.09415 0.09748 0.10095 0.09815 0.10193]
+ [0.09824 0.10248 0.10331 0.09891 0.10216 0.09684 0.09439 0.09893 0.09922 0.10551]
+ [0.09769 0.10463 0.10356 0.10124 0.10132 0.09476 0.09396 0.10026 0.09955 0.10302]
+ [0.10047 0.10092 0.1024  0.0991  0.10231 0.09664 0.09538 0.09974 0.09892 0.10412]
+ [0.10244 0.10519 0.10358 0.10205 0.10168 0.094   0.09409 0.09679 0.0982  0.102  ]
+ [0.09957 0.10093 0.10201 0.09797 0.10341 0.09228 0.09854 0.09956 0.09701 0.10872]
+ [0.1013  0.10008 0.10484 0.10141 0.10152 0.09394 0.09917 0.09738 0.09566 0.10469]
+ [0.09754 0.10137 0.10203 0.0997  0.10365 0.09344 0.09984 0.09637 0.09975 0.1063 ]
+ [0.10017 0.09894 0.10216 0.09946 0.10454 0.09502 0.09627 0.09938 0.09772 0.10635]
+ [0.10145 0.10477 0.10303 0.10141 0.10594 0.0945  0.09322 0.09373 0.09787 0.10407]
+ [0.10069 0.09888 0.10438 0.09856 0.10384 0.09523 0.09696 0.10097 0.09726 0.10325]
+ [0.09612 0.09914 0.10608 0.09861 0.10458 0.09728 0.09528 0.09988 0.09747 0.10555]
+ [0.10348 0.10038 0.10236 0.09914 0.10369 0.09435 0.09755 0.09989 0.09715 0.10201]
+ [0.10534 0.10166 0.10351 0.10079 0.10207 0.09584 0.09626 0.09319 0.09853 0.10282]
+ [0.10069 0.10168 0.10347 0.10064 0.10358 0.09336 0.0982  0.09915 0.09699 0.10224]
+ [0.09764 0.10295 0.10239 0.09878 0.10076 0.09543 0.0961  0.10031 0.09992 0.10572]
+ [0.10117 0.10452 0.10557 0.10102 0.0968  0.09596 0.09412 0.09986 0.09958 0.1014 ]]</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>At this point, the outputs are meaningless and are pretty close to uniformly distributed over classes. This is because we haven’t yet calculated the gradient of the loss function with respect to each weight, which allows the network to adjust its weights and biases to minimize prediction errors. In the next post, we’ll implement backpropagation entirely in JAX and walkthrough how to construct the training and validation loops.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/www\.jtrive\.com");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
