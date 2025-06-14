@@ -6,8 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="author" content="James Triveri">
+<meta name="dcterms.date" content="2025-06-14">
 
-<title>polars-lazyframe – The Pleasure of Finding Things Out: A blog by James Triveri</title>
+<title>Handling Larger-than-Memory Datasets with Polars LazyFrame – The Pleasure of Finding Things Out: A blog by James Triveri</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -157,7 +159,38 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     </nav>
 </header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<header id="title-block-header" class="quarto-title-block default page-columns page-full">
+  <div class="quarto-title-banner page-columns page-full">
+    <div class="quarto-title column-body">
+      <h1 class="title">Handling Larger-than-Memory Datasets with Polars LazyFrame</h1>
+                                <div class="quarto-categories">
+                <div class="quarto-category">Python</div>
+              </div>
+                  </div>
+  </div>
+    
+  
+  <div class="quarto-title-meta">
+
+      <div>
+      <div class="quarto-title-meta-heading">Author</div>
+      <div class="quarto-title-meta-contents">
+               <p>James Triveri </p>
+            </div>
+    </div>
+      
+      <div>
+      <div class="quarto-title-meta-heading">Published</div>
+      <div class="quarto-title-meta-contents">
+        <p class="date">June 14, 2025</p>
+      </div>
+    </div>
+    
+      
+    </div>
+    
+  
+  </header><div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     
@@ -167,7 +200,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<p>title: Handling Larger-than-Memory Datasets with Polars LazyFrame date: 2025-06-14 author: James Triveri categories: [Python]</p>
+
 <p>Pandas is the de-facto standard when working with tabular datasets in Python, but it encounters significant challenges when handling large datasets. The core issue stems from Pandas’ architecture, which relies entirely on in-memory processing. This design requires loading the entire dataset into memory, resulting in a hard limit on the size of datasets that Pandas can process. When data volumes exceed this threshold, performance degrades dramatically, often resulting in system crashes or memory exhaustion errors.</p>
 <p>In addition, Pandas operates via single-threaded execution, processing data sequentially rather than leveraging the parallel processing capabilities of multi-core systems. This creates performance bottlenecks that become increasingly pronounced as the size of data grows.</p>
 <p>In a previous <a href="https://www.jtrive.com/posts/boostrap-chainladder-polars/bootstrap-chainladder-polars.html">post</a>, I demonstrated how Polars can we used as an (almost) drop-in Pandas replacement for routine data processing tasks. Here we explore the Polars LazyFrame, which has no analog in Pandas. A LazyFrame builds up a sequence of operations without immediately executing them. Instead, it constructs a deferred query plan that is only run when explicitly requested, usually by calling the <code>.collect()</code> method. Deferred execution allows Polars to optimize the entire pipeline and apply techniques like predicate and projection pushdown, and process data using out-of-core techniques when necessary.</p>

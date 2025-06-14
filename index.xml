@@ -10,7 +10,746 @@
 <atom:link href="https://www.jtrive.com/index.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Wed, 21 May 2025 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sat, 14 Jun 2025 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Handling Larger-than-Memory Datasets with Polars LazyFrame</title>
+  <dc:creator>James Triveri</dc:creator>
+  <link>https://www.jtrive.com/posts/polars-lazyframe/polars-lazyframe.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Pandas is the de-facto standard when working with tabular datasets in Python, but it encounters significant challenges when handling large datasets. The core issue stems from Pandas’ architecture, which relies entirely on in-memory processing. This design requires loading the entire dataset into memory, resulting in a hard limit on the size of datasets that Pandas can process. When data volumes exceed this threshold, performance degrades dramatically, often resulting in system crashes or memory exhaustion errors.</p>
+<p>In addition, Pandas operates via single-threaded execution, processing data sequentially rather than leveraging the parallel processing capabilities of multi-core systems. This creates performance bottlenecks that become increasingly pronounced as the size of data grows.</p>
+<p>In a previous <a href="https://www.jtrive.com/posts/boostrap-chainladder-polars/bootstrap-chainladder-polars.html">post</a>, I demonstrated how Polars can we used as an (almost) drop-in Pandas replacement for routine data processing tasks. Here we explore the Polars LazyFrame, which has no analog in Pandas. A LazyFrame builds up a sequence of operations without immediately executing them. Instead, it constructs a deferred query plan that is only run when explicitly requested, usually by calling the <code>.collect()</code> method. Deferred execution allows Polars to optimize the entire pipeline and apply techniques like predicate and projection pushdown, and process data using out-of-core techniques when necessary.</p>
+<p>In the examples that follow, the <a href="https://www.kaggle.com/datasets/dilwong/flightprices">Flight Prices</a> dataset is used. It is a 31GB CSV file containing one-way flight itineraries found on Expedia between 2022-04-16 and 2022-10-05 for airport codes ATL, DFW, DEN, ORD, LAX, CLT, MIA, JFK, EWR, SFO, DTW, BOS, PHL, LGA, IAD and OAK. The file is larger than the client’s available memory, so it isn’t possible to analyze the full Flight Prices dataset with Pandas, which requires the entire file to be loaded into memory upfront. Given that the 31GB footprint is about 2x the RAM of the client I’m working from, it should be a perfect setting to demonstrate LazyFrame functionality.</p>
+<p>In Polars, <code>.scan_csv</code> creates a LazyFrame by scanning the metadata and schema of a CSV file without loading the full dataset. In contrast, <code>.read_csv</code> immediately reads the entire file into memory as a DataFrame, performing eager evaluation. <code>.scan_csv</code> supports lazy, memory-efficient workflows, while <code>.read_csv</code> is eager and requires the dataset to fit in RAM.</p>
+<p>We can preview the first 5 rows of the Flight Prices dataset calling <code>scan_csv</code> followed by <code>.head(5).collect()</code> (<code>fetch</code> has been deprecated):</p>
+<div id="8d43e195" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> polars <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pl </span>
+<span id="cb1-3"></span>
+<span id="cb1-4">pl.Config(tbl_rows<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">30</span>)</span>
+<span id="cb1-5">pl.Config(float_precision<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)</span>
+<span id="cb1-6">pl.Config(tbl_cols<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-7"></span>
+<span id="cb1-8"></span>
+<span id="cb1-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create LazyFrame based on itineraries.csv. Dataset is available here:</span></span>
+<span id="cb1-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#   https://www.kaggle.com/datasets/dilwong/flightprices</span></span>
+<span id="cb1-11">lf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pl.scan_csv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"itineraries.csv"</span>)</span>
+<span id="cb1-12"></span>
+<span id="cb1-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Display the first 5 rows.</span></span>
+<span id="cb1-14">first5 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> lf.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>).collect()</span>
+<span id="cb1-15"></span>
+<span id="cb1-16">first5</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (5, 27)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">legId</th>
+<th data-quarto-table-cell-role="th">searchDate</th>
+<th data-quarto-table-cell-role="th">flightDate</th>
+<th data-quarto-table-cell-role="th">startingAirport</th>
+<th data-quarto-table-cell-role="th">destinationAirport</th>
+<th data-quarto-table-cell-role="th">fareBasisCode</th>
+<th data-quarto-table-cell-role="th">travelDuration</th>
+<th data-quarto-table-cell-role="th">elapsedDays</th>
+<th data-quarto-table-cell-role="th">isBasicEconomy</th>
+<th data-quarto-table-cell-role="th">isRefundable</th>
+<th data-quarto-table-cell-role="th">isNonStop</th>
+<th data-quarto-table-cell-role="th">baseFare</th>
+<th data-quarto-table-cell-role="th">totalFare</th>
+<th data-quarto-table-cell-role="th">seatsRemaining</th>
+<th data-quarto-table-cell-role="th">totalTravelDistance</th>
+<th data-quarto-table-cell-role="th">segmentsDepartureTimeEpochSeconds</th>
+<th data-quarto-table-cell-role="th">segmentsDepartureTimeRaw</th>
+<th data-quarto-table-cell-role="th">segmentsArrivalTimeEpochSeconds</th>
+<th data-quarto-table-cell-role="th">segmentsArrivalTimeRaw</th>
+<th data-quarto-table-cell-role="th">segmentsArrivalAirportCode</th>
+<th data-quarto-table-cell-role="th">segmentsDepartureAirportCode</th>
+<th data-quarto-table-cell-role="th">segmentsAirlineName</th>
+<th data-quarto-table-cell-role="th">segmentsAirlineCode</th>
+<th data-quarto-table-cell-role="th">segmentsEquipmentDescription</th>
+<th data-quarto-table-cell-role="th">segmentsDurationInSeconds</th>
+<th data-quarto-table-cell-role="th">segmentsDistance</th>
+<th data-quarto-table-cell-role="th">segmentsCabinCode</th>
+</tr>
+<tr class="odd">
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>i64</th>
+<th>bool</th>
+<th>bool</th>
+<th>bool</th>
+<th>f64</th>
+<th>f64</th>
+<th>i64</th>
+<th>i64</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>"9ca0e81111c683bec1012473feefd2…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H29M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>9</td>
+<td>947</td>
+<td>"1650214620"</td>
+<td>"2022-04-17T12:57:00.000-04:00"</td>
+<td>"1650223560"</td>
+<td>"2022-04-17T15:26:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Airbus A321"</td>
+<td>"8940"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+<tr class="even">
+<td>"98685953630e772a098941b7190659…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H30M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>4</td>
+<td>947</td>
+<td>"1650191400"</td>
+<td>"2022-04-17T06:30:00.000-04:00"</td>
+<td>"1650200400"</td>
+<td>"2022-04-17T09:00:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Airbus A321"</td>
+<td>"9000"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+<tr class="odd">
+<td>"98d90cbc32bfbb05c2fc32897c7c10…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H30M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>9</td>
+<td>947</td>
+<td>"1650209700"</td>
+<td>"2022-04-17T11:35:00.000-04:00"</td>
+<td>"1650218700"</td>
+<td>"2022-04-17T14:05:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Boeing 757-200"</td>
+<td>"9000"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+<tr class="even">
+<td>"969a269d38eae583f455486fa90877…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H32M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>8</td>
+<td>947</td>
+<td>"1650218340"</td>
+<td>"2022-04-17T13:59:00.000-04:00"</td>
+<td>"1650227460"</td>
+<td>"2022-04-17T16:31:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Airbus A321"</td>
+<td>"9120"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+<tr class="odd">
+<td>"980370cf27c89b40d2833a1d5afc97…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H34M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>9</td>
+<td>947</td>
+<td>"1650203940"</td>
+<td>"2022-04-17T09:59:00.000-04:00"</td>
+<td>"1650213180"</td>
+<td>"2022-04-17T12:33:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Airbus A321"</td>
+<td>"9240"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p><br></p>
+<p><br></p>
+<p>To demonstrate how LazyFrames work, we’ll execute a simple (contrived) filter/aggregate/average pipeline to compute the average ticket price by origin airport and airline, but only for non-stop flights departing in July and August. This requires filtering, grouping, and aggregation operations that benefit from lazy evaluation and query optimization:</p>
+<ul>
+<li>Filter rows where the <code>flightDate</code> is in July or August.</li>
+<li>Group by <code>startingAirport</code> airport and <code>segmentsAirlineName</code>.</li>
+<li>Calculate the average <code>totalFare</code> for each group.</li>
+<li>Sort the results from highest to lowest average fare.</li>
+</ul>
+<div id="9e8b7393" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2">result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb2-3">    lf</span>
+<span id="cb2-4">    .<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">filter</span>(</span>
+<span id="cb2-5">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"flightDate"</span>).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>.strptime(pl.Date, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%Y-%m-</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%d</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>).dt.month().is_in([<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb2-6">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"isNonStop"</span>)</span>
+<span id="cb2-7">    )</span>
+<span id="cb2-8">    .group_by([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"startingAirport"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"segmentsAirlineName"</span>])</span>
+<span id="cb2-9">    .agg(</span>
+<span id="cb2-10">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"totalFare"</span>).mean().alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"avg_price"</span>)</span>
+<span id="cb2-11">    )</span>
+<span id="cb2-12">    .sort(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"avg_price"</span>, descending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb2-13">)</span></code></pre></div>
+</div>
+<p>Notice that we didn’t include <code>.collect()</code> in the <code>result</code> pipeline. Until <code>.collect()</code> is called, no computation is performed: Polars just builds a query plan.</p>
+<p>It is possible to view the query plan by calling <code>.explain(optimized=True)</code>. This will display the optimized logical plan that Polars will execute when <code>.collect()</code> is called:</p>
+<div id="7e49c7c8" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(result.explain(optimized<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>SORT BY [col("avg_price")]
+  AGGREGATE
+    [col("totalFare").mean().alias("avg_price")] BY [col("startingAirport"), col("segmentsAirlineName")] FROM
+    simple π 5/5 ["totalFare", "startingAirport", ... 3 other columns]
+      Csv SCAN [itineraries.csv]
+      PROJECT 5/27 COLUMNS
+      SELECTION: [(col("isNonStop")) &amp; (col("flightDate").str.strptime([String(raise)]).dt.month().is_in([Series]))]</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>See <a href="https://realpython.com/polars-lazyframe/#investigating-the-optimized-query-plan">this</a> article for more information on interpreting query plans. You can optionally install Graphviz to have the query plan rendered graphically using <code>lf.show_graph()</code>.</p>
+<p>When calling <code>.collect()</code>, we include <code>streaming=True</code>. This ensures Polars processes the data in a streaming (out-of-core) fashion. The dataset will be processed in small chunks rather than loading the entire dataset into memory at once.</p>
+<div id="b8ac8c46" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
+<span id="cb5-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Execute result pipeline in streaming mode.</span></span>
+<span id="cb5-3">result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> result.collect(streaming<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb5-4"></span>
+<span id="cb5-5"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"type(result): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">type</span>(result)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"result.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>result<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-7"></span>
+<span id="cb5-8">result.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>type(result): &lt;class 'polars.dataframe.frame.DataFrame'&gt;
+result.shape: (95, 3)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (10, 3)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">startingAirport</th>
+<th data-quarto-table-cell-role="th">segmentsAirlineName</th>
+<th data-quarto-table-cell-role="th">avg_price</th>
+</tr>
+<tr class="odd">
+<th>str</th>
+<th>str</th>
+<th>f64</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>"BOS"</td>
+<td>"Alaska Airlines"</td>
+<td>502.8843</td>
+</tr>
+<tr class="even">
+<td>"SFO"</td>
+<td>"American Airlines"</td>
+<td>437.5257</td>
+</tr>
+<tr class="odd">
+<td>"IAD"</td>
+<td>"Alaska Airlines"</td>
+<td>433.5487</td>
+</tr>
+<tr class="even">
+<td>"LAX"</td>
+<td>"American Airlines"</td>
+<td>425.0462</td>
+</tr>
+<tr class="odd">
+<td>"ORD"</td>
+<td>"Alaska Airlines"</td>
+<td>407.9898</td>
+</tr>
+<tr class="even">
+<td>"SFO"</td>
+<td>"JetBlue Airways"</td>
+<td>402.2174</td>
+</tr>
+<tr class="odd">
+<td>"ATL"</td>
+<td>"Alaska Airlines"</td>
+<td>383.4524</td>
+</tr>
+<tr class="even">
+<td>"LAX"</td>
+<td>"Delta"</td>
+<td>374.1640</td>
+</tr>
+<tr class="odd">
+<td>"JFK"</td>
+<td>"United"</td>
+<td>369.2713</td>
+</tr>
+<tr class="even">
+<td>"LAX"</td>
+<td>"JetBlue Airways"</td>
+<td>368.5215</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Once <code>.collect(streaming=True)</code> is called, <code>result</code> materializes into a Polars DataFrame. The ultimate output is a 95x3 DataFrame with average fare price by origin airport and airline. Executing the <code>result</code> pipeline took about 45 seconds.</p>
+<p>Alaska Airlines seems to have higher average fares than other airlines. This is probably a consequence of the greater distance Alaska Airlines flights cover compared with other carriers, resulting in higher average fare costs. Instead we should calculate average total fare per mile. The <code>result2</code> pipeline in the next cell performs this calculation. We need to convert <code>segmentsDistance</code> to a numeric type since it was interpreted as a text column when initially read:</p>
+<div id="f4f2129f" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Calculate the average total fare per mile for non-stop flights in July and August.</span></span>
+<span id="cb7-3">result2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb7-4">    lf</span>
+<span id="cb7-5">    .<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">filter</span>(</span>
+<span id="cb7-6">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"flightDate"</span>).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>.strptime(pl.Date, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%Y-%m-</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%d</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>).dt.month().is_in([<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb7-7">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"isNonStop"</span>)</span>
+<span id="cb7-8">    )</span>
+<span id="cb7-9">    .with_columns(</span>
+<span id="cb7-10">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Cast segmentDistance to Float64. Use strict=False to convert errors to null.</span></span>
+<span id="cb7-11">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"segmentsDistance"</span>).cast(pl.Float64, strict<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>).alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>)</span>
+<span id="cb7-12">    )</span>
+<span id="cb7-13">    .<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">filter</span>(</span>
+<span id="cb7-14">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Ensure numeric_distance is not null and positive.</span></span>
+<span id="cb7-15">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>).is_not_null() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span> (pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)</span>
+<span id="cb7-16">    )</span>
+<span id="cb7-17">    .group_by([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"startingAirport"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"segmentsAirlineName"</span>])</span>
+<span id="cb7-18">    .agg(</span>
+<span id="cb7-19">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Calculate the mean of totalFare / numeric_distance</span></span>
+<span id="cb7-20">        (pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"totalFare"</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>)).mean().alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"avg_price_per_mile"</span>)</span>
+<span id="cb7-21">    )</span>
+<span id="cb7-22">    .sort(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"avg_price_per_mile"</span>, descending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb7-23">).collect(streaming<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb7-24"></span>
+<span id="cb7-25">result2.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (20, 3)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">startingAirport</th>
+<th data-quarto-table-cell-role="th">segmentsAirlineName</th>
+<th data-quarto-table-cell-role="th">avg_price_per_mile</th>
+</tr>
+<tr class="odd">
+<th>str</th>
+<th>str</th>
+<th>f64</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>"PHL"</td>
+<td>"United"</td>
+<td>0.7913</td>
+</tr>
+<tr class="even">
+<td>"CLT"</td>
+<td>"Delta"</td>
+<td>0.6019</td>
+</tr>
+<tr class="odd">
+<td>"IAD"</td>
+<td>"Delta"</td>
+<td>0.5592</td>
+</tr>
+<tr class="even">
+<td>"DTW"</td>
+<td>"United"</td>
+<td>0.5220</td>
+</tr>
+<tr class="odd">
+<td>"DTW"</td>
+<td>"American Airlines"</td>
+<td>0.5048</td>
+</tr>
+<tr class="even">
+<td>"PHL"</td>
+<td>"Delta"</td>
+<td>0.4816</td>
+</tr>
+<tr class="odd">
+<td>"BOS"</td>
+<td>"Delta"</td>
+<td>0.4673</td>
+</tr>
+<tr class="even">
+<td>"IAD"</td>
+<td>"United"</td>
+<td>0.4650</td>
+</tr>
+<tr class="odd">
+<td>"EWR"</td>
+<td>"United"</td>
+<td>0.4603</td>
+</tr>
+<tr class="even">
+<td>"CLT"</td>
+<td>"United"</td>
+<td>0.4481</td>
+</tr>
+<tr class="odd">
+<td>"ATL"</td>
+<td>"American Airlines"</td>
+<td>0.4441</td>
+</tr>
+<tr class="even">
+<td>"BOS"</td>
+<td>"American Airlines"</td>
+<td>0.4434</td>
+</tr>
+<tr class="odd">
+<td>"DTW"</td>
+<td>"Delta"</td>
+<td>0.4387</td>
+</tr>
+<tr class="even">
+<td>"IAD"</td>
+<td>"American Airlines"</td>
+<td>0.4381</td>
+</tr>
+<tr class="odd">
+<td>"CLT"</td>
+<td>"American Airlines"</td>
+<td>0.4291</td>
+</tr>
+<tr class="even">
+<td>"LGA"</td>
+<td>"United"</td>
+<td>0.4277</td>
+</tr>
+<tr class="odd">
+<td>"EWR"</td>
+<td>"Delta"</td>
+<td>0.4215</td>
+</tr>
+<tr class="even">
+<td>"JFK"</td>
+<td>"Delta"</td>
+<td>0.4106</td>
+</tr>
+<tr class="odd">
+<td>"JFK"</td>
+<td>"American Airlines"</td>
+<td>0.4095</td>
+</tr>
+<tr class="even">
+<td>"BOS"</td>
+<td>"United"</td>
+<td>0.4083</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Polars LazyFrames unlock a new level of efficiency and scalability for data analysis in Python, enabling the handling of massive datasets with ease and speed without having to maintain a dedicated compute cluster. LazyFrames overcome many of the limitations of traditional in-memory tools like pandas by leveraging deferred execution, query optimization and out-of-core computation. For additional information on LazyFrames and streaming mode, check out the links below:</p>
+<ul>
+<li><a href="https://docs.pola.rs/py-polars/html/reference/lazy/index.html">Polars Lazy API Docs</a></li>
+<li><a href="https://pola-rs.github.io/polars-book/user-guide/lazy/streaming/">Polars Streaming Mode</a></li>
+<li><a href="https://pola-rs.github.io/polars-book/user-guide/how-it-works/">Why Polars is Fast</a></li>
+</ul>
+
+
+
+ ]]></description>
+  <category>Python</category>
+  <guid>https://www.jtrive.com/posts/polars-lazyframe/polars-lazyframe.html</guid>
+  <pubDate>Sat, 14 Jun 2025 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Streamlining Multi-App Deployment with Docker and NGINX</title>
   <link>https://www.jtrive.com/posts/multi-app-server/app-server-from-scratch.html</link>
@@ -42667,771 +43406,6 @@ font-style: inherit;">"5"</span>).add_to(m)</span>
   <category>Geospatial</category>
   <guid>https://www.jtrive.com/posts/getting-started-with-folium/getting-started-with-folium.html</guid>
   <pubDate>Sun, 01 Sep 2024 05:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Working with Geospatial Vector Data</title>
-  <link>https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>Geospatial vector data is a way of representing geographic features in a digital format using points, lines, and polygons. Unlike raster data, which represents geographic data as a grid of cells or pixels, vector data represents features more precisely with distinct shapes and boundaries. Each vector feature can have associated attributes, such as names, types, or other descriptive information.</p>
-<section id="types-of-geospatial-vector-data" class="level3">
-<h3 class="anchored" data-anchor-id="types-of-geospatial-vector-data">Types of Geospatial Vector Data</h3>
-<ul>
-<li><p><strong>Points</strong>: Represent discrete locations such as cities, landmarks, or individual trees. Each point has a specific location defined by coordinates (e.g., latitude and longitude).</p></li>
-<li><p><strong>Lines</strong> (or polylines): Represent linear features such as roads, rivers, or boundaries. Lines are composed of a series of connected points.</p></li>
-<li><p><strong>Polygons</strong> (or multipolygons): Represent areas or shapes such as lakes, parks, or country borders. Polygons are defined by a series of points that create a closed shape.</p></li>
-</ul>
-<p>Shapefiles are one of the most common formats for vector data. They store points, lines, and polygons along with attribute information. The US Census Bureau makes a number of shapefiles available <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html">here</a>. In this notebook, we’ll walkthrough how to load shapefiles into GeoPandas, plotting the boundaries and create a choropleth map based on a second dataset (choropleth maps are those where the color of each shape is based on the value of an associated variable).</p>
-<p>To start, download US state shapefile <em>cb_2018_us_state_500k.zip</em> from the <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html">United States Census Bureau boundary files page</a>. Under the <em>State</em> subheader, you will see three files:</p>
-<ul>
-<li><em>cb_2018_us_state_500k.zip</em></li>
-<li><em>cb_2018_us_state_5m.zip</em></li>
-<li><em>cb_2018_us_state_20m.zip</em></li>
-</ul>
-<p>The 500k files are the most detailed, but also the largest. The 20m files are the smallest, but at the cost of some dramatic simplification. The 5m files fall somewhere between the other two. We will work with the 500k files.</p>
-<p>Once downloaded, the shapefile can be loaded into a GeoPandas DataFrame as follows:</p>
-<div id="cell-2" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
-<span id="cb1-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb1-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb1-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> geopandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> gpd</span>
-<span id="cb1-5"></span>
-<span id="cb1-6">shp_path <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"cb_2018_us_state_500k.zip"</span></span>
-<span id="cb1-7"></span>
-<span id="cb1-8">dfshp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> gpd.read_file(shp_path)</span>
-<span id="cb1-9"></span>
-<span id="cb1-10">dfshp.head(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>)</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="2">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">STATEFP</th>
-<th data-quarto-table-cell-role="th">STATENS</th>
-<th data-quarto-table-cell-role="th">AFFGEOID</th>
-<th data-quarto-table-cell-role="th">GEOID</th>
-<th data-quarto-table-cell-role="th">STUSPS</th>
-<th data-quarto-table-cell-role="th">NAME</th>
-<th data-quarto-table-cell-role="th">LSAD</th>
-<th data-quarto-table-cell-role="th">ALAND</th>
-<th data-quarto-table-cell-role="th">AWATER</th>
-<th data-quarto-table-cell-role="th">geometry</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
-<td>28</td>
-<td>01779790</td>
-<td>0400000US28</td>
-<td>28</td>
-<td>MS</td>
-<td>Mississippi</td>
-<td>00</td>
-<td>121533519481</td>
-<td>3926919758</td>
-<td>MULTIPOLYGON (((-88.50297 30.21523, -88.49176 ...</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
-<td>37</td>
-<td>01027616</td>
-<td>0400000US37</td>
-<td>37</td>
-<td>NC</td>
-<td>North Carolina</td>
-<td>00</td>
-<td>125923656064</td>
-<td>13466071395</td>
-<td>MULTIPOLYGON (((-75.72681 35.93584, -75.71827 ...</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
-<td>40</td>
-<td>01102857</td>
-<td>0400000US40</td>
-<td>40</td>
-<td>OK</td>
-<td>Oklahoma</td>
-<td>00</td>
-<td>177662925723</td>
-<td>3374587997</td>
-<td>POLYGON ((-103.00257 36.52659, -103.00219 36.6...</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
-<td>51</td>
-<td>01779803</td>
-<td>0400000US51</td>
-<td>51</td>
-<td>VA</td>
-<td>Virginia</td>
-<td>00</td>
-<td>102257717110</td>
-<td>8528531774</td>
-<td>MULTIPOLYGON (((-75.74241 37.80835, -75.74151 ...</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
-<td>54</td>
-<td>01779805</td>
-<td>0400000US54</td>
-<td>54</td>
-<td>WV</td>
-<td>West Virginia</td>
-<td>00</td>
-<td>62266474513</td>
-<td>489028543</td>
-<td>POLYGON ((-82.64320 38.16909, -82.64300 38.169...</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<p><br></p>
-<p>The geometry column is a special column in a GeoDataFrame that stores the geometric shapes associated with each row (in this case, the shapes in latitude-longitude pairs that define the boundary of each state). This column contains the vector data that defines the spatial features in the dataset. Some states have boundaries defined by a MULTIPOLYGON, such as Hawaii, whose boundary consists of multiple closed POLYGONS. If it isn’t already present, the geometry column needs to be defined.</p>
-<p>We can plot the data present in the present in the shapefile by calling the GeoDataFrame’s <code>plot</code> method:</p>
-<div id="cell-4" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
-<span id="cb2-2">dfshp.plot()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-3-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><br></p>
-<p>Let’s zoom in and focus on a map of the lower 48 states only:</p>
-<div id="cell-6" class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
-<span id="cb3-2">exclude <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"American Samoa"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Alaska"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Hawaii"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Guam"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"United States Virgin Islands"</span>,</span>
-<span id="cb3-3">           <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Commonwealth of the Northern Mariana Islands"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Puerto Rico"</span>]</span>
-<span id="cb3-4"></span>
-<span id="cb3-5">dfshp48 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dfshp[<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">~</span>dfshp.NAME.isin(exclude)].reset_index(drop<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb3-6"></span>
-<span id="cb3-7">dfshp48.plot()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-4-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><br></p>
-<p>We can get a better view of the boundaries of each state by calling <code>boundary.plot</code>:</p>
-<div id="cell-8" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
-<span id="cb4-2">dfshp48.boundary.plot()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-5-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>By default, the plots rendered via GeoPandas are smaller than we might like. We can increase the size of the rendered map, suppress ticklabels, change the boundary color and add a title as follows:</p>
-<div id="cell-10" class="cell" data-execution_count="32">
-<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
-<span id="cb5-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> plt</span>
-<span id="cb5-3"></span>
-<span id="cb5-4">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb5-5"></span>
-<span id="cb5-6">ax.set_title(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"U.S. Boundaries - Lower 48 States"</span>)</span>
-<span id="cb5-7">dfshp48.boundary.plot(ax<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>ax, edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.50</span>)</span>
-<span id="cb5-8"></span>
-<span id="cb5-9">ax.axis(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"off"</span>)</span>
-<span id="cb5-10"></span>
-<span id="cb5-11">plt.show()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-6-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><br></p>
-<p>To overlay the state name at the center of each state, use:</p>
-<div id="cell-12" class="cell" data-execution_count="34">
-<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
-<span id="cb6-2">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb6-3">ax.set_title(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"U.S. Boundaries - Lower 48 States"</span>)</span>
-<span id="cb6-4">dfshp48.boundary.plot(ax<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>ax, edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.50</span>)</span>
-<span id="cb6-5">dfshp48.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">lambda</span> x: ax.annotate(x.NAME, xy<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>x.geometry.centroid.coords[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>], ha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'center'</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>), axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb6-6">ax.axis(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"off"</span>)</span>
-<span id="cb6-7">plt.show()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><br></p>
-<p>In the shapefile, ALAND and AWATER represent the land and water area of each state in square meters. To create a choropleth map based on the natural log of AWATER, include the <code>column</code> argument to the <code>plot</code> method:</p>
-<div id="cell-14" class="cell" data-execution_count="42">
-<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
-<span id="cb7-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute natural log of AWATER to get better separation by state.</span></span>
-<span id="cb7-3">dfshp48[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"log_AWATER"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> np.log(dfshp48[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"AWATER"</span>])</span>
-<span id="cb7-4">dfshp48.plot(column<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"log_AWATER"</span>, cmap<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"plasma"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-8-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><br></p>
-<p>We can reformat the map as before, while also adding a legend to give context the difference in colors by state. Options for colormaps are available <a href="https://matplotlib.org/stable/users/explain/colors/colormaps.html">here</a>:</p>
-<div id="cell-16" class="cell" data-execution_count="60">
-<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"></span>
-<span id="cb8-2">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb8-3">ax.set_title(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Ln(AWATER) - Lower 48 States"</span>)</span>
-<span id="cb8-4">dfshp48.plot(</span>
-<span id="cb8-5">    ax<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>ax, column<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"log_AWATER"</span>, edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"gray"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.50</span>, </span>
-<span id="cb8-6">    cmap<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"gist_rainbow"</span>, alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.750</span>, legend<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>,</span>
-<span id="cb8-7">    legend_kwds<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"label"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Ln(AWATER)"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"orientation"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"vertical"</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"shrink"</span>: <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.35</span>}</span>
-<span id="cb8-8">    )</span>
-<span id="cb8-9">ax.axis(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"off"</span>)</span>
-<span id="cb8-10">plt.show()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-9-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-</section>
-<section id="congressional-district-shapefiles" class="level3">
-<h3 class="anchored" data-anchor-id="congressional-district-shapefiles">Congressional District Shapefiles</h3>
-<p>For variety, let’s download the Congressional District shapefile and plot the boundaries. It is available at the same link as above, and is identified as <em>cb_2018_us_cd116_500k.zip</em>. Reading the file into GeoPandas and displaying the first 5 rows yields:</p>
-<div id="cell-18" class="cell" data-execution_count="62">
-<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
-<span id="cb9-2">dfc <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> gpd.read_file(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"cb_2018_us_cd116_500k.zip"</span>)</span>
-<span id="cb9-3"></span>
-<span id="cb9-4"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"dfc.shape: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>dfc<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb9-5"></span>
-<span id="cb9-6">dfc.head(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>dfc.shape: (441, 9)</code></pre>
-</div>
-<div class="cell-output cell-output-display" data-execution_count="62">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">STATEFP</th>
-<th data-quarto-table-cell-role="th">CD116FP</th>
-<th data-quarto-table-cell-role="th">AFFGEOID</th>
-<th data-quarto-table-cell-role="th">GEOID</th>
-<th data-quarto-table-cell-role="th">LSAD</th>
-<th data-quarto-table-cell-role="th">CDSESSN</th>
-<th data-quarto-table-cell-role="th">ALAND</th>
-<th data-quarto-table-cell-role="th">AWATER</th>
-<th data-quarto-table-cell-role="th">geometry</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
-<td>17</td>
-<td>10</td>
-<td>5001600US1710</td>
-<td>1710</td>
-<td>C2</td>
-<td>116</td>
-<td>777404163</td>
-<td>31605644</td>
-<td>POLYGON ((-88.19882 42.41557, -88.19860 42.415...</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
-<td>47</td>
-<td>06</td>
-<td>5001600US4706</td>
-<td>4706</td>
-<td>C2</td>
-<td>116</td>
-<td>16770155959</td>
-<td>324676580</td>
-<td>POLYGON ((-87.15023 36.56770, -87.14962 36.568...</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
-<td>48</td>
-<td>06</td>
-<td>5001600US4806</td>
-<td>4806</td>
-<td>C2</td>
-<td>116</td>
-<td>5564805243</td>
-<td>255530191</td>
-<td>POLYGON ((-97.38860 32.61731, -97.38856 32.618...</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
-<td>48</td>
-<td>07</td>
-<td>5001600US4807</td>
-<td>4807</td>
-<td>C2</td>
-<td>116</td>
-<td>419784487</td>
-<td>3069802</td>
-<td>POLYGON ((-95.77383 29.87515, -95.76962 29.875...</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
-<td>48</td>
-<td>26</td>
-<td>5001600US4826</td>
-<td>4826</td>
-<td>C2</td>
-<td>116</td>
-<td>2349987793</td>
-<td>191353567</td>
-<td>POLYGON ((-97.39826 32.99996, -97.39792 33.013...</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<p>We again display the boundaries:</p>
-<div id="cell-20" class="cell" data-execution_count="66">
-<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"></span>
-<span id="cb11-2">dfc.boundary.plot()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-11-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p>We’d like to focus on the lower 48 states again, but this time the shapefile doesn’t have a NAME column. How should we proceed?</p>
-<p>One approach is to define a bounding box that encloses the lower 48 states, then filter the shapefile to retain only those congressional districts whose geometry intersects the bounding box. GeoPandas provides coordinate based indexing with the <code>cx</code> indexer, which slices using a bounding box. Geometries in the GeoSeries or GeoDataFrame that intersect the bounding box will be returned.</p>
-<p>For the lower 48 states bounding box, we’ll use <strong>(-125, 24.6), (-65, 50)</strong>, southwest to northeast. We also include a circle marker at the center of each congressional district:</p>
-<div id="cell-22" class="cell" data-execution_count="80">
-<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
-<span id="cb12-2">xmin, ymin, xmax, ymax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">125</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">24.6</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">65</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">50</span></span>
-<span id="cb12-3">dfc48 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dfc.cx[xmin:xmax, ymin:ymax]</span>
-<span id="cb12-4"></span>
-<span id="cb12-5"></span>
-<span id="cb12-6"></span>
-<span id="cb12-7">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>)</span>
-<span id="cb12-8">ax.set_title(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"US Congressional Districts, 116th Congress - Lower 48 States"</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">11</span>)</span>
-<span id="cb12-9">dfc48.boundary.plot(ax<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>ax, edgecolor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"black"</span>, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.50</span>)</span>
-<span id="cb12-10">dfc48.geometry.centroid.plot(ax<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>ax, markersize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>)</span>
-<span id="cb12-11">ax.axis(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"off"</span>)</span>
-<span id="cb12-12">plt.show()</span></code></pre></div>
-<div class="cell-output cell-output-stderr">
-<pre><code>C:\Users\jtriv\AppData\Local\Temp\ipykernel_8996\3296541533.py:9: UserWarning: Geometry is in a geographic CRS. Results from 'centroid' are likely incorrect. Use 'GeoSeries.to_crs()' to re-project geometries to a projected CRS before this operation.
-
-  dfc48.geometry.centroid.plot(ax=ax, markersize=6, color="red")</code></pre>
-</div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-12-output-2.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><br></p>
-</section>
-<section id="geojson" class="level3">
-<h3 class="anchored" data-anchor-id="geojson">GeoJSON</h3>
-<p>Working with GeoJSON is much the same as working with shapefiles, one difference being that with GeoJSON, vector data is contained within a single file as opposed to an archive of multiple file types. See <a href="https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json">here</a> for an example.</p>
-<p>But once read into GeoPandas, we work with it the same way. We can load US state boundary files as GeoJSON from GitHub via:</p>
-<div id="cell-24" class="cell" data-execution_count="81">
-<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
-<span id="cb14-2">dfstate <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> gpd.read_file(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json"</span>)</span>
-<span id="cb14-3"></span>
-<span id="cb14-4">dfstate.head()</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="81">
-<div>
-
-
-<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
-<thead>
-<tr class="header">
-<th data-quarto-table-cell-role="th"></th>
-<th data-quarto-table-cell-role="th">id</th>
-<th data-quarto-table-cell-role="th">name</th>
-<th data-quarto-table-cell-role="th">density</th>
-<th data-quarto-table-cell-role="th">geometry</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">0</td>
-<td>01</td>
-<td>Alabama</td>
-<td>94.650</td>
-<td>POLYGON ((-87.35930 35.00118, -85.60667 34.984...</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">1</td>
-<td>02</td>
-<td>Alaska</td>
-<td>1.264</td>
-<td>MULTIPOLYGON (((-131.60202 55.11798, -131.5691...</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">2</td>
-<td>04</td>
-<td>Arizona</td>
-<td>57.050</td>
-<td>POLYGON ((-109.04250 37.00026, -109.04798 31.3...</td>
-</tr>
-<tr class="even">
-<td data-quarto-table-cell-role="th">3</td>
-<td>05</td>
-<td>Arkansas</td>
-<td>56.430</td>
-<td>POLYGON ((-94.47384 36.50186, -90.15254 36.496...</td>
-</tr>
-<tr class="odd">
-<td data-quarto-table-cell-role="th">4</td>
-<td>06</td>
-<td>California</td>
-<td>241.700</td>
-<td>POLYGON ((-123.23326 42.00619, -122.37885 42.0...</td>
-</tr>
-</tbody>
-</table>
-
-</div>
-</div>
-</div>
-<div id="cell-25" class="cell" data-execution_count="82">
-<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"></span>
-<span id="cb15-2">dfstate.plot()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data_files/figure-html/cell-14-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-
-
-</section>
-
- ]]></description>
-  <category>Python</category>
-  <category>Geospatial</category>
-  <guid>https://www.jtrive.com/posts/working-with-geospatial-vector-data/working-with-geospatial-vector-data.html</guid>
-  <pubDate>Sat, 17 Aug 2024 05:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>

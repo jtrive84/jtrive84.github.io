@@ -10,7 +10,746 @@
 <atom:link href="https://www.jtrive.com/index-python.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Wed, 21 May 2025 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sat, 14 Jun 2025 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Handling Larger-than-Memory Datasets with Polars LazyFrame</title>
+  <dc:creator>James Triveri</dc:creator>
+  <link>https://www.jtrive.com/posts/polars-lazyframe/polars-lazyframe.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>Pandas is the de-facto standard when working with tabular datasets in Python, but it encounters significant challenges when handling large datasets. The core issue stems from Pandas’ architecture, which relies entirely on in-memory processing. This design requires loading the entire dataset into memory, resulting in a hard limit on the size of datasets that Pandas can process. When data volumes exceed this threshold, performance degrades dramatically, often resulting in system crashes or memory exhaustion errors.</p>
+<p>In addition, Pandas operates via single-threaded execution, processing data sequentially rather than leveraging the parallel processing capabilities of multi-core systems. This creates performance bottlenecks that become increasingly pronounced as the size of data grows.</p>
+<p>In a previous <a href="https://www.jtrive.com/posts/boostrap-chainladder-polars/bootstrap-chainladder-polars.html">post</a>, I demonstrated how Polars can we used as an (almost) drop-in Pandas replacement for routine data processing tasks. Here we explore the Polars LazyFrame, which has no analog in Pandas. A LazyFrame builds up a sequence of operations without immediately executing them. Instead, it constructs a deferred query plan that is only run when explicitly requested, usually by calling the <code>.collect()</code> method. Deferred execution allows Polars to optimize the entire pipeline and apply techniques like predicate and projection pushdown, and process data using out-of-core techniques when necessary.</p>
+<p>In the examples that follow, the <a href="https://www.kaggle.com/datasets/dilwong/flightprices">Flight Prices</a> dataset is used. It is a 31GB CSV file containing one-way flight itineraries found on Expedia between 2022-04-16 and 2022-10-05 for airport codes ATL, DFW, DEN, ORD, LAX, CLT, MIA, JFK, EWR, SFO, DTW, BOS, PHL, LGA, IAD and OAK. The file is larger than the client’s available memory, so it isn’t possible to analyze the full Flight Prices dataset with Pandas, which requires the entire file to be loaded into memory upfront. Given that the 31GB footprint is about 2x the RAM of the client I’m working from, it should be a perfect setting to demonstrate LazyFrame functionality.</p>
+<p>In Polars, <code>.scan_csv</code> creates a LazyFrame by scanning the metadata and schema of a CSV file without loading the full dataset. In contrast, <code>.read_csv</code> immediately reads the entire file into memory as a DataFrame, performing eager evaluation. <code>.scan_csv</code> supports lazy, memory-efficient workflows, while <code>.read_csv</code> is eager and requires the dataset to fit in RAM.</p>
+<p>We can preview the first 5 rows of the Flight Prices dataset calling <code>scan_csv</code> followed by <code>.head(5).collect()</code> (<code>fetch</code> has been deprecated):</p>
+<div id="8d43e195" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> polars <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pl </span>
+<span id="cb1-3"></span>
+<span id="cb1-4">pl.Config(tbl_rows<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">30</span>)</span>
+<span id="cb1-5">pl.Config(float_precision<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)</span>
+<span id="cb1-6">pl.Config(tbl_cols<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-7"></span>
+<span id="cb1-8"></span>
+<span id="cb1-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create LazyFrame based on itineraries.csv. Dataset is available here:</span></span>
+<span id="cb1-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">#   https://www.kaggle.com/datasets/dilwong/flightprices</span></span>
+<span id="cb1-11">lf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pl.scan_csv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"itineraries.csv"</span>)</span>
+<span id="cb1-12"></span>
+<span id="cb1-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Display the first 5 rows.</span></span>
+<span id="cb1-14">first5 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> lf.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>).collect()</span>
+<span id="cb1-15"></span>
+<span id="cb1-16">first5</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (5, 27)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">legId</th>
+<th data-quarto-table-cell-role="th">searchDate</th>
+<th data-quarto-table-cell-role="th">flightDate</th>
+<th data-quarto-table-cell-role="th">startingAirport</th>
+<th data-quarto-table-cell-role="th">destinationAirport</th>
+<th data-quarto-table-cell-role="th">fareBasisCode</th>
+<th data-quarto-table-cell-role="th">travelDuration</th>
+<th data-quarto-table-cell-role="th">elapsedDays</th>
+<th data-quarto-table-cell-role="th">isBasicEconomy</th>
+<th data-quarto-table-cell-role="th">isRefundable</th>
+<th data-quarto-table-cell-role="th">isNonStop</th>
+<th data-quarto-table-cell-role="th">baseFare</th>
+<th data-quarto-table-cell-role="th">totalFare</th>
+<th data-quarto-table-cell-role="th">seatsRemaining</th>
+<th data-quarto-table-cell-role="th">totalTravelDistance</th>
+<th data-quarto-table-cell-role="th">segmentsDepartureTimeEpochSeconds</th>
+<th data-quarto-table-cell-role="th">segmentsDepartureTimeRaw</th>
+<th data-quarto-table-cell-role="th">segmentsArrivalTimeEpochSeconds</th>
+<th data-quarto-table-cell-role="th">segmentsArrivalTimeRaw</th>
+<th data-quarto-table-cell-role="th">segmentsArrivalAirportCode</th>
+<th data-quarto-table-cell-role="th">segmentsDepartureAirportCode</th>
+<th data-quarto-table-cell-role="th">segmentsAirlineName</th>
+<th data-quarto-table-cell-role="th">segmentsAirlineCode</th>
+<th data-quarto-table-cell-role="th">segmentsEquipmentDescription</th>
+<th data-quarto-table-cell-role="th">segmentsDurationInSeconds</th>
+<th data-quarto-table-cell-role="th">segmentsDistance</th>
+<th data-quarto-table-cell-role="th">segmentsCabinCode</th>
+</tr>
+<tr class="odd">
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>i64</th>
+<th>bool</th>
+<th>bool</th>
+<th>bool</th>
+<th>f64</th>
+<th>f64</th>
+<th>i64</th>
+<th>i64</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+<th>str</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>"9ca0e81111c683bec1012473feefd2…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H29M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>9</td>
+<td>947</td>
+<td>"1650214620"</td>
+<td>"2022-04-17T12:57:00.000-04:00"</td>
+<td>"1650223560"</td>
+<td>"2022-04-17T15:26:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Airbus A321"</td>
+<td>"8940"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+<tr class="even">
+<td>"98685953630e772a098941b7190659…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H30M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>4</td>
+<td>947</td>
+<td>"1650191400"</td>
+<td>"2022-04-17T06:30:00.000-04:00"</td>
+<td>"1650200400"</td>
+<td>"2022-04-17T09:00:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Airbus A321"</td>
+<td>"9000"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+<tr class="odd">
+<td>"98d90cbc32bfbb05c2fc32897c7c10…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H30M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>9</td>
+<td>947</td>
+<td>"1650209700"</td>
+<td>"2022-04-17T11:35:00.000-04:00"</td>
+<td>"1650218700"</td>
+<td>"2022-04-17T14:05:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Boeing 757-200"</td>
+<td>"9000"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+<tr class="even">
+<td>"969a269d38eae583f455486fa90877…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H32M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>8</td>
+<td>947</td>
+<td>"1650218340"</td>
+<td>"2022-04-17T13:59:00.000-04:00"</td>
+<td>"1650227460"</td>
+<td>"2022-04-17T16:31:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Airbus A321"</td>
+<td>"9120"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+<tr class="odd">
+<td>"980370cf27c89b40d2833a1d5afc97…</td>
+<td>"2022-04-16"</td>
+<td>"2022-04-17"</td>
+<td>"ATL"</td>
+<td>"BOS"</td>
+<td>"LA0NX0MC"</td>
+<td>"PT2H34M"</td>
+<td>0</td>
+<td>false</td>
+<td>false</td>
+<td>true</td>
+<td>217.6700</td>
+<td>248.6000</td>
+<td>9</td>
+<td>947</td>
+<td>"1650203940"</td>
+<td>"2022-04-17T09:59:00.000-04:00"</td>
+<td>"1650213180"</td>
+<td>"2022-04-17T12:33:00.000-04:00"</td>
+<td>"BOS"</td>
+<td>"ATL"</td>
+<td>"Delta"</td>
+<td>"DL"</td>
+<td>"Airbus A321"</td>
+<td>"9240"</td>
+<td>"947"</td>
+<td>"coach"</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p><br></p>
+<p><br></p>
+<p>To demonstrate how LazyFrames work, we’ll execute a simple (contrived) filter/aggregate/average pipeline to compute the average ticket price by origin airport and airline, but only for non-stop flights departing in July and August. This requires filtering, grouping, and aggregation operations that benefit from lazy evaluation and query optimization:</p>
+<ul>
+<li>Filter rows where the <code>flightDate</code> is in July or August.</li>
+<li>Group by <code>startingAirport</code> airport and <code>segmentsAirlineName</code>.</li>
+<li>Calculate the average <code>totalFare</code> for each group.</li>
+<li>Sort the results from highest to lowest average fare.</li>
+</ul>
+<div id="9e8b7393" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
+<span id="cb2-2">result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb2-3">    lf</span>
+<span id="cb2-4">    .<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">filter</span>(</span>
+<span id="cb2-5">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"flightDate"</span>).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>.strptime(pl.Date, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%Y-%m-</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%d</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>).dt.month().is_in([<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb2-6">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"isNonStop"</span>)</span>
+<span id="cb2-7">    )</span>
+<span id="cb2-8">    .group_by([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"startingAirport"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"segmentsAirlineName"</span>])</span>
+<span id="cb2-9">    .agg(</span>
+<span id="cb2-10">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"totalFare"</span>).mean().alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"avg_price"</span>)</span>
+<span id="cb2-11">    )</span>
+<span id="cb2-12">    .sort(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"avg_price"</span>, descending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb2-13">)</span></code></pre></div>
+</div>
+<p>Notice that we didn’t include <code>.collect()</code> in the <code>result</code> pipeline. Until <code>.collect()</code> is called, no computation is performed: Polars just builds a query plan.</p>
+<p>It is possible to view the query plan by calling <code>.explain(optimized=True)</code>. This will display the optimized logical plan that Polars will execute when <code>.collect()</code> is called:</p>
+<div id="7e49c7c8" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(result.explain(optimized<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>SORT BY [col("avg_price")]
+  AGGREGATE
+    [col("totalFare").mean().alias("avg_price")] BY [col("startingAirport"), col("segmentsAirlineName")] FROM
+    simple π 5/5 ["totalFare", "startingAirport", ... 3 other columns]
+      Csv SCAN [itineraries.csv]
+      PROJECT 5/27 COLUMNS
+      SELECTION: [(col("isNonStop")) &amp; (col("flightDate").str.strptime([String(raise)]).dt.month().is_in([Series]))]</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>See <a href="https://realpython.com/polars-lazyframe/#investigating-the-optimized-query-plan">this</a> article for more information on interpreting query plans. You can optionally install Graphviz to have the query plan rendered graphically using <code>lf.show_graph()</code>.</p>
+<p>When calling <code>.collect()</code>, we include <code>streaming=True</code>. This ensures Polars processes the data in a streaming (out-of-core) fashion. The dataset will be processed in small chunks rather than loading the entire dataset into memory at once.</p>
+<div id="b8ac8c46" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
+<span id="cb5-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Execute result pipeline in streaming mode.</span></span>
+<span id="cb5-3">result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> result.collect(streaming<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb5-4"></span>
+<span id="cb5-5"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"type(result): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">type</span>(result)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"result.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>result<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-7"></span>
+<span id="cb5-8">result.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>type(result): &lt;class 'polars.dataframe.frame.DataFrame'&gt;
+result.shape: (95, 3)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="6">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (10, 3)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">startingAirport</th>
+<th data-quarto-table-cell-role="th">segmentsAirlineName</th>
+<th data-quarto-table-cell-role="th">avg_price</th>
+</tr>
+<tr class="odd">
+<th>str</th>
+<th>str</th>
+<th>f64</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>"BOS"</td>
+<td>"Alaska Airlines"</td>
+<td>502.8843</td>
+</tr>
+<tr class="even">
+<td>"SFO"</td>
+<td>"American Airlines"</td>
+<td>437.5257</td>
+</tr>
+<tr class="odd">
+<td>"IAD"</td>
+<td>"Alaska Airlines"</td>
+<td>433.5487</td>
+</tr>
+<tr class="even">
+<td>"LAX"</td>
+<td>"American Airlines"</td>
+<td>425.0462</td>
+</tr>
+<tr class="odd">
+<td>"ORD"</td>
+<td>"Alaska Airlines"</td>
+<td>407.9898</td>
+</tr>
+<tr class="even">
+<td>"SFO"</td>
+<td>"JetBlue Airways"</td>
+<td>402.2174</td>
+</tr>
+<tr class="odd">
+<td>"ATL"</td>
+<td>"Alaska Airlines"</td>
+<td>383.4524</td>
+</tr>
+<tr class="even">
+<td>"LAX"</td>
+<td>"Delta"</td>
+<td>374.1640</td>
+</tr>
+<tr class="odd">
+<td>"JFK"</td>
+<td>"United"</td>
+<td>369.2713</td>
+</tr>
+<tr class="even">
+<td>"LAX"</td>
+<td>"JetBlue Airways"</td>
+<td>368.5215</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Once <code>.collect(streaming=True)</code> is called, <code>result</code> materializes into a Polars DataFrame. The ultimate output is a 95x3 DataFrame with average fare price by origin airport and airline. Executing the <code>result</code> pipeline took about 45 seconds.</p>
+<p>Alaska Airlines seems to have higher average fares than other airlines. This is probably a consequence of the greater distance Alaska Airlines flights cover compared with other carriers, resulting in higher average fare costs. Instead we should calculate average total fare per mile. The <code>result2</code> pipeline in the next cell performs this calculation. We need to convert <code>segmentsDistance</code> to a numeric type since it was interpreted as a text column when initially read:</p>
+<div id="f4f2129f" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Calculate the average total fare per mile for non-stop flights in July and August.</span></span>
+<span id="cb7-3">result2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb7-4">    lf</span>
+<span id="cb7-5">    .<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">filter</span>(</span>
+<span id="cb7-6">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"flightDate"</span>).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>.strptime(pl.Date, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"%Y-%m-</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%d</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>).dt.month().is_in([<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8</span>]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb7-7">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"isNonStop"</span>)</span>
+<span id="cb7-8">    )</span>
+<span id="cb7-9">    .with_columns(</span>
+<span id="cb7-10">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Cast segmentDistance to Float64. Use strict=False to convert errors to null.</span></span>
+<span id="cb7-11">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"segmentsDistance"</span>).cast(pl.Float64, strict<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>).alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>)</span>
+<span id="cb7-12">    )</span>
+<span id="cb7-13">    .<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">filter</span>(</span>
+<span id="cb7-14">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Ensure numeric_distance is not null and positive.</span></span>
+<span id="cb7-15">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>).is_not_null() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span> (pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)</span>
+<span id="cb7-16">    )</span>
+<span id="cb7-17">    .group_by([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"startingAirport"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"segmentsAirlineName"</span>])</span>
+<span id="cb7-18">    .agg(</span>
+<span id="cb7-19">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Calculate the mean of totalFare / numeric_distance</span></span>
+<span id="cb7-20">        (pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"totalFare"</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"miles"</span>)).mean().alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"avg_price_per_mile"</span>)</span>
+<span id="cb7-21">    )</span>
+<span id="cb7-22">    .sort(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"avg_price_per_mile"</span>, descending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb7-23">).collect(streaming<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb7-24"></span>
+<span id="cb7-25">result2.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (20, 3)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">startingAirport</th>
+<th data-quarto-table-cell-role="th">segmentsAirlineName</th>
+<th data-quarto-table-cell-role="th">avg_price_per_mile</th>
+</tr>
+<tr class="odd">
+<th>str</th>
+<th>str</th>
+<th>f64</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>"PHL"</td>
+<td>"United"</td>
+<td>0.7913</td>
+</tr>
+<tr class="even">
+<td>"CLT"</td>
+<td>"Delta"</td>
+<td>0.6019</td>
+</tr>
+<tr class="odd">
+<td>"IAD"</td>
+<td>"Delta"</td>
+<td>0.5592</td>
+</tr>
+<tr class="even">
+<td>"DTW"</td>
+<td>"United"</td>
+<td>0.5220</td>
+</tr>
+<tr class="odd">
+<td>"DTW"</td>
+<td>"American Airlines"</td>
+<td>0.5048</td>
+</tr>
+<tr class="even">
+<td>"PHL"</td>
+<td>"Delta"</td>
+<td>0.4816</td>
+</tr>
+<tr class="odd">
+<td>"BOS"</td>
+<td>"Delta"</td>
+<td>0.4673</td>
+</tr>
+<tr class="even">
+<td>"IAD"</td>
+<td>"United"</td>
+<td>0.4650</td>
+</tr>
+<tr class="odd">
+<td>"EWR"</td>
+<td>"United"</td>
+<td>0.4603</td>
+</tr>
+<tr class="even">
+<td>"CLT"</td>
+<td>"United"</td>
+<td>0.4481</td>
+</tr>
+<tr class="odd">
+<td>"ATL"</td>
+<td>"American Airlines"</td>
+<td>0.4441</td>
+</tr>
+<tr class="even">
+<td>"BOS"</td>
+<td>"American Airlines"</td>
+<td>0.4434</td>
+</tr>
+<tr class="odd">
+<td>"DTW"</td>
+<td>"Delta"</td>
+<td>0.4387</td>
+</tr>
+<tr class="even">
+<td>"IAD"</td>
+<td>"American Airlines"</td>
+<td>0.4381</td>
+</tr>
+<tr class="odd">
+<td>"CLT"</td>
+<td>"American Airlines"</td>
+<td>0.4291</td>
+</tr>
+<tr class="even">
+<td>"LGA"</td>
+<td>"United"</td>
+<td>0.4277</td>
+</tr>
+<tr class="odd">
+<td>"EWR"</td>
+<td>"Delta"</td>
+<td>0.4215</td>
+</tr>
+<tr class="even">
+<td>"JFK"</td>
+<td>"Delta"</td>
+<td>0.4106</td>
+</tr>
+<tr class="odd">
+<td>"JFK"</td>
+<td>"American Airlines"</td>
+<td>0.4095</td>
+</tr>
+<tr class="even">
+<td>"BOS"</td>
+<td>"United"</td>
+<td>0.4083</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Polars LazyFrames unlock a new level of efficiency and scalability for data analysis in Python, enabling the handling of massive datasets with ease and speed without having to maintain a dedicated compute cluster. LazyFrames overcome many of the limitations of traditional in-memory tools like pandas by leveraging deferred execution, query optimization and out-of-core computation. For additional information on LazyFrames and streaming mode, check out the links below:</p>
+<ul>
+<li><a href="https://docs.pola.rs/py-polars/html/reference/lazy/index.html">Polars Lazy API Docs</a></li>
+<li><a href="https://pola-rs.github.io/polars-book/user-guide/lazy/streaming/">Polars Streaming Mode</a></li>
+<li><a href="https://pola-rs.github.io/polars-book/user-guide/how-it-works/">Why Polars is Fast</a></li>
+</ul>
+
+
+
+ ]]></description>
+  <category>Python</category>
+  <guid>https://www.jtrive.com/posts/polars-lazyframe/polars-lazyframe.html</guid>
+  <pubDate>Sat, 14 Jun 2025 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Streamlining Multi-App Deployment with Docker and NGINX</title>
   <link>https://www.jtrive.com/posts/multi-app-server/app-server-from-scratch.html</link>
@@ -41570,717 +42309,6 @@ font-style: inherit;">=</span>pickle.HIGHEST_PROTOCOL)</span></code></pre></div>
   <category>Python</category>
   <guid>https://www.jtrive.com/posts/composite-estimators/composite-estimators.html</guid>
   <pubDate>Thu, 01 Aug 2024 05:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Querying SQL Server from Pandas</title>
-  <link>https://www.jtrive.com/posts/sqlserver-from-python/sqlserver-from-python.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>If you research how to connect to a database from Python, many examples use the pyodbc library, which, aptly named, creates a connection to any ODBC-compatible database. However, connections with pyodbc itself are uni-directional: Data can be retrieved, but it cannot be uploaded into the database. To allow for simple, bi-directional database transactions, we use pyodbc along with <a href="https://www.sqlalchemy.org/">sqlalchemy</a>, a Python SQL toolkit and Object Relational Mapper that gives application developers the full power and flexibility of SQL. With pyodbc and sqlalchemy together, it becomes possible to retrieve and upload data from Pandas DataFrames with relative ease. Let’s assume we’re interested in connecting to a SQL Server database on some server. A connection using sqlalchemy is created as follows:</p>
-<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Creating a database connection with sqlalchemy. </span></span>
-<span id="cb1-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb1-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> sqlalchemy</span>
-<span id="cb1-6"></span>
-<span id="cb1-7">DRIVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SQL Server"</span></span>
-<span id="cb1-8">SERVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SERVER"</span></span>
-<span id="cb1-9">DATABASE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"DATABASE"</span></span>
-<span id="cb1-10"></span>
-<span id="cb1-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create connection uri.</span></span>
-<span id="cb1-12">conn_uri <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"mssql+pyodbc://</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>SERVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DATABASE<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">?driver=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DRIVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.replace(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" "</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"+"</span>)</span>
-<span id="cb1-13"></span>
-<span id="cb1-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize connection.</span></span>
-<span id="cb1-15">conn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>  sqlalchemy.create_engine(conn_uri)</span></code></pre></div>
-<p>A few points to highlight:</p>
-<ul>
-<li><p><code>conn_uri</code> is a string that contains information needed to connect to our database. The prefix <code>mssql+pyodbc://</code> indicates that we’re targeting a SQL Server database via the pyodbc connector. Also, if we weren’t using Windows authentication, or were working with a different RDBMS, it would be necessary to change <code>conn_uri</code>. For example, an Oracle connection uri would be specified as <code>oracle://[USERNAME]:[PASSWORD]@[DATABASE]</code>.</p></li>
-<li><p>Also in <code>conn_uri</code>, within the format substitution, whitespace in <code>DRIVER</code> is replaced with <code>+</code>. This is consistent with how whitespace is encoded for web addresses.</p></li>
-</ul>
-<p>Next, to query the French Motor Third-Party Liability Claims sample dataset in the table <em>SAMPLE_FREMTPL</em>, use the <code>read_sql</code> function. I’ve included the connection initialization logic for convenience:</p>
-<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb2-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Reading database data into Pandas DataFrame.</span></span>
-<span id="cb2-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb2-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb2-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> sqlalchemy</span>
-<span id="cb2-6"></span>
-<span id="cb2-7">DRIVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SQL Server"</span></span>
-<span id="cb2-8">SERVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SERVER"</span></span>
-<span id="cb2-9">DATABASE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"DATABASE"</span></span>
-<span id="cb2-10"></span>
-<span id="cb2-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create connection uri.</span></span>
-<span id="cb2-12">conn_uri <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"mssql+pyodbc://</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>SERVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DATABASE<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">?driver=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DRIVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.replace(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" "</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"+"</span>)</span>
-<span id="cb2-13"></span>
-<span id="cb2-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize connection.</span></span>
-<span id="cb2-15">conn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>  sqlalchemy.create_engine(conn_uri)</span>
-<span id="cb2-16"></span>
-<span id="cb2-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create query. </span></span>
-<span id="cb2-18">SQL <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SELECT * FROM SAMPLE_TABLE"</span></span>
-<span id="cb2-19"></span>
-<span id="cb2-20">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_sql(SQL, con<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>conn)</span></code></pre></div>
-<p>Instead of passing a query to <code>pd.read_sql</code>, the tablename could have been provided. <code>pd.read_sql</code> is convenience wrapper around <code>read_sql_table</code> and <code>read_sql_query</code> which will delegate to the specific function depending on the input (dispatches <code>read_sql_table</code> if input is a tablename, <code>read_sql_query</code> if input is a query). Refer to the <a href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_sql.html#pandas.read_sql">documentation</a> for more information.</p>
-<p>Let’s assume SAMPLE_TABLE represents the French Motor Third-Party Liability Claims dataset available <a href="https://www.kaggle.com/datasets/floser/french-motor-claims-datasets-fremtpl2freq">here</a>. Inspecting the first 10 records of the dataset yields:</p>
-<pre><code>  IDPOL CLAIMNB  EXPOSURE AREA  VEHPOWER VEHAGE  DRIVAGE  BONUSMALUS VEHBRAND     VEHGAS  DENSITY REGION
-0  1290       1   0.66000  'B'         7      0       28          60    'B12'  'Regular'       52  'R72'
-1  1292       1   0.12000  'B'         7      0       28          60    'B12'  'Regular'       52  'R72'
-2  1295       1   0.08000  'E'         5      0       36          50    'B12'  'Regular'     3274  'R11'
-3  1296       1   0.50000  'E'         5      0       36          50    'B12'  'Regular'     3274  'R11'
-4  1297       1   0.20000  'E'         5      0       36          50    'B12'  'Regular'     3274  'R11'
-5  1299       1   0.74000  'D'         6      0       76          50    'B12'  'Regular'      543  'R91'
-6  1301       1   0.05000  'D'         6      0       76          50    'B12'  'Regular'      543  'R91'
-7  1303       1   0.03000  'B'        11      0       39          50    'B12'   'Diesel'       55  'R52'
-8  1304       1   0.76000  'B'        11      0       39          50    'B12'   'Diesel'       55  'R52'
-9  1306       1   0.49000  'E'        10      0       38          50    'B12'  'Regular'     2715  'R93'</code></pre>
-<section id="iterative-data-retrieval" class="level3">
-<h3 class="anchored" data-anchor-id="iterative-data-retrieval">Iterative Data Retrieval</h3>
-<p>When working with large datasets, it may be inefficient to retrieve the entire dataset in a single pass. Pandas provides functionality to retrieve data in <code>chunksize</code>-record blocks, which can result in significant speedups. In the following example, the same French Motor Third-Party Liability Claims sample dataset is retrieved in 20,000-record blocks. The only change in the call to <code>read_sql</code> is the inclusion of <code>chunksize</code>, which specifies the maximum number of records to retrieve for a given iteration. We assume <code>conn</code> has already been initialized:</p>
-<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb4-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Using `read_sql`'s *chunksize* parameter for iterative retrieval.</span></span>
-<span id="cb4-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb4-4">CHUNKSIZE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">20000</span></span>
-<span id="cb4-5">SQL <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SELECT * FROM SAMPLE_TABLE"</span></span>
-<span id="cb4-6">dfiter <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_sql(SQL, con<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>conn, chunksize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>CHUNKSIZE)</span>
-<span id="cb4-7">df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.concat([dd <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> dd <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> dfiter])</span></code></pre></div>
-<ul>
-<li><code>CHUNKSIZE</code> specifies the maximum number of records to retrieve at each iteration.</li>
-<li><code>dfiter</code> is a reference to the data targeted in our query. <code>dfiter</code> is not a DataFrame, rather it is a generator, a Python object which makes it easy to create iterators. Generators yield values lazily, so they are particularly memory efficient.</li>
-<li><code>df = pd.concat([dd for dd in dfiter])</code> can be decomposed into two parts: First, <code>[dd for dd in dfiter]</code> is a <em>list comprehension</em>, a very powerful tool that works similar to a flattened for loop. If we bound <code>[dd for dd in dfiter]</code> to a variable directly, the result would be a list of 34 DataFrames, each having no more than 20,000 records. Second, <code>pd.concat</code> takes the list of DataFrames, and performs a row-wise concatenation of each DataFrame, resulting in a single DataFrame with 678,013 records. <code>pd.concat</code> is akin to the SQL <code>UNION</code> operator. The final result, <code>df</code>, is a DataFrame having 678,013 rows and 12 columns.</li>
-</ul>
-</section>
-<section id="exporting-results-to-file" class="level3">
-<h3 class="anchored" data-anchor-id="exporting-results-to-file">Exporting Results to File</h3>
-<p>Instead of reading the data into memory, it may be necessary to retrieve the dataset, then write the results to file for later analysis. This can be accomplished in an iterative fashion so that no more than <code>CHUNKSIZE</code> records are in-memory at any point in time. Results will be saved to .csv in a file named <code>"FREMTPL.csv"</code> in 100,000 record blocks:</p>
-<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb5-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Writing queried results to file. </span></span>
-<span id="cb5-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb5-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> time</span>
-<span id="cb5-5"></span>
-<span id="cb5-6">CHUNKSIZE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">100000</span></span>
-<span id="cb5-7">CSV_PATH  <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"FREMTPL.csv"</span></span>
-<span id="cb5-8">SQL <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SELECT * FROM SAMPLE_TABLE"</span></span>
-<span id="cb5-9"></span>
-<span id="cb5-10">dfiter <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_sql(SQL, conn, chunksize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>CHUNKSIZE)</span>
-<span id="cb5-11"></span>
-<span id="cb5-12">t_i <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time()</span>
-<span id="cb5-13">trkr, nbrrecs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span></span>
-<span id="cb5-14"></span>
-<span id="cb5-15"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">with</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">open</span>(CSV_PATH, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"w"</span>, encoding<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"utf-8"</span>, newline<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>) <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> fcsv:</span>
-<span id="cb5-16">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> df <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> dfiter:</span>
-<span id="cb5-17">        fcsv.write(df.to_csv(header<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>nbrrecs<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span>, mode<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>))</span>
-<span id="cb5-18">        nbrrecs<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span>df.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span>
-<span id="cb5-19">        <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Retrieved records </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">-</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">format</span>((trkr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> CHUNKSIZE) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, nbrrecs))</span>
-<span id="cb5-20">        trkr<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb5-21"></span>
-<span id="cb5-22">t_tot <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> t_i</span>
-<span id="cb5-23">retrieval_rate <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nbrrecs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> t_tot</span>
-<span id="cb5-24"></span>
-<span id="cb5-25"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(</span>
-<span id="cb5-26">    <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Retrieved </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>nbrrecs<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> records in </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>t_tot<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.0f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> seconds (</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>retrieval_rate<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.0f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> recs/sec.)."</span></span>
-<span id="cb5-27">    )</span></code></pre></div>
-<p>Executing the code above produces the following output:</p>
-<pre><code>Retrieved records 1-100000
-Retrieved records 100001-200000
-Retrieved records 200001-300000
-Retrieved records 300001-400000
-Retrieved records 400001-500000
-Retrieved records 500001-600000
-Retrieved records 600001-678013
-Retrieved 678013 records in 20 seconds (33370 recs/sec.).</code></pre>
-</section>
-<section id="exporting-data" class="level3">
-<h3 class="anchored" data-anchor-id="exporting-data">Exporting Data</h3>
-<p>In order to export a DataFrame into a database, we leverage the DataFrame’s <code>to_sql</code> method. We provide the name of the table we wish to upload data into, along with a connection object, and what action to take if the table already exists. <code>if_exists</code> can be one of:</p>
-<ul>
-<li><p>“fail”: Raise a <code>ValueError</code>.</p></li>
-<li><p>“replace”: Drop the table before inserting new values.</p></li>
-<li><p>“append”: Insert new values to the existing table.</p></li>
-</ul>
-<p>As a simple transformation, we determine aggregate EXPOSURE by AREA, append a timestamp, then export the result as “SAMPLE_AREA_SUMM”. If the table exists, we want the query to fail:</p>
-<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb7-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Summary of aggregate EXPOSURE by AREA based on the French Motor Third-Party </span></span>
-<span id="cb7-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Liability Claims sample dataset.</span></span>
-<span id="cb7-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb7-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> datetime</span>
-<span id="cb7-6"></span>
-<span id="cb7-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute aggregate EXPOSURE by AREA.</span></span>
-<span id="cb7-8">dfsumm <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> df.groupby(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"AREA"</span>, as_index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span>)[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"EXPOSURE"</span>].<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()</span>
-<span id="cb7-9"></span>
-<span id="cb7-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Append timestamp.</span></span>
-<span id="cb7-11">timestamp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> datetime.datetime.now().strftime(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"%Y-%m-</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">%d</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> %H:%M:%S.</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">%f</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb7-12">dfsumm[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"TIMESTAMP"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> timestamp</span>
-<span id="cb7-13"></span>
-<span id="cb7-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Export results.</span></span>
-<span id="cb7-15">dfsumm.to_sql(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SAMPLE_AREA_SUMM"</span>, con<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>conn, if_exists<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"fail"</span>)</span></code></pre></div>
-<p>If the table already exists, an error like the following will be generated:</p>
-<pre><code>ValueError: Table 'SAMPLE_AREA_SUMM' already exists.</code></pre>
-<p>Otherwise, no output will be generated.</p>
-</section>
-<section id="writing-queried-data-to-compressed-format" class="level3">
-<h3 class="anchored" data-anchor-id="writing-queried-data-to-compressed-format">Writing Queried Data to Compressed Format</h3>
-<p>Next we demonstrate how data can be queried iteratively and written directly to a compressed file format. This is especially useful when working with very large datasets, or when the data exceeds available system resources. Another reason to save datasets in compressed format is that Pandas can read compressed files just as easily as csvs. Once read into memory, the dataset will expand to the full uncompressed size, but by writing data to compressed format we reduce our overall storage footprint. Here’s the code to do it:</p>
-<div class="sourceCode" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> gzip</span>
-<span id="cb9-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> time</span>
-<span id="cb9-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> pd</span>
-<span id="cb9-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> sqlalchemy</span>
-<span id="cb9-5"></span>
-<span id="cb9-6">DRIVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SQL Server"</span></span>
-<span id="cb9-7">SERVER <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SERVER"</span></span>
-<span id="cb9-8">DATABASE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"DATABASE"</span></span>
-<span id="cb9-9">CHUNKSIZE <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">100000</span></span>
-<span id="cb9-10">DATA_PATH <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"COMPRESSED-SAMPLE-TABLE.csv.gz"</span></span>
-<span id="cb9-11"></span>
-<span id="cb9-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create connection uri.</span></span>
-<span id="cb9-13">conn_uri <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"mssql+pyodbc://</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>SERVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">/</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DATABASE<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">?driver=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>DRIVER<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.replace(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" "</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"+"</span>)</span>
-<span id="cb9-14"></span>
-<span id="cb9-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize connection.</span></span>
-<span id="cb9-16">conn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>  sqlalchemy.create_engine(conn_uri)</span>
-<span id="cb9-17">SQL <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"SELECT * FROM SAMPLE_TABLE"</span></span>
-<span id="cb9-18">dfiter <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_sql(SQL, con<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>conn, chunksize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>CHUNKSIZE)</span>
-<span id="cb9-19"></span>
-<span id="cb9-20">t_i <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time()</span>
-<span id="cb9-21">trkr, nbrrecs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span></span>
-<span id="cb9-22"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">with</span> gzip.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">open</span>(DATA_PATH, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"wb"</span>) <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> fgz:</span>
-<span id="cb9-23">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> df <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> dfiter:</span>
-<span id="cb9-24">        fgz.write(df.to_csv(header<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>nbrrecs<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, index<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span>, mode<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"a"</span>).encode(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"utf-8"</span>))</span>
-<span id="cb9-25">        nbrrecs<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span>df.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span>
-<span id="cb9-26">        <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Retrieved records </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">-</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">format</span>((trkr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> CHUNKSIZE) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, nbrrecs))</span>
-<span id="cb9-27">        trkr<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb9-28"></span>
-<span id="cb9-29">t_tot <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> t_i</span>
-<span id="cb9-30">retrieval_rate <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> nbrrecs <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> t_tot</span>
-<span id="cb9-31"></span>
-<span id="cb9-32"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(</span>
-<span id="cb9-33">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Retrieved </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> records in </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{:.0f}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> seconds (</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{:.0f}</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> recs/sec.)."</span>.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">format</span>(</span>
-<span id="cb9-34">        nbrrecs, t_tot, retrieval_rate</span>
-<span id="cb9-35">        )</span>
-<span id="cb9-36">    ) </span></code></pre></div>
-<p>The only expression requiring explanation is within <code>df.to_csv</code>, where <code>header=nbrrecs==0</code> is specified. This ensures that headers are written for the first batch of records only, and ignored for subsequent batches (100,000 record chunks are read in at each iteration).</p>
-<p>To read the compressed file back into Pandas, use the <code>pd.read_csv</code> function specifying the compression type (in this example we used “gzip” - other options are “zip”, “bz2” or “xz”):</p>
-<div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1">In [<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>]: df <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pd.read_csv(DATA_PATH, compression<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"gzip"</span>)</span>
-<span id="cb10-2">In [<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>]: df.shape</span>
-<span id="cb10-3">Out[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>]: (<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">678013</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">12</span>)</span></code></pre></div>
-
-
-</section>
-
- ]]></description>
-  <category>Python</category>
-  <guid>https://www.jtrive.com/posts/sqlserver-from-python/sqlserver-from-python.html</guid>
-  <pubDate>Sat, 01 Jun 2024 05:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
