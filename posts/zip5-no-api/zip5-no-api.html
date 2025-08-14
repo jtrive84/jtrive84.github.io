@@ -1021,7 +1021,7 @@ geopandas: 0.14.3
 <p><code>sjoin_nearest</code> performs a spatial join by finding the nearest geometry in one GeoDataFrame for each geometry in another using a spatial index. When <code>sjoin_nearest</code> is called, it uses the spatial index to find candidate nearest geometries efficiently, then refines the match using actual geometric distance.</p>
 <p>One limitation of using <code>sjoin_nearest</code> is that only a single ZIP Code will be assigned to each sample. There may be cases where knowing the ZIP Codes of the five or ten nearest addresses might be of interest, possibly as an indicator of the homogeneity of ZIP Codes in a given region: If the 10 nearest addresses all share the same ZIP Code, it is likely that the sample point shares that ZIP Code (assuming a relatively small distance to each address).</p>
 <p>We can identify and retrieve ZIP Codes associated with the k-nearest addresses and corresponding distances using a BallTree. Within scikit-learn, <code>BallTree</code> implements a fast nearest-neighbor search using a space-partitioning tree. It is not geospatially aware and does not work directly with geometry objects, and instead works with raw coordinate arrays. In the next cell, we create a <code>BallTree</code> instance, and identify the 10 nearest ZIP Codes for each sample in <code>pois</code>. Note that <code>BallTree</code> with haversine distance expects input in radians, not degrees:</p>
-<div id="538f527f" class="cell" data-execution_count="14">
+<div id="538f527f" class="cell">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.neighbors <span class="im">import</span> BallTree</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1029,10 +1029,10 @@ geopandas: 0.14.3
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># metric.</span></span>
 <span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co"># OpenAddresses data.</span></span>
 <span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>oa_coords <span class="op">=</span> np.deg2rad(oa[[<span class="st">"lon"</span>, <span class="st">"lat"</span>]].values)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>oa_coords <span class="op">=</span> np.deg2rad(oa[[<span class="st">"lat"</span>, <span class="st">"lon"</span>]].values)</span>
 <span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 10 sample data points. </span></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>poi_coords <span class="op">=</span> np.deg2rad(pois[[<span class="st">"lon"</span>, <span class="st">"lat"</span>]].values)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>poi_coords <span class="op">=</span> np.deg2rad(pois[[<span class="st">"lat"</span>, <span class="st">"lon"</span>]].values)</span>
 <span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Create BallTree instance.</span></span>
 <span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>bt <span class="op">=</span> BallTree(oa_coords, metric<span class="op">=</span><span class="st">"haversine"</span>)</span>
