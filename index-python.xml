@@ -10,7 +10,737 @@
 <atom:link href="https://www.jtrive.com/index-python.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Mon, 11 Aug 2025 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 29 Oct 2025 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>GPU Acceleration with Polars LazyFrames</title>
+  <link>https://www.jtrive.com/posts/polars-gpu-acceleration/polars-gpu-acceleration.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>In a previous post, I walked through how Polars can be used to process larger-than-memory datasets without needing to setup and maintain a dedicated compute cluster. This was accomplished by taking advantage of the Polars LazyFrame. Unlike a regular DataFrame which executes operations immediately, a LazyFrame builds up a logical query plan and defers execution until you explicitly call a method like <code>.collect()</code>. This allows Polars to optimize the entire query before running it by taking advantage of predicate and projection pushdown or reordering operations for efficiency. The benefit is that you can chain many transformations together without incurring intermediate computation costs, and when the query finally runs, Polars can execute it in a highly optimized fashion.</p>
+<p align="center">
+<img src="https://www.jtrive.com/posts/polars-gpu-acceleration/rapids-polars.png" alt="" width="800">
+</p>
+<p><br></p>
+<p>Recent Polars releases have introduced GPU acceleration as a capability for scaling analytical workloads. From the user’s perspective, all that needs to be done is to pass <code>engine="gpu"</code> to <code>.collect()</code>, and existing queries will be executed on NVIDIA GPUs through cuDF and the RAPIDS ecosystem, resulting in significant speed-ups for many common DataFrame operations.</p>
+<p>I encountered a bit of difficulty getting my environment configured to take advatntage of GPU acceleration (installing NVIDIA drivers, CUDA toolkit, etc.) I ultimately settled on using the <a href="https://catalog.ngc.nvidia.com/orgs/nvidia/teams/rapidsai/containers/notebooks">NVIDIA RAPIDS Docker image</a>. The NVIDIA RAPIDS Docker images are pre-built containers that bundle the RAPIDS AI libraries (cuDF, cuML, cuGraph) together with CUDA, Python, and system dependencies. It’s designed so you can quickly run RAPIDS on any machine with a compatible NVIDIA GPU without having to install and configure all the pieces manually. I opted for the RAPIDS notebook image which starts a JupyterLab notebook server by default. I can’t recommend this approach enough. After pulling the image, the container can be initialized with:</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">$</span> docker run <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--rm</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-it</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--gpus</span> all <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-p</span> 8888:8888 <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-e</span> JUPYTER_TOKEN=rapids <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb1-2">  nvcr.io/nvidia/rapidsai/notebooks:25.08-cuda12.9-py3.13</span></code></pre></div>
+<p><br></p>
+<p>To ensure that the container environment can access the GPU(s) available on the host, run:</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> cupy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> cp</span>
+<span id="cb2-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"GPU available:"</span>, cp.cuda.runtime.getDeviceCount())</span>
+<span id="cb2-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Should be &gt;=1.</span></span></code></pre></div>
+<p><br></p>
+<p>Alternatively, verify that the device is recognized from within the container using <code>nvidia-smi</code>:</p>
+<div id="4e62d5e2-4fe4-48f2-bf85-67c9e7140d90" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2025-10-30T03:16:07.377208Z&quot;,&quot;iopub.status.busy&quot;:&quot;2025-10-30T03:16:07.376983Z&quot;,&quot;iopub.status.idle&quot;:&quot;2025-10-30T03:16:07.894559Z&quot;,&quot;shell.execute_reply&quot;:&quot;2025-10-30T03:16:07.894027Z&quot;,&quot;shell.execute_reply.started&quot;:&quot;2025-10-30T03:16:07.377191Z&quot;}" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>nvidia<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>smi</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Thu Oct 30 03:16:07 2025       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 550.163.01             Driver Version: 550.163.01     CUDA Version: 12.6     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A10G                    On  |   00000000:00:1E.0 Off |                    0 |
+|  0%   20C    P8              9W /  300W |       1MiB /  23028MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>The output indicates the system has 23GB of VRAM available.</p>
+<p>It is also necessary to install cudf-polars-cu12 to enable GPU acceleration in Polars since it provides the bridge between the Polars DataFrame engine and RAPIDS cuDF, which is NVIDIA’s GPU-accelerated dataframe library built on CUDA 12. The standard Polars package runs entirely on CPU, but with cudf-polars-cu12 installed, Polars can transparently offload supported query operations to the GPU using the RAPIDS runtime. This package contains the CUDA-specific bindings, GPU kernels, and dependencies required for the Polars engine=“gpu” option.</p>
+<div id="9b4e4d26-a324-4d32-bb6a-16925afdf4e2" class="cell">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>pip install watermark cudf<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>polars<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>cu12</span></code></pre></div>
+</div>
+<p><br></p>
+<p>To benchmark Polars CPU vs GPU performance, the New York City 311 Service Requests dataset (via NYC Open Data) will be used as the starting point. It is an ~16GB CSV file representing a city-wide log of non-emergency service requests submitted by residents of New York City since 2010. Each row corresponds to a single request. For example, a noise complaint, trash pickup issue, illegal dumping report or street-light outage, etc. It also includes key attributes such as when the request was created and when it was resolved, the type of complaint, the responding agency, location (latitude/longitude or borough/zip), and status. It is available for download on <a href="https://www.kaggle.com/datasets/new-york-city/ny-311-service-requests">Kaggle</a>.</p>
+<div id="00b5332a-daec-45ce-80bf-c46640f15c99" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2025-10-30T03:16:42.124138Z&quot;,&quot;iopub.status.busy&quot;:&quot;2025-10-30T03:16:42.123926Z&quot;,&quot;iopub.status.idle&quot;:&quot;2025-10-30T03:16:42.521509Z&quot;,&quot;shell.execute_reply&quot;:&quot;2025-10-30T03:16:42.520987Z&quot;,&quot;shell.execute_reply.started&quot;:&quot;2025-10-30T03:16:42.124122Z&quot;}">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span>load_ext watermark</span>
+<span id="cb6-2"></span>
+<span id="cb6-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> polars <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pl </span>
+<span id="cb6-4"></span>
+<span id="cb6-5">pl.Config(tbl_rows<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">30</span>)</span>
+<span id="cb6-6">pl.Config(float_precision<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)</span>
+<span id="cb6-7">pl.Config(tbl_cols<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb6-8"></span>
+<span id="cb6-9"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">%</span>watermark <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>v <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>m <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>p numpy,pandas,polars</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Python implementation: CPython
+Python version       : 3.12.9
+IPython version      : 8.37.0
+
+numpy : 1.26.4
+pandas: 2.3.1
+polars: 1.32.3
+
+Compiler    : GCC 13.3.0
+OS          : Linux
+Release     : 5.10.244-240.970.amzn2.x86_64
+Machine     : x86_64
+Processor   : x86_64
+CPU cores   : 8
+Architecture: 64bit
+</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>We start by creating a LazyFrame based on the service requests dataset, and display the first 5 records:</p>
+<div id="8b22a7ba-04d3-448d-907c-e7a99349dca3" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2025-10-30T03:16:57.180809Z&quot;,&quot;iopub.status.busy&quot;:&quot;2025-10-30T03:16:57.180512Z&quot;,&quot;iopub.status.idle&quot;:&quot;2025-10-30T03:16:57.270753Z&quot;,&quot;shell.execute_reply&quot;:&quot;2025-10-30T03:16:57.270312Z&quot;,&quot;shell.execute_reply.started&quot;:&quot;2025-10-30T03:16:57.180792Z&quot;}" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"></span>
+<span id="cb8-2">lf <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pl.scan_csv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"311-service-requests.csv"</span>)</span>
+<span id="cb8-3"></span>
+<span id="cb8-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Display the first 5 rows.</span></span>
+<span id="cb8-5">first5 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> lf.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>).collect()</span>
+<span id="cb8-6"></span>
+<span id="cb8-7">first5</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (5, 7)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">year</th>
+<th data-quarto-table-cell-role="th">month</th>
+<th data-quarto-table-cell-role="th">Borough</th>
+<th data-quarto-table-cell-role="th">Complaint Type</th>
+<th data-quarto-table-cell-role="th">Latitude</th>
+<th data-quarto-table-cell-role="th">Longitude</th>
+<th data-quarto-table-cell-role="th">resp_hours</th>
+</tr>
+<tr class="odd">
+<th>i64</th>
+<th>i64</th>
+<th>str</th>
+<th>str</th>
+<th>f64</th>
+<th>f64</th>
+<th>i64</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2019</td>
+<td>12</td>
+<td>"MANHATTAN"</td>
+<td>"Street Condition"</td>
+<td>40.7457</td>
+<td>-73.9877</td>
+<td>null</td>
+</tr>
+<tr class="even">
+<td>2019</td>
+<td>12</td>
+<td>"BROOKLYN"</td>
+<td>"Noise - Commercial"</td>
+<td>40.5965</td>
+<td>-73.9777</td>
+<td>null</td>
+</tr>
+<tr class="odd">
+<td>2019</td>
+<td>12</td>
+<td>"BROOKLYN"</td>
+<td>"Noise - Residential"</td>
+<td>40.6606</td>
+<td>-73.8835</td>
+<td>null</td>
+</tr>
+<tr class="even">
+<td>2019</td>
+<td>12</td>
+<td>"QUEENS"</td>
+<td>"Noise - Residential"</td>
+<td>40.7600</td>
+<td>-73.8069</td>
+<td>null</td>
+</tr>
+<tr class="odd">
+<td>2019</td>
+<td>12</td>
+<td>"QUEENS"</td>
+<td>"Illegal Parking"</td>
+<td>40.7295</td>
+<td>-73.7300</td>
+<td>null</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>We also obtain a count of the number of rows in the dataset:</p>
+<div id="f77e0b32-c0ca-4692-9070-4924b64e93c4" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2025-10-30T03:17:11.574069Z&quot;,&quot;iopub.status.busy&quot;:&quot;2025-10-30T03:17:11.573862Z&quot;,&quot;iopub.status.idle&quot;:&quot;2025-10-30T03:17:11.728286Z&quot;,&quot;shell.execute_reply&quot;:&quot;2025-10-30T03:17:11.727811Z&quot;,&quot;shell.execute_reply.started&quot;:&quot;2025-10-30T03:17:11.574053Z&quot;}" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
+<span id="cb9-2">n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> lf.select(pl.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>()).collect().item()</span>
+<span id="cb9-3"></span>
+<span id="cb9-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"311-service-requests.csv: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>n<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>311-service-requests.csv: 21,960,000</code></pre>
+</div>
+</div>
+<p><br></p>
+<p>Next a query is created to perform a set of transformations on the dataset. The example in the next cell aggregates service requests by type, year, month and quantized longitude and latitude using 0.005 degree bins. Since we’re using a LazyFrame, no action will be taken until <code>.collect()</code> is called.</p>
+<div id="cd11a667-b3c6-4f90-b2e2-b972ac46aa39" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2025-10-30T03:17:50.007050Z&quot;,&quot;iopub.status.busy&quot;:&quot;2025-10-30T03:17:50.006843Z&quot;,&quot;iopub.status.idle&quot;:&quot;2025-10-30T03:17:50.011397Z&quot;,&quot;shell.execute_reply&quot;:&quot;2025-10-30T03:17:50.010901Z&quot;,&quot;shell.execute_reply.started&quot;:&quot;2025-10-30T03:17:50.007034Z&quot;}" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"></span>
+<span id="cb11-2">query <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb11-3">    lf</span>
+<span id="cb11-4">    .select([</span>
+<span id="cb11-5">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Borough"</span>).alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"borough"</span>),</span>
+<span id="cb11-6">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Complaint Type"</span>).alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"type"</span>),</span>
+<span id="cb11-7">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Latitude"</span>).alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lat"</span>),</span>
+<span id="cb11-8">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Longitude"</span>).alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lon"</span>),</span>
+<span id="cb11-9">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"year"</span>).cast(pl.Int16),</span>
+<span id="cb11-10">        pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"month"</span>).cast(pl.Int8),</span>
+<span id="cb11-11">    ])</span>
+<span id="cb11-12">    .<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">filter</span>(</span>
+<span id="cb11-13">          pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"borough"</span>).is_not_null() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb11-14">          pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"type"</span>).is_not_null() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb11-15">          pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lat"</span>).is_not_null() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb11-16">          pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lon"</span>).is_not_null() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb11-17">          (pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lat"</span>).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&amp;</span></span>
+<span id="cb11-18">          (pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lon"</span>).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">abs</span>() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)</span>
+<span id="cb11-19">      )</span>
+<span id="cb11-20">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Quantize to 0.005 degree bins.</span></span>
+<span id="cb11-21">    .with_columns([</span>
+<span id="cb11-22">        (pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lat"</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">200</span>).floor().cast(pl.Int32).alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lat_bin"</span>),</span>
+<span id="cb11-23">        (pl.col(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lon"</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">200</span>).floor().cast(pl.Int32).alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lon_bin"</span>),</span>
+<span id="cb11-24">    ])</span>
+<span id="cb11-25">    .group_by([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"year"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"month"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lat_bin"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"lon_bin"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"type"</span>])</span>
+<span id="cb11-26">    .agg([</span>
+<span id="cb11-27">        pl.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>().alias(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>),</span>
+<span id="cb11-28">     ])</span>
+<span id="cb11-29">    .sort(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"n"</span>, descending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb11-30">)</span></code></pre></div>
+</div>
+<p><br></p>
+<p>First the standard Polars CPU engine is benchmarked:</p>
+<div id="72bfa128-bf0f-4af8-bba8-b6b8c9eec34e" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2025-10-30T03:18:46.654916Z&quot;,&quot;iopub.status.busy&quot;:&quot;2025-10-30T03:18:46.654701Z&quot;,&quot;iopub.status.idle&quot;:&quot;2025-10-30T03:18:53.383774Z&quot;,&quot;shell.execute_reply&quot;:&quot;2025-10-30T03:18:53.383248Z&quot;,&quot;shell.execute_reply.started&quot;:&quot;2025-10-30T03:18:46.654900Z&quot;}" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
+<span id="cb12-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> time</span>
+<span id="cb12-3"></span>
+<span id="cb12-4">t_init <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> time.time()</span>
+<span id="cb12-5">df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> query.collect()</span>
+<span id="cb12-6">t_total <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> t_init</span>
+<span id="cb12-7"></span>
+<span id="cb12-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Total runtime using CPU: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>t_total<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> seconds.</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb12-9"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"df.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>df<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb12-10">df.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total runtime using CPU: 6.72 seconds.
+
+df.shape: (71133, 6).</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (3, 6)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">year</th>
+<th data-quarto-table-cell-role="th">month</th>
+<th data-quarto-table-cell-role="th">lat_bin</th>
+<th data-quarto-table-cell-role="th">lon_bin</th>
+<th data-quarto-table-cell-role="th">type</th>
+<th data-quarto-table-cell-role="th">n</th>
+</tr>
+<tr class="odd">
+<th>i16</th>
+<th>i8</th>
+<th>i32</th>
+<th>i32</th>
+<th>str</th>
+<th>u32</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2019</td>
+<td>9</td>
+<td>8138</td>
+<td>-14786</td>
+<td>"Noise - Residential"</td>
+<td>81966</td>
+</tr>
+<tr class="even">
+<td>2019</td>
+<td>9</td>
+<td>8144</td>
+<td>-14762</td>
+<td>"Illegal Parking"</td>
+<td>69024</td>
+</tr>
+<tr class="odd">
+<td>2019</td>
+<td>9</td>
+<td>8144</td>
+<td>-14762</td>
+<td>"Noise - Vehicle"</td>
+<td>69024</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Next the query is executed against the GPU engine. The only difference from the previous cell is <code>engine="gpu"</code> is passed into <code>.collect()</code>:</p>
+<div id="9bbac9ec-2ce9-4164-bf21-e0a77acbfe64" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2025-10-30T03:19:11.888867Z&quot;,&quot;iopub.status.busy&quot;:&quot;2025-10-30T03:19:11.888593Z&quot;,&quot;iopub.status.idle&quot;:&quot;2025-10-30T03:19:12.236316Z&quot;,&quot;shell.execute_reply&quot;:&quot;2025-10-30T03:19:12.235859Z&quot;,&quot;shell.execute_reply.started&quot;:&quot;2025-10-30T03:19:11.888851Z&quot;}" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
+<span id="cb14-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Execute query with GPU engine.</span></span>
+<span id="cb14-3">t_init <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> time.time()</span>
+<span id="cb14-4">df2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> query.collect(engine<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gpu"</span>)</span>
+<span id="cb14-5">t_total <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> t_init</span>
+<span id="cb14-6"></span>
+<span id="cb14-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Total runtime using GPU engine: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>t_total<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:,.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> seconds.</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb14-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"df2.shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>df2<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb14-9">df2.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total runtime using GPU engine: 0.34 seconds.
+
+df2.shape: (71133, 6).</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (3, 6)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">year</th>
+<th data-quarto-table-cell-role="th">month</th>
+<th data-quarto-table-cell-role="th">lat_bin</th>
+<th data-quarto-table-cell-role="th">lon_bin</th>
+<th data-quarto-table-cell-role="th">type</th>
+<th data-quarto-table-cell-role="th">n</th>
+</tr>
+<tr class="odd">
+<th>i16</th>
+<th>i8</th>
+<th>i32</th>
+<th>i32</th>
+<th>str</th>
+<th>u32</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2019</td>
+<td>9</td>
+<td>8138</td>
+<td>-14786</td>
+<td>"Noise - Residential"</td>
+<td>81966</td>
+</tr>
+<tr class="even">
+<td>2019</td>
+<td>9</td>
+<td>8144</td>
+<td>-14762</td>
+<td>"Illegal Parking"</td>
+<td>69024</td>
+</tr>
+<tr class="odd">
+<td>2019</td>
+<td>9</td>
+<td>8144</td>
+<td>-14762</td>
+<td>"Noise - Vehicle"</td>
+<td>69024</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p><br></p>
+<p>Using the CPU engine took 6.72 seconds, vs.&nbsp;0.34 seconds for the GPU engine, or a ~20x speedup. This is an incredible performance gain that required no code changes.</p>
+<p>One thing to mention: When <code>engine="gpu"</code> is specified, if an operation is not supported on GPU, the query will silently fallback to CPU execution, which can make benchmarking tricky. To have Polars fail loudly if part of a query cannot be executed on GPU, we can pass a <code>GPUEngine</code> object inplace of <code>"gpu"</code> in the call to <code>.collect()</code>. If <code>raise_on_fail</code> is set True, any non-GPU supported operations will cause the entire pipeline to fail. The next cell shows what this would look like (not the failure, but creating a <code>GPUEngine</code> object):</p>
+<div id="4ec60d08-8a92-4106-a27e-b40b44385ab9" class="cell" data-execution="{&quot;iopub.execute_input&quot;:&quot;2025-10-30T03:20:33.470727Z&quot;,&quot;iopub.status.busy&quot;:&quot;2025-10-30T03:20:33.470520Z&quot;,&quot;iopub.status.idle&quot;:&quot;2025-10-30T03:20:33.822946Z&quot;,&quot;shell.execute_reply&quot;:&quot;2025-10-30T03:20:33.822492Z&quot;,&quot;shell.execute_reply.started&quot;:&quot;2025-10-30T03:20:33.470711Z&quot;}" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"></span>
+<span id="cb16-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Fail loudly if can't execute on the GPU.</span></span>
+<span id="cb16-3">gpu_engine <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pl.GPUEngine(device<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>,  raise_on_fail<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)  </span>
+<span id="cb16-4">df2 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> query.collect(engine<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>gpu_engine)</span>
+<span id="cb16-5">df2.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="12">
+<div><style>
+.dataframe > thead > tr,
+.dataframe > tbody > tr {
+  text-align: right;
+  white-space: pre-wrap;
+}
+</style>
+<small>shape: (3, 6)</small>
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">year</th>
+<th data-quarto-table-cell-role="th">month</th>
+<th data-quarto-table-cell-role="th">lat_bin</th>
+<th data-quarto-table-cell-role="th">lon_bin</th>
+<th data-quarto-table-cell-role="th">type</th>
+<th data-quarto-table-cell-role="th">n</th>
+</tr>
+<tr class="odd">
+<th>i16</th>
+<th>i8</th>
+<th>i32</th>
+<th>i32</th>
+<th>str</th>
+<th>u32</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2019</td>
+<td>9</td>
+<td>8138</td>
+<td>-14786</td>
+<td>"Noise - Residential"</td>
+<td>81966</td>
+</tr>
+<tr class="even">
+<td>2019</td>
+<td>9</td>
+<td>8144</td>
+<td>-14762</td>
+<td>"Illegal Parking"</td>
+<td>69024</td>
+</tr>
+<tr class="odd">
+<td>2019</td>
+<td>9</td>
+<td>8144</td>
+<td>-14762</td>
+<td>"Noise - Vehicle"</td>
+<td>69024</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<p>Since all the operations in our query are GPU supported, no error is thrown.</p>
+<p>Another tip for monitoring GPU usage for longer running jobs: From the terminal, run <code>nvidia-smi -l 1</code>, which refreshes the output <code>nvidia-smi</code> every second. The expectation is that if the GPU is being utilized, the amount of VRAM in use should change over time.</p>
+<p>GPU-enabled Polars pushes analytical performance to a new level. For large, computation-heavy workloads (joins, group-bys, and sorts across tens or hundreds of millions of rows), the GPU engine can deliver dramatic speedups without changing a single line of code. That said, not everything is supported on GPU yet. Operations like complex datetime handling, regex, or window functions may fall back to CPU, and for smaller or I/O-heavy jobs the extra GPU overhead can actually slow things down. But as datasets continue to grow and GPU coverage expands, the ability to execute entire analytical pipelines directly in VRAM opens the door to running truly large-scale analytics on a single machine, turning what used to require distributed infrastructure into something you can do from your laptop.</p>
+
+
+
+ ]]></description>
+  <category>Python</category>
+  <guid>https://www.jtrive.com/posts/polars-gpu-acceleration/polars-gpu-acceleration.html</guid>
+  <pubDate>Wed, 29 Oct 2025 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Extracting Fire Station Locations from OpenStreetMap</title>
   <link>https://www.jtrive.com/posts/osm-fire-station-handler/osm-fire-station-handler.html</link>
@@ -67815,1312 +68545,6 @@ font-style: inherit;">12</span>)</span></code></pre></div>
   <category>Python</category>
   <guid>https://www.jtrive.com/posts/introduction-to-metropolis-hastings/introduction-to-metropolis-hastings.html</guid>
   <pubDate>Sat, 21 Sep 2024 05:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Introduction to Folium</title>
-  <link>https://www.jtrive.com/posts/getting-started-with-folium/getting-started-with-folium.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>Learning geospatial data science is crucial in today’s data-driven world for several reasons. Geospatial data science enables individuals to understand and analyze complex spatial phenomena, including natural disasters, urbanization, climate change, and environmental degradation. By gaining familiarity with geospatial analysis techniques, individuals can gain insights into spatial patterns, relationships and processes, which is essential for making informed decisions.</p>
-<p>As the availability and complexity of geospatial data continue to grow with advancements in technology and data collection methods, the demand for skilled geospatial data scientists is expected to rise. Therefore, investing in learning geospatial data science equips individuals with valuable skills that are not only relevant today but also increasingly essential for future career success.</p>
-<section id="folium" class="level2">
-<h2 class="anchored" data-anchor-id="folium">Folium</h2>
-<p>Folium is a Python library used for visualizing geospatial data interactively on web maps. Leveraging the capabilities of Leaflet.js, Folium allows users to create maps directly within Python code, making it an accessible and powerful tool for geospatial visualization and analysis.</p>
-<p>With Folium, users can create various types of interactive maps, including point maps, choropleth maps, heatmaps, and vector overlays, by simply specifying geographic coordinates and map styling options. The library provides intuitive APIs for customizing map features such as markers, popups, tooltips, legends, and map layers, enabling users to create visually appealing and informative maps with ease.</p>
-<p>Folium integrates with other popular Python libraries such as Pandas and Matplotlib, allowing users to visualize geospatial data stored in DataFrame objects or plot data directly onto Folium maps. It also supports various tile providers and basemaps, enabling users to choose from a wide range of map styles and sources.</p>
-<section id="creating-interactive-maps-in-folium" class="level3">
-<h3 class="anchored" data-anchor-id="creating-interactive-maps-in-folium">Creating Interactive Maps in Folium</h3>
-<p>Creating maps with folium is straightforward. We simply pass the latitude and longitude of the point of interest (POI) and specify a zoom level. We can then drop a marker on the point of interest, and interact with the map however we’d like.</p>
-<p>We can get the latitude and longitude for a given POI by performing a google search. Latitude ranges from -90 to 90 degrees, longitude from -180 to 180 degrees. The latitude and longitude for the DMACC Ankeny campus is <strong>(41.5996, -93.6276)</strong>, which is <strong>(latitude, longitude)</strong>. Note that for US coordinates, the longitude will always be negative. An illustration is provided below:</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/getting-started-with-folium/lon-lat.png" class="img-fluid figure-img"></p>
-<figcaption>img01</figcaption>
-</figure>
-</div>
-<p><br></p>
-<p>To illustrate, let’s render a map over the park I used to play at as a child (Durkin Park on the southwest side of Chicago). Note that zoom level provides more detail as the number gets larger. A zoom level of 4 would show the entire US; a zoom level of 17 would render roughly a city block:</p>
-<div id="cell-3" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
-<span id="cb1-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> folium</span>
-<span id="cb1-3"></span>
-<span id="cb1-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Latitude and longitude for Durkin Park, 84th &amp; Kolin Ave, Chicago IL. </span></span>
-<span id="cb1-5">lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.739</span></span>
-<span id="cb1-6">lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">87.729</span></span>
-<span id="cb1-7">zoom <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">18</span></span>
-<span id="cb1-8"></span>
-<span id="cb1-9">m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> folium.Map(location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat, lon], zoom_start<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>zoom)</span>
-<span id="cb1-10">folium.Marker(location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat, lon]).add_to(m)</span>
-<span id="cb1-11"></span>
-<span id="cb1-12">m</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="1">
-<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
-<html>
-<head>
-    
-    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
-    
-        <script>
-            L_NO_TOUCH = false;
-            L_DISABLE_3D = false;
-        </script>
-    
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
-    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
-    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
-    
-            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
-                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
-            <style>
-                #map_cd856410cd725d4ba42a6a4f368b2615 {
-                    position: relative;
-                    width: 100.0%;
-                    height: 100.0%;
-                    left: 0.0%;
-                    top: 0.0%;
-                }
-                .leaflet-container { font-size: 1rem; }
-            </style>
-        
-</head>
-<body>
-    
-    
-            <div class=&quot;folium-map&quot; id=&quot;map_cd856410cd725d4ba42a6a4f368b2615&quot; ></div>
-        
-</body>
-<script>
-    
-    
-            var map_cd856410cd725d4ba42a6a4f368b2615 = L.map(
-                &quot;map_cd856410cd725d4ba42a6a4f368b2615&quot;,
-                {
-                    center: [41.739, -87.729],
-                    crs: L.CRS.EPSG3857,
-                    zoom: 18,
-                    zoomControl: true,
-                    preferCanvas: false,
-                }
-            );
-
-            
-
-        
-    
-            var tile_layer_f997475a2304f79bf56dc959368cd0e1 = L.tileLayer(
-                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
-                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
-            );
-        
-    
-            tile_layer_f997475a2304f79bf56dc959368cd0e1.addTo(map_cd856410cd725d4ba42a6a4f368b2615);
-        
-    
-            var marker_b522f7453c8990c6b667046af3544d9b = L.marker(
-                [41.739, -87.729],
-                {}
-            ).addTo(map_cd856410cd725d4ba42a6a4f368b2615);
-        
-</script>
-</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
-</div>
-</div>
-<p><br></p>
-<p>A few things to note about the code used to render the map:</p>
-<ul>
-<li>We start by importing the folium library.</li>
-<li>The lat/lon for Durkin Park was obtained by a simple google search.</li>
-<li>I used a level 18 zoom but this is not necessary since the map is dynamic and can be resized.</li>
-<li>To add the marker to the map, we call <code>.add_to(m)</code>.</li>
-<li>We included <code>m</code> by itself in the last line of the cell in order for the map to render. Without doing this, the map would not display.</li>
-</ul>
-<p>We can change the color of the marker by passing an additional argument into <code>folium.Marker</code>. I’ll place a second marker in another park I used to visit when I was younger, Scottsdale Park. I’ll make this second marker red.</p>
-<div id="cell-5" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"></span>
-<span id="cb2-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Durkin Park coordinates.</span></span>
-<span id="cb2-3">lat0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.739</span></span>
-<span id="cb2-4">lon0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">87.729</span></span>
-<span id="cb2-5"></span>
-<span id="cb2-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Scottsdale Park coordinates. </span></span>
-<span id="cb2-7">lat1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.7416</span></span>
-<span id="cb2-8">lon1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">87.7356</span></span>
-<span id="cb2-9"></span>
-<span id="cb2-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Center map at midway point between parks.</span></span>
-<span id="cb2-11">mid_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (lat0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> lat1) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb2-12">mid_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (lon0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> lon1) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb2-13"></span>
-<span id="cb2-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Specify zoom level. </span></span>
-<span id="cb2-15">zoom <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">16</span></span>
-<span id="cb2-16"></span>
-<span id="cb2-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize map.</span></span>
-<span id="cb2-18">m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> folium.Map(location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[mid_lat, mid_lon], zoom_start<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>zoom)</span>
-<span id="cb2-19"></span>
-<span id="cb2-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Add Durkin Park marker.</span></span>
-<span id="cb2-21">folium.Marker(</span>
-<span id="cb2-22">    location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat0, lon0],</span>
-<span id="cb2-23">    popup<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Durkin Park"</span>,</span>
-<span id="cb2-24">    ).add_to(m)</span>
-<span id="cb2-25"></span>
-<span id="cb2-26"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Add Scottsdale Park marker.</span></span>
-<span id="cb2-27">folium.Marker(</span>
-<span id="cb2-28">    location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat1, lon1],</span>
-<span id="cb2-29">    popup<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Scottsdale Park"</span>,</span>
-<span id="cb2-30">    icon<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>folium.Icon(color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>)</span>
-<span id="cb2-31">    ).add_to(m)</span>
-<span id="cb2-32"></span>
-<span id="cb2-33">m</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="2">
-<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
-<html>
-<head>
-    
-    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
-    
-        <script>
-            L_NO_TOUCH = false;
-            L_DISABLE_3D = false;
-        </script>
-    
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
-    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
-    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
-    
-            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
-                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
-            <style>
-                #map_0390f039fde0da559498446d2a3da9d7 {
-                    position: relative;
-                    width: 100.0%;
-                    height: 100.0%;
-                    left: 0.0%;
-                    top: 0.0%;
-                }
-                .leaflet-container { font-size: 1rem; }
-            </style>
-        
-</head>
-<body>
-    
-    
-            <div class=&quot;folium-map&quot; id=&quot;map_0390f039fde0da559498446d2a3da9d7&quot; ></div>
-        
-</body>
-<script>
-    
-    
-            var map_0390f039fde0da559498446d2a3da9d7 = L.map(
-                &quot;map_0390f039fde0da559498446d2a3da9d7&quot;,
-                {
-                    center: [41.7403, -87.73230000000001],
-                    crs: L.CRS.EPSG3857,
-                    zoom: 16,
-                    zoomControl: true,
-                    preferCanvas: false,
-                }
-            );
-
-            
-
-        
-    
-            var tile_layer_f1d08f23817f4ed4a0dd4bfe14113e0e = L.tileLayer(
-                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
-                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
-            );
-        
-    
-            tile_layer_f1d08f23817f4ed4a0dd4bfe14113e0e.addTo(map_0390f039fde0da559498446d2a3da9d7);
-        
-    
-            var marker_c032973fe2b2a8effe89ec7a2717ccbd = L.marker(
-                [41.739, -87.729],
-                {}
-            ).addTo(map_0390f039fde0da559498446d2a3da9d7);
-        
-    
-        var popup_c107a5eb06ec6e09c1eccb01c37e0e74 = L.popup({&quot;maxWidth&quot;: &quot;100%&quot;});
-
-        
-            
-                var html_de4e4adcf06e31c7827c71082f2d2289 = $(`<div id=&quot;html_de4e4adcf06e31c7827c71082f2d2289&quot; style=&quot;width: 100.0%; height: 100.0%;&quot;>Durkin Park</div>`)[0];
-                popup_c107a5eb06ec6e09c1eccb01c37e0e74.setContent(html_de4e4adcf06e31c7827c71082f2d2289);
-            
-        
-
-        marker_c032973fe2b2a8effe89ec7a2717ccbd.bindPopup(popup_c107a5eb06ec6e09c1eccb01c37e0e74)
-        ;
-
-        
-    
-    
-            var marker_1b28327c0e9079b53748f4c286dc2087 = L.marker(
-                [41.7416, -87.7356],
-                {}
-            ).addTo(map_0390f039fde0da559498446d2a3da9d7);
-        
-    
-            var icon_8ea62c90f8270c29eed1843f1a4992ee = L.AwesomeMarkers.icon(
-                {&quot;extraClasses&quot;: &quot;fa-rotate-0&quot;, &quot;icon&quot;: &quot;info-sign&quot;, &quot;iconColor&quot;: &quot;white&quot;, &quot;markerColor&quot;: &quot;red&quot;, &quot;prefix&quot;: &quot;glyphicon&quot;}
-            );
-            marker_1b28327c0e9079b53748f4c286dc2087.setIcon(icon_8ea62c90f8270c29eed1843f1a4992ee);
-        
-    
-        var popup_0581c82e8ed1a0713081e31c89c96bd6 = L.popup({&quot;maxWidth&quot;: &quot;100%&quot;});
-
-        
-            
-                var html_248ad0ab52deb5c75f5fdae23d1361df = $(`<div id=&quot;html_248ad0ab52deb5c75f5fdae23d1361df&quot; style=&quot;width: 100.0%; height: 100.0%;&quot;>Scottsdale Park</div>`)[0];
-                popup_0581c82e8ed1a0713081e31c89c96bd6.setContent(html_248ad0ab52deb5c75f5fdae23d1361df);
-            
-        
-
-        marker_1b28327c0e9079b53748f4c286dc2087.bindPopup(popup_0581c82e8ed1a0713081e31c89c96bd6)
-        ;
-
-        
-    
-</script>
-</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
-</div>
-</div>
-<p><br></p>
-<p>Notice that the <code>popup</code> argument was supplied to <code>folium.Marker</code>. Now when we click on the markers, whatever text we supply to <code>popup</code> will be shown on the map.</p>
-<p>We can connect the markers in the map by using <code>folium.PolyLine</code>. We pass it a list of lat/lon pairs, and it draws a line connecting the points. Let’s connect the two parks with a green line:</p>
-<div id="cell-7" class="cell" data-execution_count="54">
-<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
-<span id="cb3-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Durkin Park coordinates.</span></span>
-<span id="cb3-3">lat0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.739</span></span>
-<span id="cb3-4">lon0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">87.729</span></span>
-<span id="cb3-5"></span>
-<span id="cb3-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Scottsdale Park coordinates. </span></span>
-<span id="cb3-7">lat1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.7416</span></span>
-<span id="cb3-8">lon1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">87.7356</span></span>
-<span id="cb3-9"></span>
-<span id="cb3-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Center map at midway point between parks.</span></span>
-<span id="cb3-11">mid_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (lat0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> lat1) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb3-12">mid_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (lon0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> lon1) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb3-13"></span>
-<span id="cb3-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Specify zoom level. </span></span>
-<span id="cb3-15">zoom <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">16</span></span>
-<span id="cb3-16"></span>
-<span id="cb3-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Initialize map.</span></span>
-<span id="cb3-18">m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> folium.Map(location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[mid_lat, mid_lon], zoom_start<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>zoom)</span>
-<span id="cb3-19"></span>
-<span id="cb3-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Add Durkin Park marker.</span></span>
-<span id="cb3-21">folium.Marker(</span>
-<span id="cb3-22">    location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat0, lon0],</span>
-<span id="cb3-23">    popup<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Durkin Park"</span>,</span>
-<span id="cb3-24">    ).add_to(m)</span>
-<span id="cb3-25"></span>
-<span id="cb3-26"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Add Scottsdale Park marker.</span></span>
-<span id="cb3-27">folium.Marker(</span>
-<span id="cb3-28">    location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat1, lon1],</span>
-<span id="cb3-29">    popup<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Scottsdale Park"</span>,</span>
-<span id="cb3-30">    icon<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>folium.Icon(color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>)</span>
-<span id="cb3-31">    ).add_to(m)</span>
-<span id="cb3-32"></span>
-<span id="cb3-33"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Connect parks with green line. </span></span>
-<span id="cb3-34">points <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [(lat0, lon0), (lat1, lon1)]</span>
-<span id="cb3-35">folium.PolyLine(points, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"green"</span>).add_to(m)</span>
-<span id="cb3-36"></span>
-<span id="cb3-37">m</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="54">
-<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
-<html>
-<head>
-    
-    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
-    
-        <script>
-            L_NO_TOUCH = false;
-            L_DISABLE_3D = false;
-        </script>
-    
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
-    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
-    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
-    
-            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
-                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
-            <style>
-                #map_cafa663ffe5b0c2e73d28792b24f021e {
-                    position: relative;
-                    width: 100.0%;
-                    height: 100.0%;
-                    left: 0.0%;
-                    top: 0.0%;
-                }
-                .leaflet-container { font-size: 1rem; }
-            </style>
-        
-</head>
-<body>
-    
-    
-            <div class=&quot;folium-map&quot; id=&quot;map_cafa663ffe5b0c2e73d28792b24f021e&quot; ></div>
-        
-</body>
-<script>
-    
-    
-            var map_cafa663ffe5b0c2e73d28792b24f021e = L.map(
-                &quot;map_cafa663ffe5b0c2e73d28792b24f021e&quot;,
-                {
-                    center: [41.7403, -87.73230000000001],
-                    crs: L.CRS.EPSG3857,
-                    zoom: 16,
-                    zoomControl: true,
-                    preferCanvas: false,
-                }
-            );
-
-            
-
-        
-    
-            var tile_layer_42b3d08d23fcc2959f842ccfa373dde5 = L.tileLayer(
-                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
-                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
-            );
-        
-    
-            tile_layer_42b3d08d23fcc2959f842ccfa373dde5.addTo(map_cafa663ffe5b0c2e73d28792b24f021e);
-        
-    
-            var marker_77bd6738d2cb38080b88f816c6ba6b20 = L.marker(
-                [41.739, -87.729],
-                {}
-            ).addTo(map_cafa663ffe5b0c2e73d28792b24f021e);
-        
-    
-        var popup_19047bc0fd4d2f004e80a4454ad75688 = L.popup({&quot;maxWidth&quot;: &quot;100%&quot;});
-
-        
-            
-                var html_f55c8512714a73977a02cac9e4163e0f = $(`<div id=&quot;html_f55c8512714a73977a02cac9e4163e0f&quot; style=&quot;width: 100.0%; height: 100.0%;&quot;>Durkin Park</div>`)[0];
-                popup_19047bc0fd4d2f004e80a4454ad75688.setContent(html_f55c8512714a73977a02cac9e4163e0f);
-            
-        
-
-        marker_77bd6738d2cb38080b88f816c6ba6b20.bindPopup(popup_19047bc0fd4d2f004e80a4454ad75688)
-        ;
-
-        
-    
-    
-            var marker_8b2c7c5f2ad62ddca9c5bdb1464ce8a5 = L.marker(
-                [41.7416, -87.7356],
-                {}
-            ).addTo(map_cafa663ffe5b0c2e73d28792b24f021e);
-        
-    
-            var icon_c5ba6488664b60741bf228ff07f59cab = L.AwesomeMarkers.icon(
-                {&quot;extraClasses&quot;: &quot;fa-rotate-0&quot;, &quot;icon&quot;: &quot;info-sign&quot;, &quot;iconColor&quot;: &quot;white&quot;, &quot;markerColor&quot;: &quot;red&quot;, &quot;prefix&quot;: &quot;glyphicon&quot;}
-            );
-            marker_8b2c7c5f2ad62ddca9c5bdb1464ce8a5.setIcon(icon_c5ba6488664b60741bf228ff07f59cab);
-        
-    
-        var popup_f321726ea51c2cb82179e934f2157f3a = L.popup({&quot;maxWidth&quot;: &quot;100%&quot;});
-
-        
-            
-                var html_7566338c12b173ed99dbf1c622a634c6 = $(`<div id=&quot;html_7566338c12b173ed99dbf1c622a634c6&quot; style=&quot;width: 100.0%; height: 100.0%;&quot;>Scottsdale Park</div>`)[0];
-                popup_f321726ea51c2cb82179e934f2157f3a.setContent(html_7566338c12b173ed99dbf1c622a634c6);
-            
-        
-
-        marker_8b2c7c5f2ad62ddca9c5bdb1464ce8a5.bindPopup(popup_f321726ea51c2cb82179e934f2157f3a)
-        ;
-
-        
-    
-    
-            var poly_line_8371564e57dc1a34e5b243b09f75579a = L.polyline(
-                [[41.739, -87.729], [41.7416, -87.7356]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;green&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: false, &quot;fillColor&quot;: &quot;green&quot;, &quot;fillOpacity&quot;: 0.2, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_cafa663ffe5b0c2e73d28792b24f021e);
-        
-</script>
-</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
-</div>
-</div>
-<p><br></p>
-<p>One final point: We can replace the standard markers with circle markers by using <code>folium.CircleMarker</code>. <code>radius</code> controls the size of the markers and <code>color/fill_color</code> set the color of the marker:</p>
-<div id="cell-9" class="cell" data-execution_count="55">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
-<span id="cb4-2">m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> folium.Map(location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[mid_lat, mid_lon], zoom_start<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>zoom)</span>
-<span id="cb4-3"></span>
-<span id="cb4-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Add Durkin Park circle marker.</span></span>
-<span id="cb4-5">folium.CircleMarker(</span>
-<span id="cb4-6">    location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat0, lon0], </span>
-<span id="cb4-7">    radius<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>, </span>
-<span id="cb4-8">    popup<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Durkin Park"</span>,</span>
-<span id="cb4-9">    color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, </span>
-<span id="cb4-10">    fill_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, </span>
-<span id="cb4-11">    fill<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>,</span>
-<span id="cb4-12">    fill_opacity<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb4-13">    ).add_to(m)</span>
-<span id="cb4-14"></span>
-<span id="cb4-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Add Scottsdale Park marker.</span></span>
-<span id="cb4-16">folium.CircleMarker(</span>
-<span id="cb4-17">    location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat1, lon1], </span>
-<span id="cb4-18">    radius<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>, </span>
-<span id="cb4-19">    popup<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Scottsdale Park"</span>,</span>
-<span id="cb4-20">    color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, </span>
-<span id="cb4-21">    fill_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, </span>
-<span id="cb4-22">    fill<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>,</span>
-<span id="cb4-23">    fill_opacity<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb4-24">    ).add_to(m)</span>
-<span id="cb4-25"></span>
-<span id="cb4-26"></span>
-<span id="cb4-27"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Connect parks with green line. </span></span>
-<span id="cb4-28">points <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [(lat0, lon0), (lat1, lon1)]</span>
-<span id="cb4-29">folium.PolyLine(points, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"green"</span>).add_to(m)</span>
-<span id="cb4-30"></span>
-<span id="cb4-31">m</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="55">
-<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
-<html>
-<head>
-    
-    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
-    
-        <script>
-            L_NO_TOUCH = false;
-            L_DISABLE_3D = false;
-        </script>
-    
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
-    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
-    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
-    
-            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
-                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
-            <style>
-                #map_2559a1f643f43870be214ea5397396a8 {
-                    position: relative;
-                    width: 100.0%;
-                    height: 100.0%;
-                    left: 0.0%;
-                    top: 0.0%;
-                }
-                .leaflet-container { font-size: 1rem; }
-            </style>
-        
-</head>
-<body>
-    
-    
-            <div class=&quot;folium-map&quot; id=&quot;map_2559a1f643f43870be214ea5397396a8&quot; ></div>
-        
-</body>
-<script>
-    
-    
-            var map_2559a1f643f43870be214ea5397396a8 = L.map(
-                &quot;map_2559a1f643f43870be214ea5397396a8&quot;,
-                {
-                    center: [41.7403, -87.73230000000001],
-                    crs: L.CRS.EPSG3857,
-                    zoom: 16,
-                    zoomControl: true,
-                    preferCanvas: false,
-                }
-            );
-
-            
-
-        
-    
-            var tile_layer_781212999bf028a93893216298447816 = L.tileLayer(
-                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
-                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
-            );
-        
-    
-            tile_layer_781212999bf028a93893216298447816.addTo(map_2559a1f643f43870be214ea5397396a8);
-        
-    
-            var circle_marker_2e0b623e6946d0403ff93ea9bfa48fb4 = L.circleMarker(
-                [41.739, -87.729],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 7, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_2559a1f643f43870be214ea5397396a8);
-        
-    
-        var popup_0d4b11ff32b0b7a358aa081ee1fb3f05 = L.popup({&quot;maxWidth&quot;: &quot;100%&quot;});
-
-        
-            
-                var html_a0507c36dfe912d29cb4607016727fb8 = $(`<div id=&quot;html_a0507c36dfe912d29cb4607016727fb8&quot; style=&quot;width: 100.0%; height: 100.0%;&quot;>Durkin Park</div>`)[0];
-                popup_0d4b11ff32b0b7a358aa081ee1fb3f05.setContent(html_a0507c36dfe912d29cb4607016727fb8);
-            
-        
-
-        circle_marker_2e0b623e6946d0403ff93ea9bfa48fb4.bindPopup(popup_0d4b11ff32b0b7a358aa081ee1fb3f05)
-        ;
-
-        
-    
-    
-            var circle_marker_c497bc67ad50d4b27b57dc7787f46bcc = L.circleMarker(
-                [41.7416, -87.7356],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 7, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_2559a1f643f43870be214ea5397396a8);
-        
-    
-        var popup_d54f4e6ff9baa4d0e25872e09b7ae160 = L.popup({&quot;maxWidth&quot;: &quot;100%&quot;});
-
-        
-            
-                var html_f834993b2b3b49f946a6fc5bf12a6972 = $(`<div id=&quot;html_f834993b2b3b49f946a6fc5bf12a6972&quot; style=&quot;width: 100.0%; height: 100.0%;&quot;>Scottsdale Park</div>`)[0];
-                popup_d54f4e6ff9baa4d0e25872e09b7ae160.setContent(html_f834993b2b3b49f946a6fc5bf12a6972);
-            
-        
-
-        circle_marker_c497bc67ad50d4b27b57dc7787f46bcc.bindPopup(popup_d54f4e6ff9baa4d0e25872e09b7ae160)
-        ;
-
-        
-    
-    
-            var poly_line_0a7121955f355f8730616c216224bea5 = L.polyline(
-                [[41.739, -87.729], [41.7416, -87.7356]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;green&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: false, &quot;fillColor&quot;: &quot;green&quot;, &quot;fillOpacity&quot;: 0.2, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_2559a1f643f43870be214ea5397396a8);
-        
-</script>
-</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
-</div>
-</div>
-<p><br></p>
-<p>The International Space Station (ISS) is a collaborative effort among multiple nations, serving as a hub for scientific research and international cooperation in space exploration. The ISS orbits the Earth at an astonishing speed of approximately 17,500 miles per hour, completing an orbit around the planet approximately every 90 minutes.</p>
-<p>The <code>coords</code> list in the next cell represents the position as latitude-longitude pairs of the ISS sampled every minute for 20 minutes. We can render each of the 20 points as red circle markers connected by a red dashed line. Note that it is not necessary to call <code>folium.CircleMarker</code> 20 times: Use a for loop to iterate over the <code>coords</code> list.</p>
-<div id="cell-11" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
-<span id="cb5-2">coords <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [</span>
-<span id="cb5-3">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">50.4183</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">35.337</span>),</span>
-<span id="cb5-4">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">49.3934</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">29.7562</span>),</span>
-<span id="cb5-5">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">48.0881</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">24.4462</span>),</span>
-<span id="cb5-6">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">46.5282</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">19.4374</span>),</span>
-<span id="cb5-7">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">44.7411</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">14.743</span>),</span>
-<span id="cb5-8">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">42.7364</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10.3267</span>),</span>
-<span id="cb5-9">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">40.5727</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6.2481</span>),</span>
-<span id="cb5-10">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">38.2576</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2.4505</span>),</span>
-<span id="cb5-11">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">35.8123</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.0896</span>),</span>
-<span id="cb5-12">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">33.2554</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4.3975</span>),</span>
-<span id="cb5-13">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">30.6031</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7.4986</span>),</span>
-<span id="cb5-14">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">27.8697</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10.4178</span>),</span>
-<span id="cb5-15">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">25.0674</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">13.1786</span>),</span>
-<span id="cb5-16">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">22.197</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">15.8122</span>), </span>
-<span id="cb5-17">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">19.2887</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">18.3195</span>),</span>
-<span id="cb5-18">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">16.3407</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">20.7295</span>),</span>
-<span id="cb5-19">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">13.3611</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">23.059</span>), </span>
-<span id="cb5-20">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10.3562</span>,  <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">25.325</span>),</span>
-<span id="cb5-21">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7.3323</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">27.5427</span>), </span>
-<span id="cb5-22">    (<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4.2953</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">29.7267</span>)</span>
-<span id="cb5-23">    ]</span>
-<span id="cb5-24"></span>
-<span id="cb5-25"></span>
-<span id="cb5-26">lats, lons <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">zip</span>(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span>coords)</span>
-<span id="cb5-27">mid_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(lats) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">len</span>(lats)</span>
-<span id="cb5-28">mid_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>(lons) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">len</span>(lons)</span>
-<span id="cb5-29"></span>
-<span id="cb5-30">m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> folium.Map(location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[mid_lat, mid_lon], zoom_start<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4</span>)</span>
-<span id="cb5-31"></span>
-<span id="cb5-32"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> lat, lon <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> coords:</span>
-<span id="cb5-33"></span>
-<span id="cb5-34">    folium.CircleMarker(</span>
-<span id="cb5-35">        location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat, lon], </span>
-<span id="cb5-36">        radius<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>, </span>
-<span id="cb5-37">        color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, </span>
-<span id="cb5-38">        fill_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, </span>
-<span id="cb5-39">        fill<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>,</span>
-<span id="cb5-40">        fill_opacity<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb5-41">        ).add_to(m)</span>
-<span id="cb5-42"></span>
-<span id="cb5-43"></span>
-<span id="cb5-44"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Connect coords with red dashed line.</span></span>
-<span id="cb5-45">folium.PolyLine(coords, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, dash_array<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"5"</span>).add_to(m)</span>
-<span id="cb5-46"></span>
-<span id="cb5-47">m</span>
-<span id="cb5-48"></span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="3">
-<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
-<html>
-<head>
-    
-    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
-    
-        <script>
-            L_NO_TOUCH = false;
-            L_DISABLE_3D = false;
-        </script>
-    
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
-    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
-    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
-    
-            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
-                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
-            <style>
-                #map_5019534892c9825414fcf011c574038c {
-                    position: relative;
-                    width: 100.0%;
-                    height: 100.0%;
-                    left: 0.0%;
-                    top: 0.0%;
-                }
-                .leaflet-container { font-size: 1rem; }
-            </style>
-        
-</head>
-<body>
-    
-    
-            <div class=&quot;folium-map&quot; id=&quot;map_5019534892c9825414fcf011c574038c&quot; ></div>
-        
-</body>
-<script>
-    
-    
-            var map_5019534892c9825414fcf011c574038c = L.map(
-                &quot;map_5019534892c9825414fcf011c574038c&quot;,
-                {
-                    center: [30.325749999999992, 2.7175800000000025],
-                    crs: L.CRS.EPSG3857,
-                    zoom: 4,
-                    zoomControl: true,
-                    preferCanvas: false,
-                }
-            );
-
-            
-
-        
-    
-            var tile_layer_789127f332392bed4916c8c1b64cd430 = L.tileLayer(
-                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
-                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
-            );
-        
-    
-            tile_layer_789127f332392bed4916c8c1b64cd430.addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_dbd330c6e72dfeb9a8210d6ba98436a7 = L.circleMarker(
-                [50.4183, -35.337],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_4cfefdcc9938b64218c3edad81d20bde = L.circleMarker(
-                [49.3934, -29.7562],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_114ba3dd0f517b0009c35cab78c0c041 = L.circleMarker(
-                [48.0881, -24.4462],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_1e74c6af3cb6b1d41f86cc71203e1209 = L.circleMarker(
-                [46.5282, -19.4374],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_f161fc442366f125b395c8ee07f1413d = L.circleMarker(
-                [44.7411, -14.743],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_2eca911684441980c5d4d83a41c1ec1d = L.circleMarker(
-                [42.7364, -10.3267],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_7801676c154ce1baf2d308fa81e0520a = L.circleMarker(
-                [40.5727, -6.2481],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_28ee765082c108a82ad0dbd9afbc0953 = L.circleMarker(
-                [38.2576, -2.4505],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_5e4aa6ee3e0ae4f8edf83f62de22bcfa = L.circleMarker(
-                [35.8123, 1.0896],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_c46c3726974cdb0e444a26e9747aa52f = L.circleMarker(
-                [33.2554, 4.3975],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_e04702d6208c6754387cadfdb0f9c67e = L.circleMarker(
-                [30.6031, 7.4986],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_bb16e9c9dc16027be099d3e3c6a2f5a8 = L.circleMarker(
-                [27.8697, 10.4178],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_49c7e7325c142d2a55ed048a60f92498 = L.circleMarker(
-                [25.0674, 13.1786],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_aac339f316801d5d0de40bebb1884446 = L.circleMarker(
-                [22.197, 15.8122],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_3e3a5a2bf76661f27c49d5598bfb355a = L.circleMarker(
-                [19.2887, 18.3195],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_7500983d1c39caf9f77426d7f8cc88ac = L.circleMarker(
-                [16.3407, 20.7295],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_64d2f7ed370962fbf08de028c24ef35a = L.circleMarker(
-                [13.3611, 23.059],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_ad436a27b49b6ed91634cff60a4e2f9b = L.circleMarker(
-                [10.3562, 25.325],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_19b7e716bcd8c04d6de6542c9e4e6527 = L.circleMarker(
-                [7.3323, 27.5427],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var circle_marker_836e3d69472ab2b9f29976f242b29b6e = L.circleMarker(
-                [4.2953, 29.7267],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-    
-            var poly_line_83bd5d8b950b32a1480d449f50f42764 = L.polyline(
-                [[50.4183, -35.337], [49.3934, -29.7562], [48.0881, -24.4462], [46.5282, -19.4374], [44.7411, -14.743], [42.7364, -10.3267], [40.5727, -6.2481], [38.2576, -2.4505], [35.8123, 1.0896], [33.2554, 4.3975], [30.6031, 7.4986], [27.8697, 10.4178], [25.0674, 13.1786], [22.197, 15.8122], [19.2887, 18.3195], [16.3407, 20.7295], [13.3611, 23.059], [10.3562, 25.325], [7.3323, 27.5427], [4.2953, 29.7267]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: &quot;5&quot;, &quot;dashOffset&quot;: null, &quot;fill&quot;: false, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 0.2, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_5019534892c9825414fcf011c574038c);
-        
-</script>
-</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
-</div>
-</div>
-
-
-</section>
-</section>
-
- ]]></description>
-  <category>Python</category>
-  <category>Geospatial</category>
-  <guid>https://www.jtrive.com/posts/getting-started-with-folium/getting-started-with-folium.html</guid>
-  <pubDate>Sun, 01 Sep 2024 05:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
