@@ -146,11 +146,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </i> 
 <span class="menu-text"></span></a>
   </li>  
-  <li class="nav-item compact">
-    <a class="nav-link" href="https://python-bloggers.com/"> <i class="bi bi-p-square" role="img">
-</i> 
-<span class="menu-text"></span></a>
-  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -956,8 +951,8 @@ Tokenizer model_max_length (maximum context size): 512</code></pre>
 <p><br></p>
 <p>Tokenization bridges the gap between free-form narrative text and the numeric tensors required by transformer models. Transformers do not operate on strings. Instead, they consume token IDs which are integers representing sub-word units from a learned vocabulary. DistilBERT uses a subword tokenizer, meaning words can be split into smaller pieces. This allows the model to handle rare words, misspellings, and morphological variations while keeping the vocabulary size manageable.</p>
 <p>The tokenizer also produces an attention mask indicating which positions correspond to real tokens versus padding. This is critical when batching variable-length narratives, because the model needs to ignore padded positions when computing internal representations.</p>
-<p>distilbert-base-uncased has a vocabulary of size 30,522 and a maximum context size of 512. The mazxcimum context size means there can be at most 512 tokens (subword pieces, not characters or words) in a single input sequence. If an event narrative is longer than this, it must be truncated or split into chunks before being passed to the model.</p>
-<p>THe next cell provides an example of how we go from raw text to an encoded sequence of embedding IDs.</p>
+<p>distilbert-base-uncased has a vocabulary of size 30,522 and a maximum context size of 512. The maximum context size means there can be at most 512 tokens (subword pieces, not characters or words) in a single input sequence. If an event narrative is longer than this, it must be truncated or split into chunks before being passed to the model.</p>
+<p>The next cell provides an example of how we go from raw text to an encoded sequence of embedding IDs.</p>
 <div id="07fac5f9" class="cell" data-execution_count="8">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -1030,7 +1025,7 @@ tensor([[[-0.0182,  0.0976, -0.0949,  ...,  0.0370,  0.2696,  0.1983],
 <li><code>sequence_length</code>: The number of tokens used to represent <code>text</code>.</li>
 <li><code>hidden_size</code>: The dimensionality of each token’s final embedding after all transformer layers. Every sub-word token is represented as a 768-dimensional vector.</li>
 </ul>
-<p>We wrap <code>tokenizer</code> inside a small function rather than calling it inline to ensure that truncation, padding, and maximum length are applied identically across training, validation, and inference. The same function can be reused later when scoring new narratives, which helps to avoid subtle mismatches between training and prediction pipelines:</p>
+<p>We wrap <code>tokenizer</code> inside a small function rather than calling it inline to ensure that truncation, padding, and maximum length are applied identically across training, validation, and inference. The same function can be reused later when scoring new narratives, which helps to avoid mismatches between training and prediction pipelines:</p>
 <div id="94b3794b" class="cell" data-execution_count="12">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>MAX_LEN <span class="op">=</span> <span class="dv">512</span></span>
@@ -1102,7 +1097,7 @@ X_valid shape: (637, 768); y_valid.shape: (637,)</code></pre>
 <p>When working with transformer embeddings, simple linear models often perform surprisingly well, since much of the complexity has already been absorbed by the language model. Logistic Regression is a natural first choice in this setting. It is fast to train, handles high-dimensional feature spaces well, and provides well-behaved probability estimates. The embeddings produced by DistilBERT have 768 dimensions, which makes the problem inherently high-dimensional. Linear models with regularization are well-suited to this regime, because regularization helps control overfitting by shrinking less informative coefficients toward zero.</p>
 <p>Nothing about this step is specific to text anymore. We could swap Logistic Regression for a Random Forest, Gradient Boosting model, or any other scikit-learn classifier without changing the upstream pipeline. This separation between representation learning and downstream modeling is one of the major advantages of using pretrained transformers as feature extractors.</p>
 <p>In the next cell, we fit a Logistic Regression model with Elastic Net penalty. A grid search is performed over <code>l1_ratio</code> and <code>C</code> to identify the regularization regime which maximizes f1-score.</p>
-<div id="ebf35da0" class="cell" data-execution_count="16">
+<div id="ebf35da0" class="cell">
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.stats <span class="im">import</span> uniform, loguniform</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> RandomizedSearchCV</span>
@@ -1132,9 +1127,7 @@ X_valid shape: (637, 768); y_valid.shape: (637,)</code></pre>
 <span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>clf.fit(X_train, y_train)</span>
 <span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Optimal parameters: </span><span class="sc">{</span>clf<span class="sc">.</span>best_params_<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-32"><a href="#cb25-32" aria-hidden="true" tabindex="-1"></a></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">Optimal parameters: </span><span class="sc">{</span>clf<span class="sc">.</span>best_params_<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Fitting 3 folds for each of 50 candidates, totalling 150 fits
 
@@ -1164,14 +1157,14 @@ weighted avg    0.80288   0.75510   0.76963       637
 </section>
 <section id="conclusion" class="level3">
 <h3 class="anchored" data-anchor-id="conclusion"><strong>Conclusion</strong></h3>
-<p>The big-picture interpretation is that the pipeline works and the model has learned meaningful signal from the text on a real-world dataset. It’s worth emphasizing that the goal of this post was not to squeeze out the last basis point of classification performance, but to build intuition around how a pretrained transformer like DistilBERT can be used as a general-purpose feature extractor for downstream modeling. Even with a relatively simple logistic regression head, we were able to convert unstructured event narratives into dense numerical representations with only a few lines of code and obtain better than expected results. There are many obvious avenues for improvement:</p>
+<p>The big-picture interpretation is that the pipeline works and the model has learned meaningful signal from the text on a real-world dataset. It’s worth emphasizing that the goal of this post was not to squeeze out the last basis point of classification performance, but to build intuition around how a pretrained transformer like DistilBERT can be used as a general-purpose feature extractor for downstream modeling. Even with a relatively simple Logistic Regression head, we were able to convert unstructured event narratives into dense numerical representations with only a few lines of code and obtain better than expected results. There are many obvious avenues for improvement:</p>
 <ul>
 <li>Experiment with alternative pooling strategies.</li>
 <li>Trying different pretrained backbones.</li>
 <li>Moving beyond linear models to more expressive classifiers.</li>
 <li>Incorporating additional features (property damage, spatial variables, etc.)</li>
 </ul>
-<p>These are left as an exercise for the reader.</p>
+<p>These are left as exercises for the reader.</p>
 <p>In Part 2, we’ll take the next step and fine-tune the transformer itself for the same task, allowing the language model to adapt its internal representations directly to the classification objective, and demonstrate why end-to-end fine-tuning often delivers significant performance improvement over fixed embeddings.</p>
 
 
