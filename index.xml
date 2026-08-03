@@ -48,81 +48,83 @@ H I</code></pre>
 <p>Every node one edge away from A is visited before any node two edges away. This is what makes BFS especially useful for finding shortest paths in unweighted graphs.</p>
 <p>Note that BFS does not properly handle weighted graphs because it searches by the number of edges in a path, not by the total cost of those edges. It assumes every edge has the same cost, so the first time it reaches a node, it treats that route as the shortest. For nonnegative weighted graphs, Dijkstra’s algorithm can be used since it explores nodes according to the lowest accumulated cost instead of hop count.</p>
 <p>The heart of BFS is a queue, which is a First-In First-Out (FIFO) data structure. Whenever a new node is discovered, it is placed at the back of the queue. Whenever we’re ready to explore another node, we remove it from the front of the queue. This guarantees that nodes are explored in increasing order of their distance from the source. This will be clearly demonstrated in the time evolution plot later in this section.</p>
-<div style="text-align:center;">
-<pre><code>&lt;img src="bfs.png" width="60%"&gt;
-&lt;figcaption&gt;&lt;em&gt;BFS pseudo code&lt;/em&gt;&lt;/figcaption&gt;</code></pre>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/intro-to-graphblas/bfs.png" class="img-fluid figure-img" style="width:60.0%"></p>
+<figcaption>BFS pseudo code</figcaption>
+</figure>
 </div>
 <p><br></p>
 <p>Lets create a simple undirected graph to demonstrate BFS:</p>
 <div id="1001022e" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
-<span id="cb4-2"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
+<span id="cb3-2"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> nx</span>
-<span id="cb4-3"><span class="im" style="color: #00769E;
+<span id="cb3-3"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> plt</span>
-<span id="cb4-4"></span>
-<span id="cb4-5">G <span class="op" style="color: #5E5E5E;
+<span id="cb3-4"></span>
+<span id="cb3-5">G <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> nx.Graph()</span>
-<span id="cb4-6"></span>
-<span id="cb4-7">edges <span class="op" style="color: #5E5E5E;
+<span id="cb3-6"></span>
+<span id="cb3-7">edges <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [</span>
-<span id="cb4-8">    (<span class="st" style="color: #20794D;
+<span id="cb3-8">    (<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"A"</span>,<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"B"</span>),</span>
-<span id="cb4-9">    (<span class="st" style="color: #20794D;
+<span id="cb3-9">    (<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"A"</span>,<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"C"</span>),</span>
-<span id="cb4-10">    (<span class="st" style="color: #20794D;
+<span id="cb3-10">    (<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"A"</span>,<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"D"</span>),</span>
-<span id="cb4-11">    (<span class="st" style="color: #20794D;
+<span id="cb3-11">    (<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"B"</span>,<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"E"</span>),</span>
-<span id="cb4-12">    (<span class="st" style="color: #20794D;
+<span id="cb3-12">    (<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"B"</span>,<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"F"</span>),</span>
-<span id="cb4-13">    (<span class="st" style="color: #20794D;
+<span id="cb3-13">    (<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"D"</span>,<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"G"</span>),</span>
-<span id="cb4-14">    (<span class="st" style="color: #20794D;
+<span id="cb3-14">    (<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"F"</span>,<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"H"</span>),</span>
-<span id="cb4-15">    (<span class="st" style="color: #20794D;
+<span id="cb3-15">    (<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"F"</span>,<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"I"</span>),</span>
-<span id="cb4-16">]</span>
-<span id="cb4-17"></span>
-<span id="cb4-18"><span class="co" style="color: #5E5E5E;
+<span id="cb3-16">]</span>
+<span id="cb3-17"></span>
+<span id="cb3-18"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Specify positions for fixed layout. </span></span>
-<span id="cb4-19">pos <span class="op" style="color: #5E5E5E;
+<span id="cb3-19">pos <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> {</span>
-<span id="cb4-20">    <span class="st" style="color: #20794D;
+<span id="cb3-20">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"A"</span>: (<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -157,7 +159,7 @@ background-color: null;
 font-style: inherit;">3</span>, <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>),</span>
-<span id="cb4-21">    <span class="st" style="color: #20794D;
+<span id="cb3-21">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"F"</span>: (<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -186,19 +188,19 @@ background-color: null;
 font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>),</span>
-<span id="cb4-22">}</span>
-<span id="cb4-23"></span>
-<span id="cb4-24">G.add_edges_from(edges)</span>
-<span id="cb4-25"></span>
-<span id="cb4-26">nx.draw_networkx(</span>
-<span id="cb4-27">    G,</span>
-<span id="cb4-28">    pos,</span>
-<span id="cb4-29">    node_color<span class="op" style="color: #5E5E5E;
+<span id="cb3-22">}</span>
+<span id="cb3-23"></span>
+<span id="cb3-24">G.add_edges_from(edges)</span>
+<span id="cb3-25"></span>
+<span id="cb3-26">nx.draw_networkx(</span>
+<span id="cb3-27">    G,</span>
+<span id="cb3-28">    pos,</span>
+<span id="cb3-29">    node_color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"#ff6700"</span>,</span>
-<span id="cb4-30">)</span></code></pre></div>
+<span id="cb3-30">)</span></code></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -210,61 +212,61 @@ font-style: inherit;">"#ff6700"</span>,</span>
 <p><br></p>
 <p>In the next cell, we implement BFS to traverse a graph starting from a specified node. All of a node’s neighbors are explored before moving on to the next level of nodes, which pushes the frontier forward. The function returns a list representing the visitation order starting from any node in the graph:</p>
 <div id="2b2ed146" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"></span>
-<span id="cb5-2"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> collections <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> deque</span>
-<span id="cb5-3"></span>
-<span id="cb5-4"><span class="kw" style="color: #003B4F;
+<span id="cb4-3"></span>
+<span id="cb4-4"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> bfs(graph, start):</span>
-<span id="cb5-5"></span>
-<span id="cb5-6">    <span class="co" style="color: #5E5E5E;
+<span id="cb4-5"></span>
+<span id="cb4-6">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Visited nodes.</span></span>
-<span id="cb5-7">    visited <span class="op" style="color: #5E5E5E;
+<span id="cb4-7">    visited <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> {start}</span>
-<span id="cb5-8"></span>
-<span id="cb5-9">    <span class="co" style="color: #5E5E5E;
+<span id="cb4-8"></span>
+<span id="cb4-9">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Initialize queue with the starting node.</span></span>
-<span id="cb5-10">    q <span class="op" style="color: #5E5E5E;
+<span id="cb4-10">    q <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> deque([start])</span>
-<span id="cb5-11"></span>
-<span id="cb5-12">    <span class="co" style="color: #5E5E5E;
+<span id="cb4-11"></span>
+<span id="cb4-12">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># List to store the order of visited nodes.</span></span>
-<span id="cb5-13">    order <span class="op" style="color: #5E5E5E;
+<span id="cb4-13">    order <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> []</span>
-<span id="cb5-14"></span>
-<span id="cb5-15">    <span class="cf" style="color: #003B4F;
+<span id="cb4-14"></span>
+<span id="cb4-15">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">while</span> q:</span>
-<span id="cb5-16"></span>
-<span id="cb5-17">        <span class="co" style="color: #5E5E5E;
+<span id="cb4-16"></span>
+<span id="cb4-17">        <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Pop the leftmost node from the queue.</span></span>
-<span id="cb5-18">        node <span class="op" style="color: #5E5E5E;
+<span id="cb4-18">        node <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> q.popleft()</span>
-<span id="cb5-19">        order.append(node)</span>
-<span id="cb5-20"></span>
-<span id="cb5-21">        <span class="cf" style="color: #003B4F;
+<span id="cb4-19">        order.append(node)</span>
+<span id="cb4-20"></span>
+<span id="cb4-21">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> neighbor <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> graph.neighbors(node):</span>
-<span id="cb5-22"></span>
-<span id="cb5-23">            <span class="cf" style="color: #003B4F;
+<span id="cb4-22"></span>
+<span id="cb4-23">            <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> neighbor <span class="kw" style="color: #003B4F;
@@ -274,76 +276,76 @@ font-style: inherit;">not</span> <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> visited:</span>
-<span id="cb5-24"></span>
-<span id="cb5-25">                visited.add(neighbor)</span>
-<span id="cb5-26">                q.append(neighbor)</span>
-<span id="cb5-27"></span>
-<span id="cb5-28">    <span class="cf" style="color: #003B4F;
+<span id="cb4-24"></span>
+<span id="cb4-25">                visited.add(neighbor)</span>
+<span id="cb4-26">                q.append(neighbor)</span>
+<span id="cb4-27"></span>
+<span id="cb4-28">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> order</span>
-<span id="cb5-29"></span>
-<span id="cb5-30"></span>
-<span id="cb5-31"><span class="co" style="color: #5E5E5E;
+<span id="cb4-29"></span>
+<span id="cb4-30"></span>
+<span id="cb4-31"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Generate visitation paths for each node. </span></span>
-<span id="cb5-32"><span class="bu" style="color: null;
+<span id="cb4-32"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"BFS traversal order starting from A:"</span>, bfs(G, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"A"</span>))</span>
-<span id="cb5-33"><span class="bu" style="color: null;
+<span id="cb4-33"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"BFS traversal order starting from B:"</span>, bfs(G, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"B"</span>))</span>
-<span id="cb5-34"><span class="bu" style="color: null;
+<span id="cb4-34"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"BFS traversal order starting from C:"</span>, bfs(G, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"C"</span>))</span>
-<span id="cb5-35"><span class="bu" style="color: null;
+<span id="cb4-35"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"BFS traversal order starting from D:"</span>, bfs(G, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"D"</span>))</span>
-<span id="cb5-36"><span class="bu" style="color: null;
+<span id="cb4-36"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"BFS traversal order starting from E:"</span>, bfs(G, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"E"</span>))</span>
-<span id="cb5-37"><span class="bu" style="color: null;
+<span id="cb4-37"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"BFS traversal order starting from F:"</span>, bfs(G, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"F"</span>))</span>
-<span id="cb5-38"><span class="bu" style="color: null;
+<span id="cb4-38"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"BFS traversal order starting from G:"</span>, bfs(G, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"G"</span>))</span>
-<span id="cb5-39"><span class="bu" style="color: null;
+<span id="cb4-39"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"BFS traversal order starting from H:"</span>, bfs(G, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"H"</span>))</span>
-<span id="cb5-40"><span class="bu" style="color: null;
+<span id="cb4-40"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -365,48 +367,48 @@ BFS traversal order starting from H: ['I', 'F', 'B', 'H', 'A', 'E', 'C', 'D', 'G
 <p><br></p>
 <p>Watching BFS unfold is much more informative than simply seeing the final node ordering:</p>
 <div id="4585b781" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
-<span id="cb7-2"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Capture visitation order as well as queue state at each step of</span></span>
-<span id="cb7-3"><span class="co" style="color: #5E5E5E;
+<span id="cb6-3"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># the BFS traversal.</span></span>
-<span id="cb7-4">start <span class="op" style="color: #5E5E5E;
+<span id="cb6-4">start <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"A"</span></span>
-<span id="cb7-5">visited <span class="op" style="color: #5E5E5E;
+<span id="cb6-5">visited <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> {start}</span>
-<span id="cb7-6">queue <span class="op" style="color: #5E5E5E;
+<span id="cb6-6">queue <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> deque([start])</span>
-<span id="cb7-7">history <span class="op" style="color: #5E5E5E;
+<span id="cb6-7">history <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> []</span>
-<span id="cb7-8"></span>
-<span id="cb7-9"><span class="cf" style="color: #003B4F;
+<span id="cb6-8"></span>
+<span id="cb6-9"><span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">while</span> queue:</span>
-<span id="cb7-10">    history.append((<span class="bu" style="color: null;
+<span id="cb6-10">    history.append((<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">list</span>(queue), <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">set</span>(visited)))</span>
-<span id="cb7-11">    node <span class="op" style="color: #5E5E5E;
+<span id="cb6-11">    node <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> queue.popleft()</span>
-<span id="cb7-12">    <span class="cf" style="color: #003B4F;
+<span id="cb6-12">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> nbr <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> G.neighbors(node):</span>
-<span id="cb7-13">        <span class="cf" style="color: #003B4F;
+<span id="cb6-13">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> nbr <span class="kw" style="color: #003B4F;
@@ -416,12 +418,12 @@ font-style: inherit;">not</span> <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> visited:</span>
-<span id="cb7-14">            visited.add(nbr)</span>
-<span id="cb7-15">            queue.append(nbr)</span>
-<span id="cb7-16"></span>
-<span id="cb7-17"></span>
-<span id="cb7-18"></span>
-<span id="cb7-19">fig, axes <span class="op" style="color: #5E5E5E;
+<span id="cb6-14">            visited.add(nbr)</span>
+<span id="cb6-15">            queue.append(nbr)</span>
+<span id="cb6-16"></span>
+<span id="cb6-17"></span>
+<span id="cb6-18"></span>
+<span id="cb6-19">fig, axes <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -434,12 +436,12 @@ background-color: null;
 font-style: inherit;">12</span>,<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">10</span>))</span>
-<span id="cb7-20"></span>
-<span id="cb7-21">axes <span class="op" style="color: #5E5E5E;
+<span id="cb6-20"></span>
+<span id="cb6-21">axes <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> axes.ravel()</span>
-<span id="cb7-22"></span>
-<span id="cb7-23"><span class="cf" style="color: #003B4F;
+<span id="cb6-22"></span>
+<span id="cb6-23"><span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> ii, (ax, (queue_state, visited)) <span class="kw" style="color: #003B4F;
@@ -454,69 +456,69 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>):</span>
-<span id="cb7-24"></span>
-<span id="cb7-25">    colors <span class="op" style="color: #5E5E5E;
+<span id="cb6-24"></span>
+<span id="cb6-25">    colors <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> []</span>
-<span id="cb7-26"></span>
-<span id="cb7-27">    <span class="cf" style="color: #003B4F;
+<span id="cb6-26"></span>
+<span id="cb6-27">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> node <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> G.nodes():</span>
-<span id="cb7-28"></span>
-<span id="cb7-29">        <span class="cf" style="color: #003B4F;
+<span id="cb6-28"></span>
+<span id="cb6-29">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> node <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> queue_state:</span>
-<span id="cb7-30">            colors.append(<span class="st" style="color: #20794D;
+<span id="cb6-30">            colors.append(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"orange"</span>)</span>
-<span id="cb7-31">        <span class="cf" style="color: #003B4F;
+<span id="cb6-31">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">elif</span> node <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> visited:</span>
-<span id="cb7-32">            colors.append(<span class="st" style="color: #20794D;
+<span id="cb6-32">            colors.append(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"steelblue"</span>)</span>
-<span id="cb7-33">        <span class="cf" style="color: #003B4F;
+<span id="cb6-33">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">else</span>:</span>
-<span id="cb7-34">            colors.append(<span class="st" style="color: #20794D;
+<span id="cb6-34">            colors.append(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"lightgray"</span>)</span>
-<span id="cb7-35"></span>
-<span id="cb7-36">    nx.draw_networkx(</span>
-<span id="cb7-37">        G,</span>
-<span id="cb7-38">        pos,</span>
-<span id="cb7-39">        node_color<span class="op" style="color: #5E5E5E;
+<span id="cb6-35"></span>
+<span id="cb6-36">    nx.draw_networkx(</span>
+<span id="cb6-37">        G,</span>
+<span id="cb6-38">        pos,</span>
+<span id="cb6-39">        node_color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>colors,</span>
-<span id="cb7-40">        ax<span class="op" style="color: #5E5E5E;
+<span id="cb6-40">        ax<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>ax,</span>
-<span id="cb7-41">        with_labels<span class="op" style="color: #5E5E5E;
+<span id="cb6-41">        with_labels<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">True</span>,</span>
-<span id="cb7-42">        node_size<span class="op" style="color: #5E5E5E;
+<span id="cb6-42">        node_size<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">500</span></span>
-<span id="cb7-43">    )</span>
-<span id="cb7-44"></span>
-<span id="cb7-45">    ax.set_title(<span class="ss" style="color: #20794D;
+<span id="cb6-43">    )</span>
+<span id="cb6-44"></span>
+<span id="cb6-45">    ax.set_title(<span class="ss" style="color: #20794D;
 background-color: null;
 font-style: inherit;">f"t=</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -535,11 +537,11 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">10</span>)</span>
-<span id="cb7-46">    ax.axis(<span class="st" style="color: #20794D;
+<span id="cb6-46">    ax.axis(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"off"</span>)</span>
-<span id="cb7-47"></span>
-<span id="cb7-48">fig.suptitle(<span class="ss" style="color: #20794D;
+<span id="cb6-47"></span>
+<span id="cb6-48">fig.suptitle(<span class="ss" style="color: #20794D;
 background-color: null;
 font-style: inherit;">f"BFS traversal starting from </span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -552,8 +554,8 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">12</span>)</span>
-<span id="cb7-49">plt.show()</span>
-<span id="cb7-50"></span></code></pre></div>
+<span id="cb6-49">plt.show()</span>
+<span id="cb6-50"></span></code></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -572,65 +574,65 @@ font-style: inherit;">12</span>)</span>
 <p>Referring to the snapshot at row 2 column 1 (using 1-based indexing), where the queue state is <code>['D', 'E', 'F']</code>: Since a queue is used, BFS is guaranteed to visit <code>'D'</code> prior to <code>'E'</code> and <code>'F'</code> (<code>'D'</code> will be ahead of <code>'E'</code> and <code>'F'</code> in <code>q</code>).</p>
 <p>Our current BFS implementation gives us the visitation order from any starting point. It can be adapted to instead return the shortest unweighted path between two nodes (<code>bfs_shortest_path</code>), or the shortest path between a starting node and all other nodes (<code>single_source_shortest_path</code>):</p>
 <div id="e13382d2" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"></span>
-<span id="cb8-2"><span class="kw" style="color: #003B4F;
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
+<span id="cb7-2"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> bfs_shortest_path(graph, start, target):</span>
-<span id="cb8-3">    <span class="co" style="color: #5E5E5E;
+<span id="cb7-3">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb8-4"><span class="co" style="color: #5E5E5E;
+<span id="cb7-4"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    Determine the shortest path from start to target via BFS.</span></span>
-<span id="cb8-5"><span class="co" style="color: #5E5E5E;
+<span id="cb7-5"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    """</span></span>
-<span id="cb8-6">    <span class="co" style="color: #5E5E5E;
+<span id="cb7-6">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Populate q with 2-tuple as (node, path) where path is the path</span></span>
-<span id="cb8-7">    <span class="co" style="color: #5E5E5E;
+<span id="cb7-7">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># taken to reach node.</span></span>
-<span id="cb8-8">    q <span class="op" style="color: #5E5E5E;
+<span id="cb7-8">    q <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> deque([(start, [start])])</span>
-<span id="cb8-9"></span>
-<span id="cb8-10">    <span class="co" style="color: #5E5E5E;
+<span id="cb7-9"></span>
+<span id="cb7-10">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Keep track of visited nodes to avoid cycles.</span></span>
-<span id="cb8-11">    visited <span class="op" style="color: #5E5E5E;
+<span id="cb7-11">    visited <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> {start}</span>
-<span id="cb8-12"></span>
-<span id="cb8-13">    <span class="cf" style="color: #003B4F;
+<span id="cb7-12"></span>
+<span id="cb7-13">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">while</span> q:</span>
-<span id="cb8-14"></span>
-<span id="cb8-15">        node, pth <span class="op" style="color: #5E5E5E;
+<span id="cb7-14"></span>
+<span id="cb7-15">        node, pth <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> q.popleft()</span>
-<span id="cb8-16"></span>
-<span id="cb8-17">        <span class="cf" style="color: #003B4F;
+<span id="cb7-16"></span>
+<span id="cb7-17">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> node <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">==</span> target:</span>
-<span id="cb8-18">            <span class="cf" style="color: #003B4F;
+<span id="cb7-18">            <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> pth</span>
-<span id="cb8-19"></span>
-<span id="cb8-20">        <span class="cf" style="color: #003B4F;
+<span id="cb7-19"></span>
+<span id="cb7-20">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> neighbor <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> graph.neighbors(node):</span>
-<span id="cb8-21">            <span class="cf" style="color: #003B4F;
+<span id="cb7-21">            <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">if</span> neighbor <span class="kw" style="color: #003B4F;
@@ -640,60 +642,60 @@ font-style: inherit;">not</span> <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> visited:</span>
-<span id="cb8-22">                visited.add(neighbor)</span>
-<span id="cb8-23">                q.append((neighbor, pth <span class="op" style="color: #5E5E5E;
+<span id="cb7-22">                visited.add(neighbor)</span>
+<span id="cb7-23">                q.append((neighbor, pth <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> [neighbor]))</span>
-<span id="cb8-24"></span>
-<span id="cb8-25">    <span class="cf" style="color: #003B4F;
+<span id="cb7-24"></span>
+<span id="cb7-25">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> <span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">None</span></span>
-<span id="cb8-26"></span>
-<span id="cb8-27"></span>
-<span id="cb8-28"><span class="kw" style="color: #003B4F;
+<span id="cb7-26"></span>
+<span id="cb7-27"></span>
+<span id="cb7-28"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> single_source_shortest_paths(graph, start):</span>
-<span id="cb8-29">    <span class="co" style="color: #5E5E5E;
+<span id="cb7-29">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb8-30"><span class="co" style="color: #5E5E5E;
+<span id="cb7-30"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    Determine the shortest path between starting node and all other nodes </span></span>
-<span id="cb8-31"><span class="co" style="color: #5E5E5E;
+<span id="cb7-31"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    in the graph.</span></span>
-<span id="cb8-32"><span class="co" style="color: #5E5E5E;
+<span id="cb7-32"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    """</span></span>
-<span id="cb8-33">    <span class="cf" style="color: #003B4F;
+<span id="cb7-33">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">return</span> {</span>
-<span id="cb8-34">        target: bfs_shortest_path(graph, start, target) <span class="cf" style="color: #003B4F;
+<span id="cb7-34">        target: bfs_shortest_path(graph, start, target) <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> target <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> graph.nodes()</span>
-<span id="cb8-35">    }</span>
-<span id="cb8-36"></span>
-<span id="cb8-37"></span>
-<span id="cb8-38"><span class="bu" style="color: null;
+<span id="cb7-35">    }</span>
+<span id="cb7-36"></span>
+<span id="cb7-37"></span>
+<span id="cb7-38"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"All pairs shortest path starting from A:"</span>)</span>
-<span id="cb8-39">single_source_shortest_paths(G, start<span class="op" style="color: #5E5E5E;
+<span id="cb7-39">single_source_shortest_paths(G, start<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"A"</span>)</span>
-<span id="cb8-40"></span></code></pre></div>
+<span id="cb7-40"></span></code></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>All pairs shortest path starting from A:</code></pre>
 </div>
@@ -717,9 +719,11 @@ font-style: inherit;">"A"</span>)</span>
 <h3 class="anchored" data-anchor-id="graphblas"><strong>GraphBLAS</strong></h3>
 <p>GraphBLAS emerged from a realization that many graph algorithms are fundamentally sparse linear algebra algorithms, and many graph operations could be expressed as matrix operations. For example, BFS can be implemented as sparse vector-matrix multiplication. One sparse vector-matrix multiplication computes one BFS frontier expansion, and repeated multiplications produce the full BFS traversal.</p>
 <p>You can think of GraphBLAS as being to graph analytics what BLAS is to machine learning: Most machine learning practitioners never call BLAS directly, but almost everything relies on it. Similarly, graph practitioners may never call GraphBLAS directly, but many graph systems can be built on top of it. The goal was to create a standardized set of sparse linear algebra primitives from which most graph algorithms could be constructed.</p>
-<div style="text-align:center;">
-<pre><code>&lt;img src="gb01.png" width="65%"&gt;
-&lt;figcaption&gt;&lt;em&gt;Single step of BFS via sparse vector-matrix multiply.&lt;/em&gt;&lt;/figcaption&gt;</code></pre>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/intro-to-graphblas/gb01.png" class="img-fluid figure-img" style="width:65.0%"></p>
+<figcaption>Single step of BFS via sparse vector-matrix multiply</figcaption>
+</figure>
 </div>
 <p><br></p>
 <p>A number of common graph algorithms can be framed as sparse linear algebra algorithms:</p>
@@ -735,19 +739,19 @@ font-style: inherit;">"A"</span>)</span>
 <p>We can demonstrate BFS using an ordinary dense adjacency matrix and standard vector–matrix multiplication. The dense version makes the mechanics easy to see, although a GraphBLAS implementation would store the matrix sparsely and use specialized logical operations rather than performing unnecessary calculations on all the zeros.</p>
 <p>Starting with the 9-node graph <code>G</code> from before, we obtain the adjacency matrix representation:</p>
 <div id="251b375e" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
-<span id="cb12-2"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
+<span id="cb10-2"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> np</span>
-<span id="cb12-3"><span class="im" style="color: #00769E;
+<span id="cb10-3"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> networkx <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> nx</span>
-<span id="cb12-4"></span>
-<span id="cb12-5">nodes <span class="op" style="color: #5E5E5E;
+<span id="cb10-4"></span>
+<span id="cb10-5">nodes <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
 background-color: null;
@@ -768,22 +772,22 @@ background-color: null;
 font-style: inherit;">"H"</span>, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"I"</span>]</span>
-<span id="cb12-6"></span>
-<span id="cb12-7">M <span class="op" style="color: #5E5E5E;
+<span id="cb10-6"></span>
+<span id="cb10-7">M <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> nx.to_numpy_array(</span>
-<span id="cb12-8">    G,</span>
-<span id="cb12-9">    nodelist<span class="op" style="color: #5E5E5E;
+<span id="cb10-8">    G,</span>
+<span id="cb10-9">    nodelist<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>nodes,</span>
-<span id="cb12-10">    dtype<span class="op" style="color: #5E5E5E;
+<span id="cb10-10">    dtype<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">int</span>,</span>
-<span id="cb12-11">)</span>
-<span id="cb12-12"></span>
-<span id="cb12-13"><span class="bu" style="color: null;
+<span id="cb10-11">)</span>
+<span id="cb10-12"></span>
+<span id="cb10-13"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
 background-color: null;
@@ -796,7 +800,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="ss" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb12-14"></span></code></pre></div>
+<span id="cb10-14"></span></code></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Adjacency matrix for G:
 
@@ -815,11 +819,11 @@ font-style: inherit;">"</span>)</span>
 <p>Suppose BFS begins at node A. Represent the current search frontier as a row vector <code>f0</code>. A value of 1 means that a node is in the frontier.</p>
 <p>After multiplying <code>f0</code> with adjacency matrix <code>M</code>, we get a vector the same length as the original with 1s representing immediate neighbors of A (B, C, D) and 0s elsewhere. <code>f1</code> represents the next frontier in the search.</p>
 <div id="bf6ded13" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
-<span id="cb14-2"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
+<span id="cb12-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Sparse representation of starting node. </span></span>
-<span id="cb14-3">f0 <span class="op" style="color: #5E5E5E;
+<span id="cb12-3">f0 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> np.array([<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -840,17 +844,17 @@ background-color: null;
 font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>])</span>
-<span id="cb14-4"></span>
-<span id="cb14-5"><span class="co" style="color: #5E5E5E;
+<span id="cb12-4"></span>
+<span id="cb12-5"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Multiply the starting node by the adjacency matrix to get the next frontier.</span></span>
-<span id="cb14-6">f1 <span class="op" style="color: #5E5E5E;
+<span id="cb12-6">f1 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> f0 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">@</span> M</span>
-<span id="cb14-7"></span>
-<span id="cb14-8"><span class="bu" style="color: null;
+<span id="cb12-7"></span>
+<span id="cb12-8"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
 background-color: null;
@@ -861,7 +865,7 @@ background-color: null;
 font-style: inherit;">}</span><span class="ss" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb14-9"><span class="bu" style="color: null;
+<span id="cb12-9"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
 background-color: null;
@@ -879,14 +883,14 @@ Next frontier  (f1): [0 1 1 1 0 0 0 0 0]</code></pre>
 </div>
 <p>We can expand to the next frontier with second vector-matrix multiply:</p>
 <div id="06976a6b" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"></span>
-<span id="cb16-2">f2 <span class="op" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
+<span id="cb14-2">f2 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> f1 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">@</span> M</span>
-<span id="cb16-3"></span>
-<span id="cb16-4"><span class="bu" style="color: null;
+<span id="cb14-3"></span>
+<span id="cb14-4"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
 background-color: null;
@@ -905,8 +909,8 @@ font-style: inherit;">"</span>)</span></code></pre></div>
 <p>The result says that the current frontier connects back to A three times and also reaches E, F, and G. The value 3 at A is a path count: each of B, C, and D connects back to A.</p>
 <p>BFS must prevent previously visited nodes from returning to the frontier. After removing A, B, C, and D, the new frontier <code>f2</code> becomes <code>[0, 0, 0, 0, 1, 1, 1, 0, 0]</code>. This represents the second layer of BFS (E, F, G). Another vector matrix multiply:</p>
 <div id="330e4428" class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"></span>
-<span id="cb18-2">f2 <span class="op" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"></span>
+<span id="cb16-2">f2 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> np.array([<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -927,14 +931,14 @@ background-color: null;
 font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>])</span>
-<span id="cb18-3"></span>
-<span id="cb18-4">f3 <span class="op" style="color: #5E5E5E;
+<span id="cb16-3"></span>
+<span id="cb16-4">f3 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> f2 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">@</span> M</span>
-<span id="cb18-5"></span>
-<span id="cb18-6"><span class="bu" style="color: null;
+<span id="cb16-5"></span>
+<span id="cb16-6"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
 background-color: null;
@@ -952,7 +956,7 @@ font-style: inherit;">"</span>)</span></code></pre></div>
 <p>Removing already visited nodes B and D, we’re left with <code>[0, 0, 0, 0, 0, 0, 0, 1, 1]</code>, which gives us the third BFS layer (H, I).</p>
 <p>One more multiplication only leads back to F, which has already been visited, so the next frontier is empty and the search ends.</p>
 <div id="922a1b0b" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1">f3 <span class="op" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1">f3 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> np.array([<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -973,14 +977,14 @@ background-color: null;
 font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>])</span>
-<span id="cb20-2"></span>
-<span id="cb20-3">f4 <span class="op" style="color: #5E5E5E;
+<span id="cb18-2"></span>
+<span id="cb18-3">f4 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> f3 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">@</span> M</span>
-<span id="cb20-4"></span>
-<span id="cb20-5"><span class="bu" style="color: null;
+<span id="cb18-4"></span>
+<span id="cb18-5"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
 background-color: null;
@@ -1002,9 +1006,11 @@ Depth 2: ['E', 'F', 'G']
 Depth 3: ['H', 'I']</code></pre>
 <p>GraphBLAS expresses these same ideas using sparse vectors, sparse matrices, masks, and a Boolean semiring. The sparse representation is far more efficient for large graphs because it stores and processes only existing edges and active frontier entries rather than all the zeros in a dense adjacency matrix.</p>
 <p>This post only scratches the surface of GraphBLAS. For more on the theoretical underpinnings of the library and the linear algebraic framing of graph algorithms, check out <em>Graph Algorithms in the Language of Linear Algebra</em>.</p>
-<div style="text-align:center;">
-<pre><code>&lt;img src="book.png" width="37%"&gt;
-&lt;figcaption&gt;&lt;em&gt;Excellent resource highlighting the ideas and insights that came to be GraphBLAS.&lt;/em&gt;&lt;/figcaption&gt;</code></pre>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://www.jtrive.com/posts/intro-to-graphblas/book.png" class="img-fluid figure-img" style="width:37.0%"></p>
+<figcaption>Excellent resource highlighting the ideas and insights that came to be GraphBLAS</figcaption>
+</figure>
 </div>
 </section>
 <section id="benchmarking" class="level4">
@@ -1018,46 +1024,46 @@ Depth 3: ['H', 'I']</code></pre>
 <p>In the benchmarking code, the line <code>G1 = ga.Graph.from_networkx(G0)</code> transforms the NetworkX graph to a GraphBLAS representation. This is intentionally done outside of the call to <code>timeit</code>, since our goal is to compare the algorithm implementations themselves, which is similar to a realistic workflow where a graph is converted once and then reused for multiple analyses. It is not a fair measure of the total cost of a one-off call starting from a NetworkX graph, because that workflow includes conversion overhead. In the <em>NextworkX Backends</em> section, we’ll perform the same comparison without the explicit conversion to GraphBLAS ahead of time, effectively including the conversion cost in the benchmark. I believe this dual benchmarking serves as a good demonstration of both the computational advantage of GraphBLAS as well as the cost required to access it.</p>
 <p>We start with the ahead-of-time conversion. Because <code>G1</code> is already a GraphBLAS graph, NetworkX automatically sends supported calls to that backend.</p>
 <p>Ensure the graphblas-algorithms library is installed:</p>
-<div class="sourceCode" id="cb24" style="background: #f1f3f5;"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb24-1"><span class="ex" style="color: null;
+<div class="sourceCode" id="cb21" style="background: #f1f3f5;"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb21-1"><span class="ex" style="color: null;
 background-color: null;
 font-style: inherit;">$</span> python <span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">-m</span> pip install graphblas-algorithms</span></code></pre></div>
 <div id="fb3a162d" class="cell">
-<div class="sourceCode cell-code" id="cb25" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb22" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb25-2"><span class="co" style="color: #5E5E5E;
+<span id="cb22-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">Compare performance of NetworkX and GraphBLAS on three algorithms with</span></span>
-<span id="cb25-3"><span class="co" style="color: #5E5E5E;
+<span id="cb22-3"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">ahead-of-time graph conversion. </span></span>
-<span id="cb25-4"><span class="co" style="color: #5E5E5E;
+<span id="cb22-4"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb25-5"><span class="im" style="color: #00769E;
+<span id="cb22-5"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> timeit</span>
-<span id="cb25-6"><span class="im" style="color: #00769E;
+<span id="cb22-6"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> pd</span>
-<span id="cb25-7"><span class="im" style="color: #00769E;
+<span id="cb22-7"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> graphblas_algorithms <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> ga</span>
-<span id="cb25-8"></span>
-<span id="cb25-9">nx.config.warnings_to_ignore.add(<span class="st" style="color: #20794D;
+<span id="cb22-8"></span>
+<span id="cb22-9">nx.config.warnings_to_ignore.add(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"cache"</span>)</span>
-<span id="cb25-10"></span>
-<span id="cb25-11"><span class="co" style="color: #5E5E5E;
+<span id="cb22-10"></span>
+<span id="cb22-11"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Graph sizes. </span></span>
-<span id="cb25-12">node_counts <span class="op" style="color: #5E5E5E;
+<span id="cb22-12">node_counts <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -1076,42 +1082,42 @@ background-color: null;
 font-style: inherit;">20_000</span>, <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">25_000</span>]</span>
-<span id="cb25-13"></span>
-<span id="cb25-14"><span class="co" style="color: #5E5E5E;
+<span id="cb22-13"></span>
+<span id="cb22-14"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Keep average degree constant as node count grows. </span></span>
-<span id="cb25-15">target_degree <span class="op" style="color: #5E5E5E;
+<span id="cb22-15">target_degree <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">15</span></span>
-<span id="cb25-16"></span>
-<span id="cb25-17"><span class="co" style="color: #5E5E5E;
+<span id="cb22-16"></span>
+<span id="cb22-17"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Timing runs per comparison.</span></span>
-<span id="cb25-18">n_runs <span class="op" style="color: #5E5E5E;
+<span id="cb22-18">n_runs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">5</span></span>
-<span id="cb25-19"></span>
-<span id="cb25-20"><span class="co" style="color: #5E5E5E;
+<span id="cb22-19"></span>
+<span id="cb22-20"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Timing results.</span></span>
-<span id="cb25-21">shortest_paths, triangles, pagerank <span class="op" style="color: #5E5E5E;
+<span id="cb22-21">shortest_paths, triangles, pagerank <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [], [], []</span>
-<span id="cb25-22"></span>
-<span id="cb25-23"><span class="co" style="color: #5E5E5E;
+<span id="cb22-22"></span>
+<span id="cb22-23"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Warmup both implementations to handle one-time initialization outside of the </span></span>
-<span id="cb25-24"><span class="co" style="color: #5E5E5E;
+<span id="cb22-24"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># timing loop. This is important for GraphBLAS, which has one-time initialization </span></span>
-<span id="cb25-25"><span class="co" style="color: #5E5E5E;
+<span id="cb22-25"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># overhead.</span></span>
-<span id="cb25-26">G_warm_nx <span class="op" style="color: #5E5E5E;
+<span id="cb22-26">G_warm_nx <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> nx.erdos_renyi_graph(<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -1122,30 +1128,30 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>)</span>
-<span id="cb25-27">G_warm_gb <span class="op" style="color: #5E5E5E;
+<span id="cb22-27">G_warm_gb <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> ga.Graph.from_networkx(G_warm_nx)</span>
-<span id="cb25-28">nx.pagerank(G_warm_gb)</span>
-<span id="cb25-29">nx.pagerank(G_warm_nx)</span>
-<span id="cb25-30">nx.triangles(G_warm_gb)</span>
-<span id="cb25-31">nx.triangles(G_warm_nx)</span>
-<span id="cb25-32"><span class="bu" style="color: null;
+<span id="cb22-28">nx.pagerank(G_warm_gb)</span>
+<span id="cb22-29">nx.pagerank(G_warm_nx)</span>
+<span id="cb22-30">nx.triangles(G_warm_gb)</span>
+<span id="cb22-31">nx.triangles(G_warm_nx)</span>
+<span id="cb22-32"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">dict</span>(nx.all_pairs_shortest_path_length(G_warm_gb))</span>
-<span id="cb25-33"><span class="bu" style="color: null;
+<span id="cb22-33"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">dict</span>(nx.all_pairs_shortest_path_length(G_warm_nx))</span>
-<span id="cb25-34"></span>
-<span id="cb25-35"></span>
-<span id="cb25-36"><span class="cf" style="color: #003B4F;
+<span id="cb22-34"></span>
+<span id="cb22-35"></span>
+<span id="cb22-36"><span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> n_nodes <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> node_counts:</span>
-<span id="cb25-37"></span>
-<span id="cb25-38">    p <span class="op" style="color: #5E5E5E;
+<span id="cb22-37"></span>
+<span id="cb22-38">    p <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> target_degree <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1154,194 +1160,194 @@ background-color: null;
 font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>)</span>
-<span id="cb25-39"></span>
-<span id="cb25-40">    <span class="co" style="color: #5E5E5E;
+<span id="cb22-39"></span>
+<span id="cb22-40">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Create random graph with n_nodes and probability p of edge creation.</span></span>
-<span id="cb25-41">    G0 <span class="op" style="color: #5E5E5E;
+<span id="cb22-41">    G0 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> nx.erdos_renyi_graph(</span>
-<span id="cb25-42">        n<span class="op" style="color: #5E5E5E;
+<span id="cb22-42">        n<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_nodes,</span>
-<span id="cb25-43">        p<span class="op" style="color: #5E5E5E;
+<span id="cb22-43">        p<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>p,</span>
-<span id="cb25-44">        seed<span class="op" style="color: #5E5E5E;
+<span id="cb22-44">        seed<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">516</span>,</span>
-<span id="cb25-45">    )</span>
-<span id="cb25-46"></span>
-<span id="cb25-47">    <span class="co" style="color: #5E5E5E;
+<span id="cb22-45">    )</span>
+<span id="cb22-46"></span>
+<span id="cb22-47">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Convert to GraphBLAS graph. Do this outside of the timing loop to avoid </span></span>
-<span id="cb25-48">    <span class="co" style="color: #5E5E5E;
+<span id="cb22-48">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># including the conversion time in the benchmark.</span></span>
-<span id="cb25-49">    G1 <span class="op" style="color: #5E5E5E;
+<span id="cb22-49">    G1 <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> ga.Graph.from_networkx(G0)</span>
-<span id="cb25-50"></span>
-<span id="cb25-51">    <span class="co" style="color: #5E5E5E;
+<span id="cb22-50"></span>
+<span id="cb22-51">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Pagerank comparison.</span></span>
-<span id="cb25-52">    t_nx_pagerank <span class="op" style="color: #5E5E5E;
+<span id="cb22-52">    t_nx_pagerank <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb25-53">        <span class="kw" style="color: #003B4F;
+<span id="cb22-53">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: nx.pagerank(G0),</span>
-<span id="cb25-54">        number<span class="op" style="color: #5E5E5E;
+<span id="cb22-54">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb25-55">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb22-55">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb25-56"></span>
-<span id="cb25-57">    t_gb_pagerank <span class="op" style="color: #5E5E5E;
+<span id="cb22-56"></span>
+<span id="cb22-57">    t_gb_pagerank <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb25-58">        <span class="kw" style="color: #003B4F;
+<span id="cb22-58">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: nx.pagerank(G1),</span>
-<span id="cb25-59">        number<span class="op" style="color: #5E5E5E;
+<span id="cb22-59">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb25-60">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb22-60">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb25-61"></span>
-<span id="cb25-62">    pagerank.append({</span>
-<span id="cb25-63">        <span class="st" style="color: #20794D;
+<span id="cb22-61"></span>
+<span id="cb22-62">    pagerank.append({</span>
+<span id="cb22-63">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nodes"</span>: n_nodes,</span>
-<span id="cb25-64">        <span class="st" style="color: #20794D;
+<span id="cb22-64">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"edges"</span>: G0.number_of_edges(),</span>
-<span id="cb25-65">        <span class="st" style="color: #20794D;
+<span id="cb22-65">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>: t_nx_pagerank,</span>
-<span id="cb25-66">        <span class="st" style="color: #20794D;
+<span id="cb22-66">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>: t_gb_pagerank,</span>
-<span id="cb25-67">        <span class="st" style="color: #20794D;
+<span id="cb22-67">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"speedup"</span>: t_nx_pagerank <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> t_gb_pagerank,</span>
-<span id="cb25-68">    })</span>
-<span id="cb25-69">    </span>
-<span id="cb25-70">    <span class="co" style="color: #5E5E5E;
+<span id="cb22-68">    })</span>
+<span id="cb22-69">    </span>
+<span id="cb22-70">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Triangles comparison.</span></span>
-<span id="cb25-71">    t_nx_triangles <span class="op" style="color: #5E5E5E;
+<span id="cb22-71">    t_nx_triangles <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb25-72">            <span class="kw" style="color: #003B4F;
+<span id="cb22-72">            <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: nx.triangles(G0),</span>
-<span id="cb25-73">            number<span class="op" style="color: #5E5E5E;
+<span id="cb22-73">            number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb25-74">        ) <span class="op" style="color: #5E5E5E;
+<span id="cb22-74">        ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb25-75">    </span>
-<span id="cb25-76">    t_gb_triangles <span class="op" style="color: #5E5E5E;
+<span id="cb22-75">    </span>
+<span id="cb22-76">    t_gb_triangles <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb25-77">        <span class="kw" style="color: #003B4F;
+<span id="cb22-77">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: nx.triangles(G1),</span>
-<span id="cb25-78">        number<span class="op" style="color: #5E5E5E;
+<span id="cb22-78">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb25-79">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb22-79">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb25-80"></span>
-<span id="cb25-81">    triangles.append({</span>
-<span id="cb25-82">        <span class="st" style="color: #20794D;
+<span id="cb22-80"></span>
+<span id="cb22-81">    triangles.append({</span>
+<span id="cb22-82">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nodes"</span>: n_nodes,</span>
-<span id="cb25-83">        <span class="st" style="color: #20794D;
+<span id="cb22-83">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"edges"</span>: G0.number_of_edges(),</span>
-<span id="cb25-84">        <span class="st" style="color: #20794D;
+<span id="cb22-84">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>: t_nx_triangles,</span>
-<span id="cb25-85">        <span class="st" style="color: #20794D;
+<span id="cb22-85">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>: t_gb_triangles,</span>
-<span id="cb25-86">        <span class="st" style="color: #20794D;
+<span id="cb22-86">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"speedup"</span>: t_nx_triangles <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> t_gb_triangles,</span>
-<span id="cb25-87">    })</span>
-<span id="cb25-88"></span>
-<span id="cb25-89">    <span class="co" style="color: #5E5E5E;
+<span id="cb22-87">    })</span>
+<span id="cb22-88"></span>
+<span id="cb22-89">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Shortest path comparison.</span></span>
-<span id="cb25-90">    t_nx_shortest_path <span class="op" style="color: #5E5E5E;
+<span id="cb22-90">    t_nx_shortest_path <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb25-91">        <span class="kw" style="color: #003B4F;
+<span id="cb22-91">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">dict</span>(nx.all_pairs_shortest_path_length(G0)),</span>
-<span id="cb25-92">        number<span class="op" style="color: #5E5E5E;
+<span id="cb22-92">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb25-93">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb22-93">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb25-94"></span>
-<span id="cb25-95">    t_gb_shortest_path <span class="op" style="color: #5E5E5E;
+<span id="cb22-94"></span>
+<span id="cb22-95">    t_gb_shortest_path <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb25-96">        <span class="kw" style="color: #003B4F;
+<span id="cb22-96">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">dict</span>(nx.all_pairs_shortest_path_length(G1)),</span>
-<span id="cb25-97">        number<span class="op" style="color: #5E5E5E;
+<span id="cb22-97">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb25-98">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb22-98">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb25-99"></span>
-<span id="cb25-100">    shortest_paths.append({</span>
-<span id="cb25-101">        <span class="st" style="color: #20794D;
+<span id="cb22-99"></span>
+<span id="cb22-100">    shortest_paths.append({</span>
+<span id="cb22-101">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nodes"</span>: n_nodes,</span>
-<span id="cb25-102">        <span class="st" style="color: #20794D;
+<span id="cb22-102">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"edges"</span>: G0.number_of_edges(),</span>
-<span id="cb25-103">        <span class="st" style="color: #20794D;
+<span id="cb22-103">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>: t_nx_shortest_path,</span>
-<span id="cb25-104">        <span class="st" style="color: #20794D;
+<span id="cb22-104">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>: t_gb_shortest_path,</span>
-<span id="cb25-105">        <span class="st" style="color: #20794D;
+<span id="cb22-105">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"speedup"</span>: t_nx_shortest_path <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> t_gb_shortest_path,</span>
-<span id="cb25-106">    })</span>
-<span id="cb25-107"></span>
-<span id="cb25-108">    <span class="bu" style="color: null;
+<span id="cb22-106">    })</span>
+<span id="cb22-107"></span>
+<span id="cb22-108">    <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
 background-color: null;
@@ -1352,15 +1358,15 @@ background-color: null;
 font-style: inherit;">}</span><span class="ss" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb25-109"></span>
-<span id="cb25-110"></span>
-<span id="cb25-111">pagerank_results <span class="op" style="color: #5E5E5E;
+<span id="cb22-109"></span>
+<span id="cb22-110"></span>
+<span id="cb22-111">pagerank_results <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.DataFrame(pagerank)</span>
-<span id="cb25-112">triangles_results <span class="op" style="color: #5E5E5E;
+<span id="cb22-112">triangles_results <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.DataFrame(triangles)</span>
-<span id="cb25-113">shortest_path_results <span class="op" style="color: #5E5E5E;
+<span id="cb22-113">shortest_path_results <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.DataFrame(shortest_paths)</span></code></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -1377,66 +1383,66 @@ Completed benchmark for n_nodes = 25000</code></pre>
 <p><br></p>
 <p>Lets visualize the results. The table on the right gives the speedup of GraphBLAS over NetworkX using ahead-of-time conversion:</p>
 <div id="1b3c10fd" class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb27" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb24" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb27-2"><span class="co" style="color: #5E5E5E;
+<span id="cb24-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">Visualize benchmark results.</span></span>
-<span id="cb27-3"><span class="co" style="color: #5E5E5E;
+<span id="cb24-3"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb27-4"><span class="im" style="color: #00769E;
+<span id="cb24-4"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> plt</span>
-<span id="cb27-5"></span>
-<span id="cb27-6"></span>
-<span id="cb27-7">nx_color <span class="op" style="color: #5E5E5E;
+<span id="cb24-5"></span>
+<span id="cb24-6"></span>
+<span id="cb24-7">nx_color <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"#1e5a6e"</span></span>
-<span id="cb27-8">gb_color <span class="op" style="color: #5E5E5E;
+<span id="cb24-8">gb_color <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"#E02C70"</span></span>
-<span id="cb27-9"></span>
-<span id="cb27-10"></span>
-<span id="cb27-11"><span class="kw" style="color: #003B4F;
+<span id="cb24-9"></span>
+<span id="cb24-10"></span>
+<span id="cb24-11"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">def</span> add_speedup_table(axis, results):</span>
-<span id="cb27-12">    <span class="co" style="color: #5E5E5E;
+<span id="cb24-12">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb27-13"><span class="co" style="color: #5E5E5E;
+<span id="cb24-13"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    Add speedup as a function of node count to the given axis.</span></span>
-<span id="cb27-14"><span class="co" style="color: #5E5E5E;
+<span id="cb24-14"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">    """</span></span>
-<span id="cb27-15">    speedup <span class="op" style="color: #5E5E5E;
+<span id="cb24-15">    speedup <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> results.get(</span>
-<span id="cb27-16">        <span class="st" style="color: #20794D;
+<span id="cb24-16">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"speedup"</span>,</span>
-<span id="cb27-17">        results[<span class="st" style="color: #20794D;
+<span id="cb24-17">        results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>] <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>],</span>
-<span id="cb27-18">    )</span>
-<span id="cb27-19"></span>
-<span id="cb27-20">    table_data <span class="op" style="color: #5E5E5E;
+<span id="cb24-18">    )</span>
+<span id="cb24-19"></span>
+<span id="cb24-20">    table_data <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [</span>
-<span id="cb27-21">        [<span class="ss" style="color: #20794D;
+<span id="cb24-21">        [<span class="ss" style="color: #20794D;
 background-color: null;
 font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -1453,7 +1459,7 @@ background-color: null;
 font-style: inherit;">:.1f}</span><span class="ss" style="color: #20794D;
 background-color: null;
 font-style: inherit;">x"</span>]</span>
-<span id="cb27-22">        <span class="cf" style="color: #003B4F;
+<span id="cb24-22">        <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> nodes, value <span class="kw" style="color: #003B4F;
@@ -1462,32 +1468,32 @@ font-weight: bold;
 font-style: inherit;">in</span> <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">zip</span>(node_counts, speedup)</span>
-<span id="cb27-23">    ]</span>
-<span id="cb27-24"></span>
-<span id="cb27-25">    table <span class="op" style="color: #5E5E5E;
+<span id="cb24-23">    ]</span>
+<span id="cb24-24"></span>
+<span id="cb24-25">    table <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> axis.table(</span>
-<span id="cb27-26">        cellText<span class="op" style="color: #5E5E5E;
+<span id="cb24-26">        cellText<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>table_data,</span>
-<span id="cb27-27">        colLabels<span class="op" style="color: #5E5E5E;
+<span id="cb24-27">        colLabels<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"Nodes"</span>, <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"Speedup"</span>],</span>
-<span id="cb27-28">        cellLoc<span class="op" style="color: #5E5E5E;
+<span id="cb24-28">        cellLoc<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"center"</span>,</span>
-<span id="cb27-29">        colLoc<span class="op" style="color: #5E5E5E;
+<span id="cb24-29">        colLoc<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"center"</span>,</span>
-<span id="cb27-30">        bbox<span class="op" style="color: #5E5E5E;
+<span id="cb24-30">        bbox<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>[<span class="fl" style="color: #AD0000;
 background-color: null;
@@ -1498,32 +1504,32 @@ background-color: null;
 font-style: inherit;">0.38</span>, <span class="fl" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0.70</span>],</span>
-<span id="cb27-31">    )</span>
-<span id="cb27-32"></span>
-<span id="cb27-33">    table.auto_set_font_size(<span class="va" style="color: #111111;
+<span id="cb24-31">    )</span>
+<span id="cb24-32"></span>
+<span id="cb24-33">    table.auto_set_font_size(<span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">False</span>)</span>
-<span id="cb27-34">    table.set_fontsize(<span class="dv" style="color: #AD0000;
+<span id="cb24-34">    table.set_fontsize(<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">8</span>)</span>
-<span id="cb27-35"></span>
-<span id="cb27-36">    <span class="cf" style="color: #003B4F;
+<span id="cb24-35"></span>
+<span id="cb24-36">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> cell <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> table.get_celld().values():</span>
-<span id="cb27-37">        cell.set_linewidth(<span class="fl" style="color: #AD0000;
+<span id="cb24-37">        cell.set_linewidth(<span class="fl" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0.5</span>)</span>
-<span id="cb27-38">        cell.set_alpha(<span class="fl" style="color: #AD0000;
+<span id="cb24-38">        cell.set_alpha(<span class="fl" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0.9</span>)</span>
-<span id="cb27-39"></span>
-<span id="cb27-40"></span>
-<span id="cb27-41"></span>
-<span id="cb27-42">fig, ax <span class="op" style="color: #5E5E5E;
+<span id="cb24-39"></span>
+<span id="cb24-40"></span>
+<span id="cb24-41"></span>
+<span id="cb24-42">fig, ax <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -1540,12 +1546,12 @@ background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">True</span>)</span>
-<span id="cb27-43"></span>
-<span id="cb27-44"><span class="co" style="color: #5E5E5E;
+<span id="cb24-43"></span>
+<span id="cb24-44"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Adjust facets to place speedup table outside of the plot area.</span></span>
-<span id="cb27-45">fig.subplots_adjust(</span>
-<span id="cb27-46">    left<span class="op" style="color: #5E5E5E;
+<span id="cb24-45">fig.subplots_adjust(</span>
+<span id="cb24-46">    left<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -1566,12 +1572,12 @@ background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0.45</span>,</span>
-<span id="cb27-47">)</span>
-<span id="cb27-48"></span>
-<span id="cb27-49"><span class="co" style="color: #5E5E5E;
+<span id="cb24-47">)</span>
+<span id="cb24-48"></span>
+<span id="cb24-49"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Pagerank results.</span></span>
-<span id="cb27-50">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-50">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_title(<span class="st" style="color: #20794D;
 background-color: null;
@@ -1588,15 +1594,15 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb27-51">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-51">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].plot(</span>
-<span id="cb27-52">    node_counts, pagerank_results[<span class="st" style="color: #20794D;
+<span id="cb24-52">    node_counts, pagerank_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>nx_color, </span>
-<span id="cb27-53">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb24-53">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -1613,21 +1619,21 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb27-54">    label<span class="op" style="color: #5E5E5E;
+<span id="cb24-54">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"NetworkX"</span></span>
-<span id="cb27-55">)</span>
-<span id="cb27-56">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-55">)</span>
+<span id="cb24-56">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].plot(</span>
-<span id="cb27-57">    node_counts, pagerank_results[<span class="st" style="color: #20794D;
+<span id="cb24-57">    node_counts, pagerank_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>gb_color, </span>
-<span id="cb27-58">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb24-58">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -1644,13 +1650,13 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb27-59">    label<span class="op" style="color: #5E5E5E;
+<span id="cb24-59">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"GraphBLAS"</span></span>
-<span id="cb27-60">)</span>
-<span id="cb27-61">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-60">)</span>
+<span id="cb24-61">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_xlabel(<span class="st" style="color: #20794D;
 background-color: null;
@@ -1663,7 +1669,7 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb27-62">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-62">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_ylabel(<span class="st" style="color: #20794D;
 background-color: null;
@@ -1676,10 +1682,10 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb27-63">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-63">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_xticks(node_counts)</span>
-<span id="cb27-64">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-64">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_xticklabels([<span class="ss" style="color: #20794D;
 background-color: null;
@@ -1696,7 +1702,7 @@ font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> node_counts])</span>
-<span id="cb27-65">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-65">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1719,7 +1725,7 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">45</span>)</span>
-<span id="cb27-66">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-66">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1738,23 +1744,23 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">7</span>)</span>
-<span id="cb27-67">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-67">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb27-68">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-68">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb27-69"><span class="co" style="color: #5E5E5E;
+<span id="cb24-69"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ax[0].grid(True)</span></span>
-<span id="cb27-70">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-70">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].legend(</span>
-<span id="cb27-71">    loc<span class="op" style="color: #5E5E5E;
+<span id="cb24-71">    loc<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
@@ -1771,16 +1777,16 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"x-small"</span></span>
-<span id="cb27-72">)</span>
-<span id="cb27-73">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-72">)</span>
+<span id="cb24-73">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>], pagerank_results)</span>
-<span id="cb27-74"></span>
-<span id="cb27-75"></span>
-<span id="cb27-76"><span class="co" style="color: #5E5E5E;
+<span id="cb24-74"></span>
+<span id="cb24-75"></span>
+<span id="cb24-76"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Triangles results.</span></span>
-<span id="cb27-77">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-77">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].set_title(<span class="st" style="color: #20794D;
 background-color: null;
@@ -1797,15 +1803,15 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb27-78">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-78">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].plot(</span>
-<span id="cb27-79">    node_counts, triangles_results[<span class="st" style="color: #20794D;
+<span id="cb24-79">    node_counts, triangles_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>nx_color, </span>
-<span id="cb27-80">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb24-80">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -1822,21 +1828,21 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb27-81">    label<span class="op" style="color: #5E5E5E;
+<span id="cb24-81">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"NetworkX"</span></span>
-<span id="cb27-82">)</span>
-<span id="cb27-83">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-82">)</span>
+<span id="cb24-83">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].plot(</span>
-<span id="cb27-84">    node_counts, triangles_results[<span class="st" style="color: #20794D;
+<span id="cb24-84">    node_counts, triangles_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>gb_color, </span>
-<span id="cb27-85">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb24-85">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -1853,16 +1859,16 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb27-86">    label<span class="op" style="color: #5E5E5E;
+<span id="cb24-86">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"GraphBLAS"</span></span>
-<span id="cb27-87">)</span>
-<span id="cb27-88">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-87">)</span>
+<span id="cb24-88">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].set_xticks(node_counts)</span>
-<span id="cb27-89">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-89">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].set_xticklabels([<span class="ss" style="color: #20794D;
 background-color: null;
@@ -1879,7 +1885,7 @@ font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> node_counts])</span>
-<span id="cb27-90">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-90">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1902,7 +1908,7 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">45</span>)</span>
-<span id="cb27-91">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-91">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1921,23 +1927,23 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">7</span>)</span>
-<span id="cb27-92">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-92">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb27-93">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-93">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb27-94"><span class="co" style="color: #5E5E5E;
+<span id="cb24-94"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ax[1].grid(True)</span></span>
-<span id="cb27-95">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-95">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].legend(</span>
-<span id="cb27-96">    loc<span class="op" style="color: #5E5E5E;
+<span id="cb24-96">    loc<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
@@ -1954,15 +1960,15 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"x-small"</span></span>
-<span id="cb27-97">)</span>
-<span id="cb27-98">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-97">)</span>
+<span id="cb24-98">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>], triangles_results)</span>
-<span id="cb27-99"></span>
-<span id="cb27-100"><span class="co" style="color: #5E5E5E;
+<span id="cb24-99"></span>
+<span id="cb24-100"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Shortest paths results.</span></span>
-<span id="cb27-101">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-101">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].set_title(<span class="st" style="color: #20794D;
 background-color: null;
@@ -1979,15 +1985,15 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb27-102">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-102">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].plot(</span>
-<span id="cb27-103">    node_counts, shortest_path_results[<span class="st" style="color: #20794D;
+<span id="cb24-103">    node_counts, shortest_path_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>nx_color, </span>
-<span id="cb27-104">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb24-104">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -2004,21 +2010,21 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb27-105">    label<span class="op" style="color: #5E5E5E;
+<span id="cb24-105">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"NetworkX"</span></span>
-<span id="cb27-106">)</span>
-<span id="cb27-107">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-106">)</span>
+<span id="cb24-107">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].plot(</span>
-<span id="cb27-108">    node_counts, shortest_path_results[<span class="st" style="color: #20794D;
+<span id="cb24-108">    node_counts, shortest_path_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>gb_color, </span>
-<span id="cb27-109">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb24-109">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -2035,16 +2041,16 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb27-110">    label<span class="op" style="color: #5E5E5E;
+<span id="cb24-110">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"GraphBLAS"</span></span>
-<span id="cb27-111">)</span>
-<span id="cb27-112">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-111">)</span>
+<span id="cb24-112">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].set_xticks(node_counts)</span>
-<span id="cb27-113">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-113">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].set_xticklabels([<span class="ss" style="color: #20794D;
 background-color: null;
@@ -2061,7 +2067,7 @@ font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> node_counts])</span>
-<span id="cb27-114">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-114">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -2084,7 +2090,7 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">45</span>)</span>
-<span id="cb27-115">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-115">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -2103,23 +2109,23 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">7</span>)</span>
-<span id="cb27-116">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-116">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb27-117">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-117">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb27-118"><span class="co" style="color: #5E5E5E;
+<span id="cb24-118"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ax[2].grid(True)</span></span>
-<span id="cb27-119">ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-119">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].legend(</span>
-<span id="cb27-120">    loc<span class="op" style="color: #5E5E5E;
+<span id="cb24-120">    loc<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
@@ -2136,28 +2142,28 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"x-small"</span></span>
-<span id="cb27-121">)</span>
-<span id="cb27-122">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
+<span id="cb24-121">)</span>
+<span id="cb24-122">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>], shortest_path_results)</span>
-<span id="cb27-123"></span>
-<span id="cb27-124">plt.suptitle(</span>
-<span id="cb27-125">    <span class="st" style="color: #20794D;
+<span id="cb24-123"></span>
+<span id="cb24-124">plt.suptitle(</span>
+<span id="cb24-125">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"NetworkX vs. GraphBLAS, ahead-of-time conversion"</span>, </span>
-<span id="cb27-126">    fontsize<span class="op" style="color: #5E5E5E;
+<span id="cb24-126">    fontsize<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">10</span>, </span>
-<span id="cb27-127">    weight<span class="op" style="color: #5E5E5E;
+<span id="cb24-127">    weight<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"bold"</span></span>
-<span id="cb27-128">)</span>
-<span id="cb27-129"></span>
-<span id="cb27-130">plt.show()</span></code></pre></div>
+<span id="cb24-128">)</span>
+<span id="cb24-129"></span>
+<span id="cb24-130">plt.show()</span></code></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -2175,7 +2181,7 @@ font-style: inherit;">"bold"</span></span>
 <p>The cuGraph backend runs supported graph algorithms on NVIDIA GPUs using RAPIDS cuGraph (discussed at length in the last post). It is especially useful for very large graphs and computationally expensive algorithms like PageRank, centrality measures, shortest paths, and community detection. The potential speedups can be substantial, but it requires NVIDIA GPUs, and moving a graph onto the GPU introduces conversion and data transfer overhead.</p>
 <p>The nx-parallel backend keeps the computation on the CPU but divides certain algorithms into chunks and runs them across multiple cores. It is most useful for algorithms that naturally break into independent pieces.</p>
 <p>When you explicitly request GraphBLAS but GraphBLAS does not implement the function in question, NetworkX generally raises an exception rather than silently using native NetworkX. Similarly, when the input is already a GraphBLAS graph, fallback to native NetworkX is disabled by default. You can enable fallback to NetworkX with:</p>
-<div class="sourceCode" id="cb28" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1">nx.config.fallback_to_nx <span class="op" style="color: #5E5E5E;
+<div class="sourceCode" id="cb25" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1">nx.config.fallback_to_nx <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="va" style="color: #111111;
 background-color: null;
@@ -2183,53 +2189,53 @@ font-style: inherit;">True</span></span></code></pre></div>
 <p>Setting this allows NetworkX to convert the backend graph back into a regular NetworkX graph and run the native implementation. Note that this conversion may be expensive for large graphs.</p>
 <p>The simplest approach is to specify <code>backend="graphblas"</code> in a supported NetworkX function. NetworkX converts the graph to the backend representation and dispatches the computation to GraphBLAS. For this benchmark, we do not convert the graph to a GraphBLAS representation ahead-of-time: The original NetworkX graph is passed into each function, specifying the <code>backend="graphblas"</code>, so the conversion happens within each function invocation and is reflected in the timing results.</p>
 <div id="c924f375" class="cell">
-<div class="sourceCode cell-code" id="cb29" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb26" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb29-2"><span class="co" style="color: #5E5E5E;
+<span id="cb26-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">Compare performance of NetworkX and GraphBLAS on three algorithms without</span></span>
-<span id="cb29-3"><span class="co" style="color: #5E5E5E;
+<span id="cb26-3"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">ahead-of-time graph conversion. </span></span>
-<span id="cb29-4"><span class="co" style="color: #5E5E5E;
+<span id="cb26-4"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb29-5"><span class="im" style="color: #00769E;
+<span id="cb26-5"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> timeit</span>
-<span id="cb29-6"><span class="im" style="color: #00769E;
+<span id="cb26-6"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> pd</span>
-<span id="cb29-7"><span class="im" style="color: #00769E;
+<span id="cb26-7"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> graphblas_algorithms <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> ga</span>
-<span id="cb29-8"></span>
-<span id="cb29-9">nx.config.warnings_to_ignore.add(<span class="st" style="color: #20794D;
+<span id="cb26-8"></span>
+<span id="cb26-9">nx.config.warnings_to_ignore.add(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"cache"</span>)</span>
-<span id="cb29-10"></span>
-<span id="cb29-11"></span>
-<span id="cb29-12"><span class="co" style="color: #5E5E5E;
+<span id="cb26-10"></span>
+<span id="cb26-11"></span>
+<span id="cb26-12"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Timing results.</span></span>
-<span id="cb29-13">shortest_paths, triangles, pagerank <span class="op" style="color: #5E5E5E;
+<span id="cb26-13">shortest_paths, triangles, pagerank <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [], [], []</span>
-<span id="cb29-14"></span>
-<span id="cb29-15"><span class="cf" style="color: #003B4F;
+<span id="cb26-14"></span>
+<span id="cb26-15"><span class="cf" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">for</span> n_nodes <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> node_counts:</span>
-<span id="cb29-16"></span>
-<span id="cb29-17">    p <span class="op" style="color: #5E5E5E;
+<span id="cb26-16"></span>
+<span id="cb26-17">    p <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> target_degree <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -2238,47 +2244,47 @@ background-color: null;
 font-style: inherit;">-</span> <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>)</span>
-<span id="cb29-18"></span>
-<span id="cb29-19">    <span class="co" style="color: #5E5E5E;
+<span id="cb26-18"></span>
+<span id="cb26-19">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Create random graph with n_nodes and probability p of edge creation.</span></span>
-<span id="cb29-20">    G <span class="op" style="color: #5E5E5E;
+<span id="cb26-20">    G <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> nx.erdos_renyi_graph(</span>
-<span id="cb29-21">        n<span class="op" style="color: #5E5E5E;
+<span id="cb26-21">        n<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_nodes,</span>
-<span id="cb29-22">        p<span class="op" style="color: #5E5E5E;
+<span id="cb26-22">        p<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>p,</span>
-<span id="cb29-23">        seed<span class="op" style="color: #5E5E5E;
+<span id="cb26-23">        seed<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">516</span>,</span>
-<span id="cb29-24">    )</span>
-<span id="cb29-25"></span>
-<span id="cb29-26">    <span class="co" style="color: #5E5E5E;
+<span id="cb26-24">    )</span>
+<span id="cb26-25"></span>
+<span id="cb26-26">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Centrality comparison.</span></span>
-<span id="cb29-27">    t_nx_pagerank <span class="op" style="color: #5E5E5E;
+<span id="cb26-27">    t_nx_pagerank <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb29-28">        <span class="kw" style="color: #003B4F;
+<span id="cb26-28">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: nx.pagerank(G),</span>
-<span id="cb29-29">        number<span class="op" style="color: #5E5E5E;
+<span id="cb26-29">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb29-30">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb26-30">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb29-31"></span>
-<span id="cb29-32">    t_gb_pagerank <span class="op" style="color: #5E5E5E;
+<span id="cb26-31"></span>
+<span id="cb26-32">    t_gb_pagerank <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb29-33">        <span class="kw" style="color: #003B4F;
+<span id="cb26-33">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: nx.pagerank(G, backend<span class="op" style="color: #5E5E5E;
@@ -2286,54 +2292,54 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"graphblas"</span>),</span>
-<span id="cb29-34">        number<span class="op" style="color: #5E5E5E;
+<span id="cb26-34">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb29-35">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb26-35">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb29-36"></span>
-<span id="cb29-37">    pagerank.append({</span>
-<span id="cb29-38">        <span class="st" style="color: #20794D;
+<span id="cb26-36"></span>
+<span id="cb26-37">    pagerank.append({</span>
+<span id="cb26-38">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nodes"</span>: n_nodes,</span>
-<span id="cb29-39">        <span class="st" style="color: #20794D;
+<span id="cb26-39">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"edges"</span>: G.number_of_edges(),</span>
-<span id="cb29-40">        <span class="st" style="color: #20794D;
+<span id="cb26-40">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>: t_nx_pagerank,</span>
-<span id="cb29-41">        <span class="st" style="color: #20794D;
+<span id="cb26-41">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>: t_gb_pagerank,</span>
-<span id="cb29-42">        <span class="st" style="color: #20794D;
+<span id="cb26-42">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"speedup"</span>: t_nx_pagerank <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> t_gb_pagerank,</span>
-<span id="cb29-43">    })</span>
-<span id="cb29-44"></span>
-<span id="cb29-45">    <span class="co" style="color: #5E5E5E;
+<span id="cb26-43">    })</span>
+<span id="cb26-44"></span>
+<span id="cb26-45">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Triangles comparison.</span></span>
-<span id="cb29-46">    t_nx_triangles <span class="op" style="color: #5E5E5E;
+<span id="cb26-46">    t_nx_triangles <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb29-47">            <span class="kw" style="color: #003B4F;
+<span id="cb26-47">            <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: nx.triangles(G),</span>
-<span id="cb29-48">            number<span class="op" style="color: #5E5E5E;
+<span id="cb26-48">            number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb29-49">        ) <span class="op" style="color: #5E5E5E;
+<span id="cb26-49">        ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb29-50">    </span>
-<span id="cb29-51">    t_gb_triangles <span class="op" style="color: #5E5E5E;
+<span id="cb26-50">    </span>
+<span id="cb26-51">    t_gb_triangles <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb29-52">        <span class="kw" style="color: #003B4F;
+<span id="cb26-52">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: nx.triangles(G, backend<span class="op" style="color: #5E5E5E;
@@ -2341,56 +2347,56 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"graphblas"</span>),</span>
-<span id="cb29-53">        number<span class="op" style="color: #5E5E5E;
+<span id="cb26-53">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb29-54">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb26-54">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb29-55"></span>
-<span id="cb29-56">    triangles.append({</span>
-<span id="cb29-57">        <span class="st" style="color: #20794D;
+<span id="cb26-55"></span>
+<span id="cb26-56">    triangles.append({</span>
+<span id="cb26-57">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nodes"</span>: n_nodes,</span>
-<span id="cb29-58">        <span class="st" style="color: #20794D;
+<span id="cb26-58">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"edges"</span>: G.number_of_edges(),</span>
-<span id="cb29-59">        <span class="st" style="color: #20794D;
+<span id="cb26-59">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>: t_nx_triangles,</span>
-<span id="cb29-60">        <span class="st" style="color: #20794D;
+<span id="cb26-60">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>: t_gb_triangles,</span>
-<span id="cb29-61">        <span class="st" style="color: #20794D;
+<span id="cb26-61">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"speedup"</span>: t_nx_triangles <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> t_gb_triangles,</span>
-<span id="cb29-62">    })</span>
-<span id="cb29-63"></span>
-<span id="cb29-64">    <span class="co" style="color: #5E5E5E;
+<span id="cb26-62">    })</span>
+<span id="cb26-63"></span>
+<span id="cb26-64">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Shortest path comparison.</span></span>
-<span id="cb29-65">    t_nx_shortest_path <span class="op" style="color: #5E5E5E;
+<span id="cb26-65">    t_nx_shortest_path <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb29-66">        <span class="kw" style="color: #003B4F;
+<span id="cb26-66">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">dict</span>(nx.all_pairs_shortest_path_length(G)),</span>
-<span id="cb29-67">        number<span class="op" style="color: #5E5E5E;
+<span id="cb26-67">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb29-68">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb26-68">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb29-69"></span>
-<span id="cb29-70">    t_gb_shortest_path <span class="op" style="color: #5E5E5E;
+<span id="cb26-69"></span>
+<span id="cb26-70">    t_gb_shortest_path <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> timeit.timeit(</span>
-<span id="cb29-71">        <span class="kw" style="color: #003B4F;
+<span id="cb26-71">        <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">lambda</span>: <span class="bu" style="color: null;
@@ -2400,34 +2406,34 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"graphblas"</span>)),</span>
-<span id="cb29-72">        number<span class="op" style="color: #5E5E5E;
+<span id="cb26-72">        number<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>n_runs,</span>
-<span id="cb29-73">    ) <span class="op" style="color: #5E5E5E;
+<span id="cb26-73">    ) <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> n_runs</span>
-<span id="cb29-74"></span>
-<span id="cb29-75">    shortest_paths.append({</span>
-<span id="cb29-76">        <span class="st" style="color: #20794D;
+<span id="cb26-74"></span>
+<span id="cb26-75">    shortest_paths.append({</span>
+<span id="cb26-76">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nodes"</span>: n_nodes,</span>
-<span id="cb29-77">        <span class="st" style="color: #20794D;
+<span id="cb26-77">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"edges"</span>: G.number_of_edges(),</span>
-<span id="cb29-78">        <span class="st" style="color: #20794D;
+<span id="cb26-78">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>: t_nx_shortest_path,</span>
-<span id="cb29-79">        <span class="st" style="color: #20794D;
+<span id="cb26-79">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>: t_gb_shortest_path,</span>
-<span id="cb29-80">        <span class="st" style="color: #20794D;
+<span id="cb26-80">        <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"speedup"</span>: t_nx_shortest_path <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> t_gb_shortest_path,</span>
-<span id="cb29-81">    })</span>
-<span id="cb29-82"></span>
-<span id="cb29-83">    <span class="bu" style="color: null;
+<span id="cb26-81">    })</span>
+<span id="cb26-82"></span>
+<span id="cb26-83">    <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
 background-color: null;
@@ -2438,15 +2444,15 @@ background-color: null;
 font-style: inherit;">}</span><span class="ss" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"</span>)</span>
-<span id="cb29-84"></span>
-<span id="cb29-85"></span>
-<span id="cb29-86">pagerank_results <span class="op" style="color: #5E5E5E;
+<span id="cb26-84"></span>
+<span id="cb26-85"></span>
+<span id="cb26-86">pagerank_results <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.DataFrame(pagerank)</span>
-<span id="cb29-87">triangles_results <span class="op" style="color: #5E5E5E;
+<span id="cb26-87">triangles_results <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.DataFrame(triangles)</span>
-<span id="cb29-88">shortest_path_results <span class="op" style="color: #5E5E5E;
+<span id="cb26-88">shortest_path_results <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.DataFrame(shortest_paths)</span></code></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -2462,29 +2468,29 @@ Completed benchmark for n_nodes = 25000</code></pre>
 </div>
 <p>For this set of exhibits, the table to the right represents the speedup of GraphBLAS over NetworkX without ahead-of-time conversion:</p>
 <div id="8df4edfa" class="cell" data-execution_count="13">
-<div class="sourceCode cell-code" id="cb31" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><span class="co" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb28" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb31-2"><span class="co" style="color: #5E5E5E;
+<span id="cb28-2"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">Visualize benchmark without ahead-of-time conversion.</span></span>
-<span id="cb31-3"><span class="co" style="color: #5E5E5E;
+<span id="cb28-3"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb31-4"></span>
-<span id="cb31-5">nx_color <span class="op" style="color: #5E5E5E;
+<span id="cb28-4"></span>
+<span id="cb28-5">nx_color <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"#1e5a6e"</span></span>
-<span id="cb31-6">gb_color <span class="op" style="color: #5E5E5E;
+<span id="cb28-6">gb_color <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"#E02C70"</span></span>
-<span id="cb31-7"></span>
-<span id="cb31-8"></span>
-<span id="cb31-9">fig, ax <span class="op" style="color: #5E5E5E;
+<span id="cb28-7"></span>
+<span id="cb28-8"></span>
+<span id="cb28-9">fig, ax <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -2501,12 +2507,12 @@ background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">True</span>)</span>
-<span id="cb31-10"></span>
-<span id="cb31-11"><span class="co" style="color: #5E5E5E;
+<span id="cb28-10"></span>
+<span id="cb28-11"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Adjust facets to place speedup table outside of the plot area.</span></span>
-<span id="cb31-12">fig.subplots_adjust(</span>
-<span id="cb31-13">    left<span class="op" style="color: #5E5E5E;
+<span id="cb28-12">fig.subplots_adjust(</span>
+<span id="cb28-13">    left<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -2527,12 +2533,12 @@ background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0.45</span>,</span>
-<span id="cb31-14">)</span>
-<span id="cb31-15"></span>
-<span id="cb31-16"><span class="co" style="color: #5E5E5E;
+<span id="cb28-14">)</span>
+<span id="cb28-15"></span>
+<span id="cb28-16"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Pagerank results.</span></span>
-<span id="cb31-17">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-17">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_title(<span class="st" style="color: #20794D;
 background-color: null;
@@ -2549,15 +2555,15 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb31-18">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-18">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].plot(</span>
-<span id="cb31-19">    node_counts, pagerank_results[<span class="st" style="color: #20794D;
+<span id="cb28-19">    node_counts, pagerank_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>nx_color, </span>
-<span id="cb31-20">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb28-20">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -2574,21 +2580,21 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb31-21">    label<span class="op" style="color: #5E5E5E;
+<span id="cb28-21">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"NetworkX"</span></span>
-<span id="cb31-22">)</span>
-<span id="cb31-23">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-22">)</span>
+<span id="cb28-23">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].plot(</span>
-<span id="cb31-24">    node_counts, pagerank_results[<span class="st" style="color: #20794D;
+<span id="cb28-24">    node_counts, pagerank_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>gb_color, </span>
-<span id="cb31-25">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb28-25">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -2605,13 +2611,13 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb31-26">    label<span class="op" style="color: #5E5E5E;
+<span id="cb28-26">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"GraphBLAS"</span></span>
-<span id="cb31-27">)</span>
-<span id="cb31-28">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-27">)</span>
+<span id="cb28-28">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_xlabel(<span class="st" style="color: #20794D;
 background-color: null;
@@ -2624,7 +2630,7 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb31-29">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-29">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_ylabel(<span class="st" style="color: #20794D;
 background-color: null;
@@ -2637,10 +2643,10 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb31-30">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-30">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_xticks(node_counts)</span>
-<span id="cb31-31">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-31">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_xticklabels([<span class="ss" style="color: #20794D;
 background-color: null;
@@ -2657,7 +2663,7 @@ font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> node_counts])</span>
-<span id="cb31-32">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-32">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -2680,7 +2686,7 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">45</span>)</span>
-<span id="cb31-33">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-33">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -2699,23 +2705,23 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">7</span>)</span>
-<span id="cb31-34">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-34">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb31-35">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-35">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb31-36"><span class="co" style="color: #5E5E5E;
+<span id="cb28-36"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ax[0].grid(True)</span></span>
-<span id="cb31-37">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-37">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].legend(</span>
-<span id="cb31-38">    loc<span class="op" style="color: #5E5E5E;
+<span id="cb28-38">    loc<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
@@ -2732,16 +2738,16 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"x-small"</span></span>
-<span id="cb31-39">)</span>
-<span id="cb31-40">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-39">)</span>
+<span id="cb28-40">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>], pagerank_results)</span>
-<span id="cb31-41"></span>
-<span id="cb31-42"></span>
-<span id="cb31-43"><span class="co" style="color: #5E5E5E;
+<span id="cb28-41"></span>
+<span id="cb28-42"></span>
+<span id="cb28-43"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Triangles results.</span></span>
-<span id="cb31-44">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-44">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].set_title(<span class="st" style="color: #20794D;
 background-color: null;
@@ -2758,15 +2764,15 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb31-45">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-45">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].plot(</span>
-<span id="cb31-46">    node_counts, triangles_results[<span class="st" style="color: #20794D;
+<span id="cb28-46">    node_counts, triangles_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>nx_color, </span>
-<span id="cb31-47">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb28-47">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -2783,21 +2789,21 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb31-48">    label<span class="op" style="color: #5E5E5E;
+<span id="cb28-48">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"NetworkX"</span></span>
-<span id="cb31-49">)</span>
-<span id="cb31-50">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-49">)</span>
+<span id="cb28-50">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].plot(</span>
-<span id="cb31-51">    node_counts, triangles_results[<span class="st" style="color: #20794D;
+<span id="cb28-51">    node_counts, triangles_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>gb_color, </span>
-<span id="cb31-52">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb28-52">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -2814,16 +2820,16 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb31-53">    label<span class="op" style="color: #5E5E5E;
+<span id="cb28-53">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"GraphBLAS"</span></span>
-<span id="cb31-54">)</span>
-<span id="cb31-55">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-54">)</span>
+<span id="cb28-55">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].set_xticks(node_counts)</span>
-<span id="cb31-56">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-56">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].set_xticklabels([<span class="ss" style="color: #20794D;
 background-color: null;
@@ -2840,7 +2846,7 @@ font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> node_counts])</span>
-<span id="cb31-57">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-57">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -2863,7 +2869,7 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">45</span>)</span>
-<span id="cb31-58">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-58">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -2882,23 +2888,23 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">7</span>)</span>
-<span id="cb31-59">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-59">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb31-60">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-60">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb31-61"><span class="co" style="color: #5E5E5E;
+<span id="cb28-61"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ax[1].grid(True)</span></span>
-<span id="cb31-62">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-62">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>].legend(</span>
-<span id="cb31-63">    loc<span class="op" style="color: #5E5E5E;
+<span id="cb28-63">    loc<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
@@ -2915,15 +2921,15 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"x-small"</span></span>
-<span id="cb31-64">)</span>
-<span id="cb31-65">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-64">)</span>
+<span id="cb28-65">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>], triangles_results)</span>
-<span id="cb31-66"></span>
-<span id="cb31-67"><span class="co" style="color: #5E5E5E;
+<span id="cb28-66"></span>
+<span id="cb28-67"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Shortest paths results.</span></span>
-<span id="cb31-68">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-68">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].set_title(<span class="st" style="color: #20794D;
 background-color: null;
@@ -2940,15 +2946,15 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"normal"</span>)</span>
-<span id="cb31-69">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-69">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].plot(</span>
-<span id="cb31-70">    node_counts, shortest_path_results[<span class="st" style="color: #20794D;
+<span id="cb28-70">    node_counts, shortest_path_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"nx_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>nx_color, </span>
-<span id="cb31-71">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb28-71">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -2965,21 +2971,21 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb31-72">    label<span class="op" style="color: #5E5E5E;
+<span id="cb28-72">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"NetworkX"</span></span>
-<span id="cb31-73">)</span>
-<span id="cb31-74">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-73">)</span>
+<span id="cb28-74">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].plot(</span>
-<span id="cb31-75">    node_counts, shortest_path_results[<span class="st" style="color: #20794D;
+<span id="cb28-75">    node_counts, shortest_path_results[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"gb_secs"</span>], color<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>gb_color, </span>
-<span id="cb31-76">    linewidth<span class="op" style="color: #5E5E5E;
+<span id="cb28-76">    linewidth<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
 background-color: null;
@@ -2996,16 +3002,16 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>, </span>
-<span id="cb31-77">    label<span class="op" style="color: #5E5E5E;
+<span id="cb28-77">    label<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"GraphBLAS"</span></span>
-<span id="cb31-78">)</span>
-<span id="cb31-79">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-78">)</span>
+<span id="cb28-79">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].set_xticks(node_counts)</span>
-<span id="cb31-80">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-80">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].set_xticklabels([<span class="ss" style="color: #20794D;
 background-color: null;
@@ -3022,7 +3028,7 @@ font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
 background-color: null;
 font-weight: bold;
 font-style: inherit;">in</span> node_counts])</span>
-<span id="cb31-81">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-81">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -3045,7 +3051,7 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">45</span>)</span>
-<span id="cb31-82">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-82">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].tick_params(axis<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -3064,23 +3070,23 @@ background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">7</span>)</span>
-<span id="cb31-83">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-83">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].xaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb31-84">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-84">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].yaxis.set_ticks_position(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"none"</span>)</span>
-<span id="cb31-85"><span class="co" style="color: #5E5E5E;
+<span id="cb28-85"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># ax[2].grid(True)</span></span>
-<span id="cb31-86">ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-86">ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>].legend(</span>
-<span id="cb31-87">    loc<span class="op" style="color: #5E5E5E;
+<span id="cb28-87">    loc<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
@@ -3097,28 +3103,28 @@ background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"x-small"</span></span>
-<span id="cb31-88">)</span>
-<span id="cb31-89">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
+<span id="cb28-88">)</span>
+<span id="cb28-89">add_speedup_table(ax[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">2</span>], shortest_path_results)</span>
-<span id="cb31-90"></span>
-<span id="cb31-91">plt.suptitle(</span>
-<span id="cb31-92">    <span class="st" style="color: #20794D;
+<span id="cb28-90"></span>
+<span id="cb28-91">plt.suptitle(</span>
+<span id="cb28-92">    <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"NetworkX vs. GraphBLAS, without ahead-of-time conversion"</span>, </span>
-<span id="cb31-93">    fontsize<span class="op" style="color: #5E5E5E;
+<span id="cb28-93">    fontsize<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">10</span>, </span>
-<span id="cb31-94">    weight<span class="op" style="color: #5E5E5E;
+<span id="cb28-94">    weight<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"bold"</span></span>
-<span id="cb31-95">)</span>
-<span id="cb31-96"></span>
-<span id="cb31-97">plt.show()</span></code></pre></div>
+<span id="cb28-95">)</span>
+<span id="cb28-96"></span>
+<span id="cb28-97">plt.show()</span></code></pre></div>
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
