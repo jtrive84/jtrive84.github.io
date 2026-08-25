@@ -65,9 +65,9 @@
 <p><img src="https://latex.codecogs.com/png.latex?%0AW%20=%20W_0%20+%20BA.%0A"></p>
 <p>The original <img src="https://latex.codecogs.com/png.latex?W_0"> remains frozen. Only <img src="https://latex.codecogs.com/png.latex?A"> and <img src="https://latex.codecogs.com/png.latex?B"> are trained. This usually significantly reduces the number of parameters that need to be optimized. For example, suppose <img src="https://latex.codecogs.com/png.latex?W_0%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B768%20%5Ctimes%20768%7D">, which consists of 589,824 parameters. If we use LoRA with rank 8, the two LoRA matrices contain only <img src="https://latex.codecogs.com/png.latex?8%20%5Ctimes%20768%20+%20768%20%5Ctimes%208"> = 12,288 parameters, which corresponds to only ~2% of the original parameter count. Note that LoRA isn’t replacing the pretrained matrix: The low-rank update is added alongside the pretrained weights at inference time.</p>
 <p>For an input vector <img src="https://latex.codecogs.com/png.latex?x">, instead of computing</p>
-<p>$ h = W_0x, $</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ah%20=%20W_0x,%0A"></p>
 <p>the adapted layer computes</p>
-<p>$ h = W_0x + BAx. $</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ah%20=%20W_0x%20+%20%5Cfrac%7B%5Calpha%7D%7Br%7DBAx.%0A"></p>
 <p>where <img src="https://latex.codecogs.com/png.latex?%5Calpha"> is a scaling parameter that controls the contribution of the LoRA update.</p>
 </section>
 <section id="matrix-rank" class="level3">
@@ -80,7 +80,7 @@
 <p>Instead of updating the full <img src="https://latex.codecogs.com/png.latex?768%20%5Ctimes%20768"> parameters as in full fine-tuning, LoRA assumes that the update to <img src="https://latex.codecogs.com/png.latex?%5CDelta%20W"> can be approximated as the product of two smaller matrices (in this example, <img src="https://latex.codecogs.com/png.latex?r%20=%208">):</p>
 <p><img src="https://latex.codecogs.com/png.latex?%0AA%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B8%20%5Ctimes%20768%7D%20%5C%5C%0AB%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B768%20%5Ctimes%208%7D.%0A"></p>
 <p>When we multiply <img src="https://latex.codecogs.com/png.latex?BA">, we get a matrix <img src="https://latex.codecogs.com/png.latex?%5CDelta%20W"> that has the same dimension as <img src="https://latex.codecogs.com/png.latex?W">.</p>
-<p>W = BA ^{768 }. Replacing 8 with any value less than 768 will result in a low-rank matrix, but typically <img src="https://latex.codecogs.com/png.latex?r"> is kept relatively small (usually no larger than 64).</p>
+<p><img src="https://latex.codecogs.com/png.latex?%5CDelta%20W%20=%20BA%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B768%20%5Ctimes%20768%7D">. Replacing 8 with any value less than 768 will result in a low-rank matrix, but typically <img src="https://latex.codecogs.com/png.latex?r"> is kept relatively small (usually no larger than 64).</p>
 <p>The intuition is that adapting DistilBERT to our tornado-classification problem probably does not require modifying hundreds of thousands of weights in every attention matrix. The pretrained model already knows a lot about language. Fine-tuning may only need to nudge the model in a relatively small number of task-specific directions. Perhaps the pretrained model already understands words and phrases like <em>destroyed</em>, <em>major structural damage</em>, <em>debris</em>, <em>roof removed</em>, and <em>injuries</em>. Our task doesn’t require teaching the model English from scratch. It primarily needs to learn which combinations of those representations are useful for distinguishing EF2 from EF3+ tornado narratives. LoRA assumes that this adjustment lives in a relatively small subspace.</p>
 <p>The easiest mathematical way to understand why low-rank representations are useful is through the singular value decomposition (SVD). Any matrix <img src="https://latex.codecogs.com/png.latex?W"> can be decomposed as:</p>
 <p><img src="https://latex.codecogs.com/png.latex?%0AW%20=%20U%20%5CSigma%20V%5ET%0A"></p>

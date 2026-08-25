@@ -287,9 +287,13 @@ W = W_0 + BA.
 \]</span></p>
 <p>The original <span class="math inline">\(W_0\)</span> remains frozen. Only <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> are trained. This usually significantly reduces the number of parameters that need to be optimized. For example, suppose <span class="math inline">\(W_0 \in \mathbb{R}^{768 \times 768}\)</span>, which consists of 589,824 parameters. If we use LoRA with rank 8, the two LoRA matrices contain only <span class="math inline">\(8 \times 768 + 768 \times 8\)</span> = 12,288 parameters, which corresponds to only ~2% of the original parameter count. Note that LoRA isn’t replacing the pretrained matrix: The low-rank update is added alongside the pretrained weights at inference time.</p>
 <p>For an input vector <span class="math inline">\(x\)</span>, instead of computing</p>
-<p>$ h = W_0x, $</p>
+<p><span class="math display">\[
+h = W_0x,
+\]</span></p>
 <p>the adapted layer computes</p>
-<p>$ h = W_0x + BAx. $</p>
+<p><span class="math display">\[
+h = W_0x + \frac{\alpha}{r}BAx.
+\]</span></p>
 <p>where <span class="math inline">\(\alpha\)</span> is a scaling parameter that controls the contribution of the LoRA update.</p>
 </section>
 <section id="matrix-rank" class="level3">
@@ -309,7 +313,7 @@ A \in \mathbb{R}^{8 \times 768} \\
 B \in \mathbb{R}^{768 \times 8}.
 \]</span></p>
 <p>When we multiply <span class="math inline">\(BA\)</span>, we get a matrix <span class="math inline">\(\Delta W\)</span> that has the same dimension as <span class="math inline">\(W\)</span>.</p>
-<p>W = BA ^{768 }. Replacing 8 with any value less than 768 will result in a low-rank matrix, but typically <span class="math inline">\(r\)</span> is kept relatively small (usually no larger than 64).</p>
+<p><span class="math inline">\(\Delta W = BA \in \mathbb{R}^{768 \times 768}\)</span>. Replacing 8 with any value less than 768 will result in a low-rank matrix, but typically <span class="math inline">\(r\)</span> is kept relatively small (usually no larger than 64).</p>
 <p>The intuition is that adapting DistilBERT to our tornado-classification problem probably does not require modifying hundreds of thousands of weights in every attention matrix. The pretrained model already knows a lot about language. Fine-tuning may only need to nudge the model in a relatively small number of task-specific directions. Perhaps the pretrained model already understands words and phrases like <em>destroyed</em>, <em>major structural damage</em>, <em>debris</em>, <em>roof removed</em>, and <em>injuries</em>. Our task doesn’t require teaching the model English from scratch. It primarily needs to learn which combinations of those representations are useful for distinguishing EF2 from EF3+ tornado narratives. LoRA assumes that this adjustment lives in a relatively small subspace.</p>
 <p>The easiest mathematical way to understand why low-rank representations are useful is through the singular value decomposition (SVD). Any matrix <span class="math inline">\(W\)</span> can be decomposed as:</p>
 <p><span class="math display">\[
