@@ -2546,7 +2546,7 @@ font-style: inherit;">--</span>quiet</span></code></pre></div>
 </div>
 <p><br></p>
 <p>The code to download the NOAA Storm Events database is reproduced from the first post for convenience. We first check whether <em>noaa-events-2008-2025.parquet</em> exists in the current working directory. If not, the files are downloaded and saved locally. Subsequent executions of the next cell will read your local copy of the database:</p>
-<div id="c8954b10" class="cell">
+<div id="c8954b10" class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
 <span id="cb3-2"><span class="im" style="color: #00769E;
 background-color: null;
@@ -3287,7 +3287,7 @@ font-style: inherit;">"red"</span>})</span>
 <span id="cb8-17">)</span>
 <span id="cb8-18">cx.add_basemap(ax, source<span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">=</span>cx.providers.OpenStreetMap.Mapnik)</span>
+font-style: inherit;">=</span>cx.providers.CartoDB.Positron)</span>
 <span id="cb8-19">ax.collections[<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">0</span>].set_color(gdf[<span class="st" style="color: #20794D;
@@ -3526,8 +3526,8 @@ font-style: inherit;">=</span> DataCollatorWithPadding(tokenizer<span class="op"
 background-color: null;
 font-style: inherit;">=</span>tokenizer)</span></code></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Map: 100%|██████████| 2620/2620 [00:00&lt;00:00, 8733.79 examples/s]
-Map: 100%|██████████| 641/641 [00:00&lt;00:00, 5777.82 examples/s]</code></pre>
+<pre><code>Map: 100%|██████████| 2620/2620 [00:00&lt;00:00, 8017.27 examples/s]
+Map: 100%|██████████| 641/641 [00:00&lt;00:00, 5688.75 examples/s]</code></pre>
 </div>
 </div>
 <p><br></p>
@@ -3603,10 +3603,10 @@ background-color: null;
 font-style: inherit;">"accuracy"</span>: accuracy_score(labels, preds),</span>
 <span id="cb14-13">        <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"roc_auc"</span>: roc_auc_score(labels, preds),</span>
+font-style: inherit;">"roc_auc"</span>: roc_auc_score(labels, probs),</span>
 <span id="cb14-14">        <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"precision"</span>: average_precision_score(labels, probs),</span>
+font-style: inherit;">"average_precision"</span>: average_precision_score(labels, probs),</span>
 <span id="cb14-15">    }</span>
 <span id="cb14-16">    </span></code></pre></div>
 </div>
@@ -3630,19 +3630,19 @@ background-color: null;
 font-style: inherit;">2</span></span>
 <span id="cb15-5">).to(device)</span></code></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Loading weights: 100%|██████████| 100/100 [00:00&lt;00:00, 964.04it/s, Materializing param=distilbert.transformer.layer.5.sa_layer_norm.weight]    
+<pre><code>Loading weights: 100%|██████████| 100/100 [00:00&lt;00:00, 845.93it/s, Materializing param=distilbert.transformer.layer.5.sa_layer_norm.weight]    
 DistilBertForSequenceClassification LOAD REPORT from: distilbert-base-uncased
 Key                     | Status     | 
 ------------------------+------------+-
-vocab_layer_norm.bias   | UNEXPECTED | 
-vocab_transform.weight  | UNEXPECTED | 
-vocab_projector.bias    | UNEXPECTED | 
 vocab_layer_norm.weight | UNEXPECTED | 
 vocab_transform.bias    | UNEXPECTED | 
-classifier.weight       | MISSING    | 
-pre_classifier.bias     | MISSING    | 
-pre_classifier.weight   | MISSING    | 
+vocab_transform.weight  | UNEXPECTED | 
+vocab_projector.bias    | UNEXPECTED | 
+vocab_layer_norm.bias   | UNEXPECTED | 
 classifier.bias         | MISSING    | 
+classifier.weight       | MISSING    | 
+pre_classifier.weight   | MISSING    | 
+pre_classifier.bias     | MISSING    | 
 
 Notes:
 - UNEXPECTED    :can be ignored when loading from different task/architecture; not ok if you expect identical arch.
@@ -3751,19 +3751,46 @@ font-style: inherit;">=</span>compute_metrics</span>
 </div>
 <p><br></p>
 <p>All that’s left to do is train and evaluate. I kept <code>num_train_epochs</code> low assuming CPU training. Feel free to increase this value if GPU acceleration is available. On my machine, training via CPU for 5 epochs took ~1.5 hours:</p>
-<div id="9076fa9e" class="cell">
+<div id="9076fa9e" class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"></span>
-<span id="cb18-2">trainer.train()</span>
-<span id="cb18-3">eval_out <span class="op" style="color: #5E5E5E;
+<span id="cb18-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> time <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> perf_counter</span>
+<span id="cb18-3">start <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> perf_counter()</span>
+<span id="cb18-4">trainer.train()</span>
+<span id="cb18-5">eval_out <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> trainer.evaluate()</span>
-<span id="cb18-4"></span>
-<span id="cb18-5"><span class="bu" style="color: null;
+<span id="cb18-6">train_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> perf_counter() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> start</span>
+<span id="cb18-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Training time: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>train_time <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">60</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> minutes"</span>)</span>
+<span id="cb18-8"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"Fine-tuned DistilBERT validation metrics:"</span>)</span>
-<span id="cb18-6"><span class="bu" style="color: null;
+<span id="cb18-9"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(eval_out)</span></code></pre></div>
 <div class="cell-output cell-output-display">
@@ -3771,7 +3798,7 @@ font-style: inherit;">print</span>(eval_out)</span></code></pre></div>
     <div>
       
       <progress value="1640" max="1640" style="width:300px; height:20px; vertical-align: middle;"></progress>
-      [1640/1640 1:18:36, Epoch 5/5]
+      [1640/1640 1:20:07, Epoch 5/5]
     </div>
     
 <table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
@@ -3782,60 +3809,60 @@ font-style: inherit;">print</span>(eval_out)</span></code></pre></div>
 <th data-quarto-table-cell-role="th">Validation Loss</th>
 <th data-quarto-table-cell-role="th">Accuracy</th>
 <th data-quarto-table-cell-role="th">Roc Auc</th>
-<th data-quarto-table-cell-role="th">Precision</th>
+<th data-quarto-table-cell-role="th">Average Precision</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>1</td>
-<td>0.502981</td>
-<td>0.484903</td>
-<td>0.801872</td>
-<td>0.596458</td>
-<td>0.499649</td>
+<td>0.508789</td>
+<td>0.454401</td>
+<td>0.800312</td>
+<td>0.833036</td>
+<td>0.650242</td>
 </tr>
 <tr class="even">
 <td>2</td>
-<td>0.183584</td>
-<td>0.259172</td>
-<td>0.939158</td>
-<td>0.912315</td>
-<td>0.852742</td>
+<td>0.258815</td>
+<td>0.349179</td>
+<td>0.907956</td>
+<td>0.942639</td>
+<td>0.826993</td>
 </tr>
 <tr class="odd">
 <td>3</td>
-<td>0.258704</td>
-<td>0.231112</td>
-<td>0.948518</td>
-<td>0.911132</td>
-<td>0.917165</td>
+<td>0.244388</td>
+<td>0.341437</td>
+<td>0.904836</td>
+<td>0.958759</td>
+<td>0.880115</td>
 </tr>
 <tr class="even">
 <td>4</td>
-<td>0.108387</td>
-<td>0.235922</td>
-<td>0.945398</td>
-<td>0.923599</td>
-<td>0.923016</td>
+<td>0.116219</td>
+<td>0.339216</td>
+<td>0.912637</td>
+<td>0.962993</td>
+<td>0.900425</td>
 </tr>
 <tr class="odd">
 <td>5</td>
-<td>0.084391</td>
-<td>0.243583</td>
-<td>0.951638</td>
-<td>0.917981</td>
-<td>0.925314</td>
+<td>0.105955</td>
+<td>0.306574</td>
+<td>0.929797</td>
+<td>0.967462</td>
+<td>0.912438</td>
 </tr>
 </tbody>
 </table>
 <p>
 </p></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  4.00it/s]
-Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  3.63it/s]
-Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  2.02it/s]
-Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  3.34it/s]
-Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  3.17it/s]
+<pre><code>Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  3.75it/s]
+Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  4.06it/s]
+Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  3.54it/s]
+Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  3.85it/s]
+Writing model shards: 100%|██████████| 1/1 [00:00&lt;00:00,  3.65it/s]
 There were missing keys in the checkpoint model loaded: ['distilbert.embeddings.LayerNorm.weight', 'distilbert.embeddings.LayerNorm.bias'].
 There were unexpected keys in the checkpoint model loaded: ['distilbert.embeddings.LayerNorm.beta', 'distilbert.embeddings.LayerNorm.gamma'].</code></pre>
 </div>
@@ -3843,8 +3870,9 @@ There were unexpected keys in the checkpoint model loaded: ['distilbert.embeddin
 
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Fine-tuned DistilBERT validation metrics:
-{'eval_loss': 0.23589347302913666, 'eval_accuracy': 0.9453978159126365, 'eval_roc_auc': 0.92359900373599, 'eval_precision': 0.923015586437536, 'eval_runtime': 98.0304, 'eval_samples_per_second': 6.539, 'eval_steps_per_second': 0.418, 'epoch': 5.0}</code></pre>
+<pre><code>Training time: 81.61 minutes
+Fine-tuned DistilBERT validation metrics:
+{'eval_loss': 0.3065744936466217, 'eval_accuracy': 0.9297971918876755, 'eval_roc_auc': 0.9674622941746229, 'eval_average_precision': 0.9124381019525666, 'eval_runtime': 87.905, 'eval_samples_per_second': 7.292, 'eval_steps_per_second': 0.466, 'epoch': 5.0}</code></pre>
 </div>
 </div>
 <p><br></p>
@@ -3891,12 +3919,12 @@ font-style: inherit;">5</span>))</span></code></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>              precision    recall  f1-score   support
 
-           0    0.96559   0.96364   0.96461       495
-           1    0.87755   0.88356   0.88055       146
+           0    0.94643   0.96364   0.95495       495
+           1    0.86861   0.81507   0.84099       146
 
-    accuracy                        0.94540       641
-   macro avg    0.92157   0.92360   0.92258       641
-weighted avg    0.94554   0.94540   0.94546       641
+    accuracy                        0.92980       641
+   macro avg    0.90752   0.88935   0.89797       641
+weighted avg    0.92870   0.92980   0.92900       641
 </code></pre>
 </div>
 </div>
@@ -5020,7 +5048,7 @@ font-style: inherit;">True</span>)</span></code></pre></div>
 <style type="text/css">
 </style>
 
-<div id="T_a1a89" class="quarto-float quarto-figure quarto-figure-center anchored" style="display:inline" data-quarto-postprocess="true">
+<div id="T_a1a89" class="quarto-float quarto-figure quarto-figure-center anchored" data-quarto-postprocess="true" style="display:inline">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="T_a1a89-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;1: TOR_F_SCALE
@@ -5064,7 +5092,7 @@ Table&nbsp;1: TOR_F_SCALE
 <style type="text/css">
 </style>
 
-<div id="T_889c3" class="quarto-float quarto-figure quarto-figure-center anchored" style="display:inline" data-quarto-postprocess="true">
+<div id="T_889c3" class="quarto-float quarto-figure quarto-figure-center anchored" data-quarto-postprocess="true" style="display:inline">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="T_889c3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;2: CLASS
@@ -19881,7 +19909,7 @@ weighted avg       0.97      0.96      0.96       114
 <li><img src="https://latex.codecogs.com/png.latex?X"> is <img src="https://latex.codecogs.com/png.latex?n%5Ctimes%20m">.</li>
 <li><img src="https://latex.codecogs.com/png.latex?U"> is <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20n"> (unitary with orthonormal columns; columns = <em>left signular vectors</em>).</li>
 <li><img src="https://latex.codecogs.com/png.latex?V"> is <img src="https://latex.codecogs.com/png.latex?m%20%5Ctimes%20m"> (unitary with orthonormal columns; columns = <em>right signular vectors</em>).</li>
-<li><img src="https://latex.codecogs.com/png.latex?%5CSigma"> is <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20m"> with real non-negative entries along the diagonal (<em>singular values</em>). The singular values are the square roots of the eigenvalues of <img src="https://latex.codecogs.com/png.latex?A%5E%7BT%7DA"> or <img src="https://latex.codecogs.com/png.latex?AA%5E%7BT%7D">.</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5CSigma"> is <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20m"> with real non-negative entries along the diagonal (<em>singular values</em>). The singular values are the square roots of the eigenvalues of <img src="https://latex.codecogs.com/png.latex?X%5E%7BT%7DX"> or <img src="https://latex.codecogs.com/png.latex?XX%5E%7BT%7D">.</li>
 <li>When <img src="https://latex.codecogs.com/png.latex?n%20%5Cgeq%20m">, <img src="https://latex.codecogs.com/png.latex?%5CSigma"> has at most <img src="https://latex.codecogs.com/png.latex?m"> non-zero elements on the diagonal.</li>
 <li>Rank of <img src="https://latex.codecogs.com/png.latex?X"> = number of non-zero singular values.</li>
 </ul>
