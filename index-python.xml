@@ -10,7 +10,869 @@
 <atom:link href="https://www.jtrive.com/index-python.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Tue, 25 Aug 2026 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sat, 05 Sep 2026 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Why Numerical Solvers Use Matrix Decompositions for Linear Regression</title>
+  <link>https://www.jtrive.com/posts/mat-fact-lin-reg/mat-fact-lin-reg.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>This post is an attempt to shed light on why the familiar closed-form solution for least-squares coefficients is avoided in statistical software, and how matrix decompositions provide more numerically stable alternatives. We begin by deriving the normal equations for the standard multiple linear regression model, then use that result as a foundation for exploring more reliable computational approaches.</p>
+<p>The normal linear regression model specifies that the sampling variability around the mean is i.i.d. from a normal distribution:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cepsilon_%7B1%7D,%20%5Ccdots,%20%5Cepsilon_%7Bn%7D%20%5Csim%20%5Cmathrm%7Bi.i.d.%7D%5Chspace%7B.25em%7D%5Cmathrm%7Bnormal%7D(0,%20%5Csigma%5E%7B2%7D)%5C%5C%0Ay_%7Bi%7D%20=%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D%20+%20%5Cepsilon_%7Bi%7D.%0A"></p>
+<p>Therefore the specification for the joint conditional PDF of observed data is given by:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Af(y_%7B1%7D,%20%5Ccdots,%20y_%7Bn%7D%7Cx_%7B1%7D,%20%5Ccdots,%20x_%7Bn%7D,%20%5Cbeta,%20%5Csigma%5E%7B2%7D)%20&amp;=%20%5Cprod_%7Bi=1%7D%5E%7Bn%7D%20f(y_%7Bi%7D%7Cx_%7Bi%7D,%20%5Cbeta,%20%5Csigma%5E%7B2%7D)%5C%5C%0A&amp;=%20(2%5Cpi%20%5Csigma%5E%7B2%7D)%5E%7B-n/2%7D%20%5Cmathrm%7Bexp%7D%5Cbig(-%5Cfrac%7B1%7D%7B2%5Csigma%5E%7B2%7D%7D%20%5Csum_%7Bi=1%7D%5E%7Bn%7D(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)%5E%7B2%7D%5Cbig).%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Alternatively, the joint PDF can be represented in terms of the multivariate normal distribution. Let <img src="https://latex.codecogs.com/png.latex?y"> be the n-dimensional response vector, and <img src="https://latex.codecogs.com/png.latex?X"> the <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20p"> design matrix whose <img src="https://latex.codecogs.com/png.latex?i%5E%7Bth%7D"> row is <img src="https://latex.codecogs.com/png.latex?x_%7Bi%7D">. We have:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0Ay%7CX,%5Cbeta,%20%5Csigma%5E%7B2%7D%20%5Csim%20%5Cmathrm%7BMVN%7D(X%5Cbeta,%20%5Csigma%5E%7B2%7D%20%5Cmathrm%7BI%7D),%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?I"> represents the <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20n"> identity matrix. The density depends on <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> through the residuals. To find the optimal <img src="https://latex.codecogs.com/png.latex?%5Cbeta">, we expand the expression for the sum of squared errors:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A%5Cmathrm%7BSSE%7D%20&amp;=%20%5Csum_%7Bi=1%7D%5E%7Bn%7D%20(y_%7Bi%7D%20-%20%5Cbeta%5E%7BT%7Dx_%7Bi%7D)%5E2%5C%5C%0A&amp;=(y%20-%20X%5Cbeta)%5E%7BT%7D(y%20-%20X%5Cbeta)%5C%5C%0A&amp;=y%5E%7BT%7Dy%20-%202%5Cbeta%5E%7BT%7DX%5E%7BT%7Dy%20+%20%5Cbeta%5E%7BT%7DX%5E%7BT%7DX%5Cbeta.%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Computing the first derivative of the last expression above w.r.t. <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> and setting equal to 0 yields <img src="https://latex.codecogs.com/png.latex?-2X%5E%7BT%7Dy%20+%202X%5E%7BT%7DX%5Cbeta%20=%200">, which can be rearranged to obtain the normal equations:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbeta%20=%20(X%5E%7BT%7DX)%5E%7B-1%7DX%5E%7BT%7Dy.%0A"></p>
+<p>Why isn’t this expression implemented in linear model solvers directly?</p>
+<p>The condition number of a matrix is the ratio of maximum-to-minimum singular values (which, for a normal matrix, is the ratio of the maximum-to-minimum absolute value of eigenvalues). Essentially, the condition number tells you how much solving a linear system will magnify noise in the data. It can be thought of as a measure of amplification. The smaller the condition number, the better (the best value being 1).</p>
+<div id="cell-2" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Demonstrating the equivalence of computing the condition number as the ratio of </span></span>
+<span id="cb1-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">maximum-to-minimum singular values vs. using np.linalg.cond, as well as a </span></span>
+<span id="cb1-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">comparison of the condition numbers of X vs. X^T*X. </span></span>
+<span id="cb1-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-6"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> np</span>
+<span id="cb1-7"></span>
+<span id="cb1-8">rng <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.random.default_rng(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb1-9"></span>
+<span id="cb1-10">n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span></span>
+<span id="cb1-11"></span>
+<span id="cb1-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Random design matrix with first column as intercept.</span></span>
+<span id="cb1-13">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.column_stack([</span>
+<span id="cb1-14">    np.ones(n),</span>
+<span id="cb1-15">    rng.normal(size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(n, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7</span>))</span>
+<span id="cb1-16">])</span>
+<span id="cb1-17"></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Not used here, will be used in subsequent code cells.</span></span>
+<span id="cb1-19">y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rng.normal(scale<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>n)</span>
+<span id="cb1-20"></span>
+<span id="cb1-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># SVD for X. </span></span>
+<span id="cb1-22">U0, S0, Vt0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.svd(X, full_matrices<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-23">c0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.cond(X, p<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-24"></span>
+<span id="cb1-25"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># SVD for X^T*X. </span></span>
+<span id="cb1-26">U1, S1, Vt1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.svd(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X, full_matrices<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-27">c1 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.cond(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X, p<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)</span>
+<span id="cb1-28"></span>
+<span id="cb1-29"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># S0 and S1 represent the singular values of X and X^T*X.</span></span>
+<span id="cb1-30"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"S0.max() / S0.min()       : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>S0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span>() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> S0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">min</span>()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-31"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Condition number of X     : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>c0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-32"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"S1.max() / S1.min()       : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>S1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span>() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> S1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">min</span>()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-33"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Condition number of X^T*X : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>c1<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.8f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">."</span>)</span>
+<span id="cb1-34"></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>S0.max() / S0.min()       : 2.16451700.
+Condition number of X     : 2.16451700.
+S1.max() / S1.min()       : 4.68513386.
+Condition number of X^T*X : 4.68513386.</code></pre>
+</div>
+</div>
+<p>In terms of numerical precision, forming the Gram matrix <img src="https://latex.codecogs.com/png.latex?X%5E%7BT%7DX"> squares the condition number. As an approximation, <img src="https://latex.codecogs.com/png.latex?%5Cmathrm%7Blog%7D_%7B10%7D(%5Cmathrm%7Bcondition%7D)"> represents the number of digits lost in a given matrix computation. So by merely forming <img src="https://latex.codecogs.com/png.latex?X%5E%7BT%7DX">, we’ve doubled the loss of precision in our final result, since</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cmathrm%7Blog%7D_%7B10%7D(%5Cmathrm%7Bcondition%7D(X%5E%7BT%7DX))%20%5Capprox%202%20%5Ctimes%20%5Cmathrm%7Blog%7D_%7B10%7D(%5Cmathrm%7Bcondition%7D(X)).%0A"></p>
+<p>If the condition number of <img src="https://latex.codecogs.com/png.latex?X"> is small, forming the Gram matrix and solving the system via <img src="https://latex.codecogs.com/png.latex?%5Cbeta%20=%20(X%5E%7BT%7DX)%5E%7B-1%7DX%5E%7BT%7Dy"> should be fine. But as the condition number grows, solving the normal equations becomes increasingly unstable, and solutions become increasingly sensitive to numerical error. Statistical software needs to accommodate design matrices with widely varying numerical properties, so they generally rely on more stable methods rather than explicitly solving the normal equations. In the examples that follow, we demonstrate how the least-squares coefficients can be estimated using the Cholesky, QR, and Singular Value decompositions, then highlight the pros and cons of each approach.</p>
+<p><br></p>
+<section id="the-cholesky-decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="the-cholesky-decomposition"><strong>The Cholesky Decomposition</strong></h3>
+<p>The Cholesky decomposition factors a symmetric positive-definite matrix <img src="https://latex.codecogs.com/png.latex?X"> as</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AX=LL%5ET,%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?L"> is lower triangular and <img src="https://latex.codecogs.com/png.latex?L%5ET"> is upper triangular. In the least-squares setting, Unlike QR and SVD, the Cholesky decomposition is not applied directly to the design matrix <img src="https://latex.codecogs.com/png.latex?X">. It is applied to the symmetric <img src="https://latex.codecogs.com/png.latex?p%5Ctimes%20p"> Gram matrix <img src="https://latex.codecogs.com/png.latex?X%5ETX">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AX%5ETX%20=%20LL%5ET.%0A"></p>
+<p>If <img src="https://latex.codecogs.com/png.latex?X"> has full column rank, then <img src="https://latex.codecogs.com/png.latex?X%5ETX"> is symmetric positive-definite and therefore has a unique Cholesky decomposition:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0AX%5ETX%5Cbeta%20&amp;=%20X%5ETy,%5C%5C%0ALL%5ET%5Cbeta%20&amp;=%20X%5ETy.%0A%5Cend%7Baligned%7D%0A"></p>
+<p>Instead of computing <img src="https://latex.codecogs.com/png.latex?(X%5ETX)%5E%7B-1%7D">, the coefficients can be obtained by solving two triangular systems. First, define an intermediate vector <img src="https://latex.codecogs.com/png.latex?z"> and use forward substitution to solve:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0ALz%20=%20X%5ETy.%0A"></p>
+<p>Then use back substitution to solve:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AL%5ET%5Cbeta%20=%20z%0A"></p>
+<p>Combining the two systems gives:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0ALL%5ET%5Cbeta%20=%20X%5ETy,%0A"></p>
+<p>which is equivalent to the normal equations.</p>
+<p>Solving triangular systems is computationally efficient, therefore the Cholesky decomposition provides a fast way to solve the normal equations without explicitly computing a matrix inverse.</p>
+<p>The next cell demonstrates the use of the Cholesky Decomposition to obtain least squares coefficients.</p>
+<div id="cell-5" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb3-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Obtaining least-squares coefficients via Cholesky decomposition.</span></span>
+<span id="cb3-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb3-4"></span>
+<span id="cb3-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.linalg <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> solve_triangular</span>
+<span id="cb3-6"></span>
+<span id="cb3-7"></span>
+<span id="cb3-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Normal equations solved directly.</span></span>
+<span id="cb3-9">B0 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.solve(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X, X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y)</span>
+<span id="cb3-10"></span>
+<span id="cb3-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Cholesky decomposition.</span></span>
+<span id="cb3-12">L <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.cholesky(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X)</span>
+<span id="cb3-13">z <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> solve_triangular(L, X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y, lower<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb3-14">B_cd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> solve_triangular(L.T, z, lower<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb3-15"></span>
+<span id="cb3-16"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B0: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb3-17"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B_cd: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B_cd<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb3-18"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"np.allclose(B0, B_cd): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>np<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>allclose(B0, B_cd)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>B0: [ 0.21363461  0.55927513  1.12519467 -0.16427514 -0.21705275  0.43228936
+  1.04517888 -1.72699424]
+B_cd: [ 0.21363461  0.55927513  1.12519467 -0.16427514 -0.21705275  0.43228936
+  1.04517888 -1.72699424]
+np.allclose(B0, B_cd): True</code></pre>
+</div>
+</div>
+<p>Cholesky eliminates the need to invert <img src="https://latex.codecogs.com/png.latex?X%5ETX">, but it does not eliminate the need to form it. It is faster than QR or SVD for well-conditioned, full-rank problems, but comes at the cost of reduced numerical stability. If <img src="https://latex.codecogs.com/png.latex?X"> is rank deficient, <img src="https://latex.codecogs.com/png.latex?X%5ETX"> will not be positive definite and the decomposition will fail.</p>
+<p><br></p>
+</section>
+<section id="the-qr-decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="the-qr-decomposition"><strong>The QR Decomposition</strong></h3>
+<p>The QR decomposition improves upon Cholesky since it operates directly on <img src="https://latex.codecogs.com/png.latex?X">, and avoids the loss of numerical precision as a result of forming <img src="https://latex.codecogs.com/png.latex?X%5ETX"> and squaring its condition number. It factors a matrix <img src="https://latex.codecogs.com/png.latex?X"> into the product of an orthonormal matrix <img src="https://latex.codecogs.com/png.latex?Q"> and an upper triangular matrix <img src="https://latex.codecogs.com/png.latex?R">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0AX%20=%20QR.%0A"></p>
+<p>The columns of <img src="https://latex.codecogs.com/png.latex?Q"> are normalized, mutually orthogonal vectors. The entries of <img src="https://latex.codecogs.com/png.latex?R"> describe how the original columns of <img src="https://latex.codecogs.com/png.latex?X"> can be reconstructed from the orthonormal basis:</p>
+<ul>
+<li>The diagonal elements <img src="https://latex.codecogs.com/png.latex?r_%7B11%7D,%20r_%7B22%7D,%20%5Cldots"> represent the lengths of the residual vectors used to construct and normalize each successive column of <img src="https://latex.codecogs.com/png.latex?Q">.</li>
+<li>The off-diagonal elements, such as <img src="https://latex.codecogs.com/png.latex?r_%7B12%7D">, represent the amount of <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bq%7D_1"> contained in the original vector <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bx%7D_2">. <img src="https://latex.codecogs.com/png.latex?r_%7B12%7D%20=%20%5Cmathbf%7Bq%7D_1%5ET%5Cmathbf%7Bx%7D_2"> is the projection scalar removed from <img src="https://latex.codecogs.com/png.latex?%5Cmathbf%7Bx%7D_2"> during orthogonalization.</li>
+</ul>
+<p><img src="https://latex.codecogs.com/png.latex?Q"> represents the orthogonal coordinate system, and <img src="https://latex.codecogs.com/png.latex?R"> specifies how to combine the orthonormal directions to reconstruct <img src="https://latex.codecogs.com/png.latex?X">.</p>
+<p>Starting with the normal equations and substituting <img src="https://latex.codecogs.com/png.latex?X=QR">, we obtain:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AX%5E%7BT%7DX%20%5Cbeta%20&amp;=%20X%5E%7BT%7Dy%5C%5C%0A(QR)%5E%7BT%7D(QR)%20%5Cbeta%20&amp;=%20(QR)%5E%7BT%7Dy%5C%5C%0AR%5E%7BT%7D(Q%5E%7BT%7DQ)R%20%5Cbeta%20&amp;=%20R%5E%7BT%7D%20Q%5E%7BT%7D%20y%5C%5C%0AR%5E%7BT%7DR%20%5Cbeta%20&amp;=%20R%5E%7BT%7D%20Q%5E%7BT%7D%20y%5C%5C%0A(R%5E%7BT%7D)%5E%7B-1%7D%20R%5E%7BT%7D%20R%20%5Cbeta%20&amp;=%20(R%5E%7BT%7D)%5E%7B-1%7D%20R%5E%7BT%7D%20Q%5E%7BT%7D%20y%5C%5C%0AR%20%5Cbeta%20&amp;=%20Q%5E%7BT%7D%20y.%0A%5Cend%7Balign*%7D%0A"></p>
+<p>The derivation is valid only when <img src="https://latex.codecogs.com/png.latex?X"> has full column rank, so that <img src="https://latex.codecogs.com/png.latex?R"> is non-singular. If <img src="https://latex.codecogs.com/png.latex?X"> is rank deficient, ordinary back substitution on <img src="https://latex.codecogs.com/png.latex?R%5Cbeta=Q%5ETy"> does not produce a unique solution.</p>
+<p>We’ve taken advantage of how transpose distributes over matrix products (<img src="https://latex.codecogs.com/png.latex?(AB)%5E%7BT%7D%20=%20B%5E%7BT%7DA%5E%7BT%7D">), and the fact that since <img src="https://latex.codecogs.com/png.latex?Q"> is orthonormal, <img src="https://latex.codecogs.com/png.latex?Q%5E%7BT%7DQ%20=%20I">. Then because <img src="https://latex.codecogs.com/png.latex?R"> is upper triangular, <img src="https://latex.codecogs.com/png.latex?%5Cbeta"> can be solved for using back substitution.</p>
+<p>In the next cell, the call to <code>np.linalg.qr</code> sets <code>mode</code> to “reduced”. Doing so keeps only the <img src="https://latex.codecogs.com/png.latex?n"> orthogonal vectors in <img src="https://latex.codecogs.com/png.latex?Q"> that directly span the column space of our original data matrix. We use reduced mode because it gives us the exact same solution as <code>mode = "complete"</code> but avoids redundant math.</p>
+<div id="cell-7" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb5-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Obtaining least-squares coefficients via QR decomposition.</span></span>
+<span id="cb5-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb5-4"></span>
+<span id="cb5-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> scipy.linalg <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> solve_triangular</span>
+<span id="cb5-6"></span>
+<span id="cb5-7"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># QR decomposition.</span></span>
+<span id="cb5-8">Q, R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.qr(X, mode<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"reduced"</span>)</span>
+<span id="cb5-9">B_qr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> solve_triangular(R, Q.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y)</span>
+<span id="cb5-10"></span>
+<span id="cb5-11"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B0: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-12"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B_qr: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B_qr<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb5-13"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"np.allclose(B0, B_qr): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>np<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>allclose(B0, B_qr)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>B0: [ 0.21363461  0.55927513  1.12519467 -0.16427514 -0.21705275  0.43228936
+  1.04517888 -1.72699424]
+B_qr: [ 0.21363461  0.55927513  1.12519467 -0.16427514 -0.21705275  0.43228936
+  1.04517888 -1.72699424]
+np.allclose(B0, B_qr): True</code></pre>
+</div>
+</div>
+<p>Using the QR decomposition, we no longer need to explicitly form the Gram matrix <img src="https://latex.codecogs.com/png.latex?X%5ETX"> and avoid squaring the condition number of the original design matrix. We also no longer need to invert a matrix: After decomposing <img src="https://latex.codecogs.com/png.latex?X"> into <img src="https://latex.codecogs.com/png.latex?QR">, the coefficients can be obtained by solving the triangular system <img src="https://latex.codecogs.com/png.latex?R%5Cbeta%20=%20Q%5ETy"> via substitution.</p>
+<p>QR is more stable than Cholesky, but the standard approach assumes <img src="https://latex.codecogs.com/png.latex?X"> has full column rank, so that <img src="https://latex.codecogs.com/png.latex?R"> is non-singular and coefficient estimates are unique. When <img src="https://latex.codecogs.com/png.latex?X"> is rank-deficient or nearly rank-deficient, some diagonal elements of <img src="https://latex.codecogs.com/png.latex?R"> will be zero or very small, making it difficult or impossible to obtain a unique coefficient vector.</p>
+<p>The Singular Value Decomposition provides a more direct and robust way to identify rank deficiency and compute a minimum-norm least-squares solution.</p>
+<p><br></p>
+</section>
+<section id="the-singular-value-decomposition" class="level3">
+<h3 class="anchored" data-anchor-id="the-singular-value-decomposition"><strong>The Singular Value Decomposition</strong></h3>
+<p>The Singular Value Decomposition (SVD) improves upon QR by handling rank-deficient and severely ill-conditioned design matrices, though at greater computational cost. It is a generalization of the eigendecomposition of a square matrix to any <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20p"> matrix. The SVD decomposes a matrix <img src="https://latex.codecogs.com/png.latex?X"> into 3 matrices <img src="https://latex.codecogs.com/png.latex?X%20=%20U%20%5CSigma%20V%5E%7BT%7D">:</p>
+<ul>
+<li><img src="https://latex.codecogs.com/png.latex?U"> is a <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20p"> orthogonal matrix (assuming <img src="https://latex.codecogs.com/png.latex?X"> is real); columns represent left singular vectors.</li>
+<li><img src="https://latex.codecogs.com/png.latex?%5CSigma"> is a <img src="https://latex.codecogs.com/png.latex?p%20%5Ctimes%20p"> diagonal matrix with diagonal entries representing the singular values of <img src="https://latex.codecogs.com/png.latex?X">.</li>
+<li><img src="https://latex.codecogs.com/png.latex?V%5E%7BT%7D"> is a <img src="https://latex.codecogs.com/png.latex?p%20%5Ctimes%20p"> orthogonal matrix (assuming <img src="https://latex.codecogs.com/png.latex?X"> is real); rows represent right singular vectors.</li>
+</ul>
+<p>Starting with the normal equations and assuming <img src="https://latex.codecogs.com/png.latex?X"> has full column rank (e.g., <img src="https://latex.codecogs.com/png.latex?%5CSigma"> is invertible), replace <img src="https://latex.codecogs.com/png.latex?X"> with <img src="https://latex.codecogs.com/png.latex?U%20%5CSigma%20V%5E%7BT%7D"> and solve for <img src="https://latex.codecogs.com/png.latex?%5Cbeta">:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0AX%5E%7BT%7DX%20%5Cbeta%20&amp;=%20X%5E%7BT%7Dy%5C%5C%0A(U%20%5CSigma%20V%5E%7BT%7D)%5E%7BT%7DU%20%5CSigma%20V%5E%7BT%7D%5Cbeta%20&amp;=%20(U%20%5CSigma%20V%5E%7BT%7D)%5E%7BT%7Dy%5C%5C%0AV%20%5CSigma%5E%7BT%7D%20U%5E%7BT%7D%20U%20%5CSigma%20V%5E%7BT%7D%20%5Cbeta%20&amp;=%20V%20%5CSigma%20U%5E%7BT%7D%20y%5C%5C%0AV%20%5CSigma%5E%7BT%7D%20%5CSigma%20V%5E%7BT%7D%20%5Cbeta%20&amp;=V%20%5CSigma%20U%5E%7BT%7D%20y%5C%5C%0AV%20V%5E%7BT%7D%20%5Cbeta%20&amp;=%20V%20%5CSigma%5E%7B-1%7D%20U%5E%7BT%7D%20y%5C%5C%0A%5Cbeta%20&amp;=%20V%20%5CSigma%5E%7B-1%7D%20U%5E%7BT%7D%20y%0A%5Cend%7Balign*%7D%0A"></p>
+<p>Since <img src="https://latex.codecogs.com/png.latex?%5CSigma"> is diagonal, its pseudoinverse <img src="https://latex.codecogs.com/png.latex?%5CSigma%5E%7B-1%7D"> is obtained by taking the reciprocal of each nonzero singular value. Because <img src="https://latex.codecogs.com/png.latex?V"> is orthogonal, <img src="https://latex.codecogs.com/png.latex?VV%5E%7BT%7D=I">. This gives the SVD least-squares solution:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbeta%20=%20V%20%5CSigma%5E%7B-1%7D%20U%5E%7BT%7D%20y.%0A"></p>
+<p>If <img src="https://latex.codecogs.com/png.latex?X"> is rank deficient, one or more singular values will be zero. In that case, those values are excluded from the division. This allows SVD to produce the coefficient vector with the smallest Euclidean norm among all possible least-squares solutions.</p>
+<p>The regression coefficients can be estimated using SVD as follows:</p>
+<div id="cell-10" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb7-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Obtaining least-squares coefficients via SVD decomposition.</span></span>
+<span id="cb7-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb7-4"></span>
+<span id="cb7-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># SVD.</span></span>
+<span id="cb7-6">U, S, Vt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.svd(X, full_matrices<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb7-7">B_svd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> Vt.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> np.diag(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> S) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> U.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y</span>
+<span id="cb7-8"></span>
+<span id="cb7-9"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B0: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B0<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb7-10"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"B_svd: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>B_svd<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb7-11"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"np.allclose(B0, B_svd): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>np<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>allclose(B0, B_svd)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>B0: [ 0.21363461  0.55927513  1.12519467 -0.16427514 -0.21705275  0.43228936
+  1.04517888 -1.72699424]
+B_svd: [ 0.21363461  0.55927513  1.12519467 -0.16427514 -0.21705275  0.43228936
+  1.04517888 -1.72699424]
+np.allclose(B0, B_svd): True</code></pre>
+</div>
+</div>
+<p>SVD is the most robust approach for ill-conditioned or rank-deficient matrices, but comes at a higher computational cost than Cholesky or QR. We’ll examine this trade-off more closely in the closing section.</p>
+</section>
+<section id="an-ill-conditioned-design-matrix" class="level3">
+<h3 class="anchored" data-anchor-id="an-ill-conditioned-design-matrix"><strong>An Ill-Conditioned Design Matrix</strong></h3>
+<p>Let’s estimate the least-squares coefficients using an ill-conditioned design matrix and compare the performance of each method.</p>
+<div id="cell-13" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb9-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">Create a matrix with nearly linearly-dependent columns.</span></span>
+<span id="cb9-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb9-4"></span>
+<span id="cb9-5">rng <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.random.default_rng(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">516</span>)</span>
+<span id="cb9-6"></span>
+<span id="cb9-7">n <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span></span>
+<span id="cb9-8">x <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linspace(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, n)</span>
+<span id="cb9-9"></span>
+<span id="cb9-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Columns 2 and 3 are nearly identical.</span></span>
+<span id="cb9-11">X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.column_stack([</span>
+<span id="cb9-12">    np.ones(n),</span>
+<span id="cb9-13">    x,</span>
+<span id="cb9-14">    x <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1e-8</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> rng.normal(size<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>n)</span>
+<span id="cb9-15">])</span>
+<span id="cb9-16"></span>
+<span id="cb9-17">B_true <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.array([<span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1.0</span>, <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2.0</span>])</span>
+<span id="cb9-18">y <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> X <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> B_true</span>
+<span id="cb9-19"></span>
+<span id="cb9-20"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"cond(X):     </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>np<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>linalg<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>cond(X)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb9-21"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"cond(X.T@X): </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>np<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>linalg<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>cond(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2e}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb9-22"></span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>cond(X):     1.59e+08
+cond(X.T@X): 6.17e+16</code></pre>
+</div>
+</div>
+<p><img src="https://latex.codecogs.com/png.latex?X"> has full column rank, but it is ill-conditioned because two of its columns are nearly linearly dependent. A condition number of <img src="https://latex.codecogs.com/png.latex?10%5E%7B16%7D"> is pretty close to the limit of double-precision arithmetic. Lets compare the solutions:</p>
+<div id="cell-15" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"></span>
+<span id="cb11-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Explicit normal-equations solution.</span></span>
+<span id="cb11-3"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">try</span>:</span>
+<span id="cb11-4">    B_ne <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.inv(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y</span>
+<span id="cb11-5"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">except</span> np.linalg.LinAlgError <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> e:</span>
+<span id="cb11-6">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Normal equations solution failed: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>e<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb11-7">    B_ne <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb11-8"></span>
+<span id="cb11-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Cholesky decomposition.</span></span>
+<span id="cb11-10"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">try</span>:</span>
+<span id="cb11-11">    L <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.cholesky(X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> X)</span>
+<span id="cb11-12">    B_chol <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> solve_triangular(</span>
+<span id="cb11-13">        L.T, </span>
+<span id="cb11-14">        solve_triangular(L, X.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y, lower<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb11-15">    )</span>
+<span id="cb11-16"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">except</span> np.linalg.LinAlgError <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> e:</span>
+<span id="cb11-17">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Cholesky decomposition failed: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>e<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb11-18">    B_chol <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb11-19"></span>
+<span id="cb11-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># QR decomposition.</span></span>
+<span id="cb11-21"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">try</span>:</span>
+<span id="cb11-22">    Q, R <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.qr(X, mode<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"reduced"</span>)</span>
+<span id="cb11-23">    B_qr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> solve_triangular(R, Q.T <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">@</span> y)</span>
+<span id="cb11-24"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">except</span> np.linalg.LinAlgError <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> e:</span>
+<span id="cb11-25">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"QR decomposition failed: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>e<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb11-26">    B_qr <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb11-27"></span>
+<span id="cb11-28"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">try</span>:</span>
+<span id="cb11-29">    B_svd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> np.linalg.lstsq(X, y, rcond<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>)[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb11-30"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">except</span> np.linalg.LinAlgError <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> e:</span>
+<span id="cb11-31">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"SVD failed: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>e<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb11-32">    B_svd <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb11-33"></span>
+<span id="cb11-34"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"True coefficients:   "</span>, B_true)</span>
+<span id="cb11-35"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Normal inverse:      "</span>, B_ne)</span>
+<span id="cb11-36"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Cholesky solution:   "</span>, B_chol)</span>
+<span id="cb11-37"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"QR solution:         "</span>, B_qr)</span>
+<span id="cb11-38"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"SVD solution:        "</span>, B_svd)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Normal equations solution failed: Singular matrix
+Cholesky decomposition failed: Matrix is not positive definite
+True coefficients:    [ 1.  2. -2.]
+Normal inverse:       None
+Cholesky solution:    None
+QR solution:          [ 1.  2. -2.]
+SVD solution:         [ 1.  2. -2.]</code></pre>
+</div>
+</div>
+<p>For SVD, we used <code>np.linalg.lstsq</code>, which used <code>xGELSD</code> from LAPACK. <code>xGELSD</code> solves least-squares problems using a divide-and-conquer SVD strategy. <a href="https://github.com/numpy/numpy/blob/v2.5.0/numpy/linalg/_linalg.py#L2417-L2563">Here</a> is the source.</p>
+<p>Forming <img src="https://latex.codecogs.com/png.latex?X%5ETX"> magnified the numerical instability to the point that the normal equations failed with a singular matrix error and Cholesky failed because the computed Gram matrix was not positive definite. QR and SVD operated directly on <img src="https://latex.codecogs.com/png.latex?X">, and were able to recover the true coefficients exactly. This highlights why factorization methods that do not form <img src="https://latex.codecogs.com/png.latex?X%5ETX"> are generally preferred for poorly conditioned least-squares problems.</p>
+</section>
+<section id="computational-considerations" class="level3">
+<h3 class="anchored" data-anchor-id="computational-considerations"><strong>Computational Considerations</strong></h3>
+<p>The cost of an SVD-based least-squares solver depends on the specific algorithm and on whether singular vectors are accumulated <a href="https://www.netlib.org/lapack/lawnspdf/lawn88.pdf">[Gu, et. al 1994]</a>. The particular estimate of <img src="https://latex.codecogs.com/png.latex?4mn%5E2+8n%5E3"> is a conventional approximate count for a dense <img src="https://latex.codecogs.com/png.latex?m%20%5Ctimes%20n"> matrix, with <img src="https://latex.codecogs.com/png.latex?m%5Cgeq%20n">, including the singular vectors.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 38%">
+<col style="width: 61%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th style="text-align: right;">Approximate flop count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Cholesky via normal equations</td>
+<td style="text-align: right;"><img src="https://latex.codecogs.com/png.latex?mn%5E2+%5Cfrac%7B1%7D%7B3%7Dn%5E3"></td>
+</tr>
+<tr class="even">
+<td>Householder QR</td>
+<td style="text-align: right;"><img src="https://latex.codecogs.com/png.latex?2mn%5E2-%5Cfrac%7B2%7D%7B3%7Dn%5E3"></td>
+</tr>
+<tr class="odd">
+<td>Full SVD</td>
+<td style="text-align: right;">Approximately <img src="https://latex.codecogs.com/png.latex?4mn%5E2+8n%5E3"></td>
+</tr>
+</tbody>
+</table>
+<p>Overall, Cholesky is the fastest but least numerically stable. SVD is the most robust but also the most computationally expensive. QR offers a good balance between these extremes, which explains its frequent use in least-squares solvers.</p>
+<p>To learn more about how the QR decomposition is used in R specifically, check out <a href="https://madrury.github.io/jekyll/update/statistics/2016/07/20/lm-in-R.html"><em>A Deep Dive Into How R Fits a Linear Model</em></a>, an excellent post by Matthew Drury that is exceptionally well-written and highly illuminating.</p>
+
+
+</section>
+
+ ]]></description>
+  <category>Statistical Modeling</category>
+  <category>Python</category>
+  <guid>https://www.jtrive.com/posts/mat-fact-lin-reg/mat-fact-lin-reg.html</guid>
+  <pubDate>Sat, 05 Sep 2026 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Practical NLP for Risk Modeling, Part IV - Parameter Efficient Fine-tuning with Low-rank Adaptation</title>
   <link>https://www.jtrive.com/posts/practical-nlp-for-risk-modeling-part-4/practical-nlp-for-risk-modeling-part-4.html</link>
@@ -10540,7 +11402,7 @@ font-style: inherit;">True</span>)</span></code></pre></div>
 <style type="text/css">
 </style>
 
-<div id="T_a1a89" class="quarto-float quarto-figure quarto-figure-center anchored" data-quarto-postprocess="true" style="display:inline">
+<div id="T_a1a89" class="quarto-float quarto-figure quarto-figure-center anchored" style="display:inline" data-quarto-postprocess="true">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="T_a1a89-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;1: TOR_F_SCALE
@@ -10584,7 +11446,7 @@ Table&nbsp;1: TOR_F_SCALE
 <style type="text/css">
 </style>
 
-<div id="T_889c3" class="quarto-float quarto-figure quarto-figure-center anchored" data-quarto-postprocess="true" style="display:inline">
+<div id="T_889c3" class="quarto-float quarto-figure quarto-figure-center anchored" style="display:inline" data-quarto-postprocess="true">
 <figure class="quarto-float quarto-float-tbl figure">
 <figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="T_889c3-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
 Table&nbsp;2: CLASS
@@ -58952,1129 +59814,6 @@ font-style: inherit;">&lt;/div&gt;'</span>,</span>
   <category>Geospatial</category>
   <guid>https://www.jtrive.com/posts/geohash-python/geohash-python.html</guid>
   <pubDate>Wed, 04 Dec 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>GIS Algorithms in Python, Part I - Point-to-Point and Point-to-Line Distances</title>
-  <link>https://www.jtrive.com/posts/gis-algorithms-in-python-1/gis-algorithms-in-python-1.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>I’ve been spending time exploring Ningchuan Xiao’s excellent book, <em>GIS Algorithms</em>. This text offers a comprehensive dive into fundamental geospatial concepts including geometric algorithms, spatial indexing, and spatial analysis. The author thoroughly explains the theoretical foundations of each concept and provides practical Python implementations as examples.</p>
-<p>In a series of upcoming posts, I’ll break down and share insights on these concepts one-by-one. In this post, we’ll focus on two straightforward geometric algorithms: calculating point-to-point and point-to-line distances. The accompanying code leverages the Shapely library to handle geometric primitives such as points and lines and to validate our custom implementations of each algorithm.</p>
-<section id="point-to-point-distance" class="level2">
-<h2 class="anchored" data-anchor-id="point-to-point-distance">Point-to-Point Distance</h2>
-<p>We begin by computing the distance between two points in a rectilinear coordinate system. This can be accomplished using the Pythagorean theorem. For <img src="https://latex.codecogs.com/png.latex?p_%7B0%7D%20=%20(x_%7B0%7D,%20y_%7B0%7D)"> and <img src="https://latex.codecogs.com/png.latex?p_%7B1%7D%20=%20(x_%7B1%7D,%20y_%7B1%7D)">, the straight line distance <img src="https://latex.codecogs.com/png.latex?D"> between <img src="https://latex.codecogs.com/png.latex?p_%7B0%7D"> and <img src="https://latex.codecogs.com/png.latex?p_%7B2%7D"> is given by:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AD%20=%20%5Csqrt%7B(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%20+%20(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%7D.%0A"></p>
-<p>In the next cell, <code>point2point</code> computes the distance between two points using the Pythagorean theorem:</p>
-<div id="cell-3" class="cell">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
-<span id="cb1-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> math <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> sqrt</span>
-<span id="cb1-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> shapely.geometry <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> Point</span>
-<span id="cb1-4"></span>
-<span id="cb1-5"></span>
-<span id="cb1-6"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> point2point(p0, p1):</span>
-<span id="cb1-7">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb1-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Return the distance between p1 and p2. </span></span>
-<span id="cb1-9"></span>
-<span id="cb1-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Parameters</span></span>
-<span id="cb1-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    ----------</span></span>
-<span id="cb1-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    p0: shapely.geometry.point.Point</span></span>
-<span id="cb1-13"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        First point.</span></span>
-<span id="cb1-14"></span>
-<span id="cb1-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    p1: shapely.geometry.point.Point</span></span>
-<span id="cb1-16"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Second point.</span></span>
-<span id="cb1-17"></span>
-<span id="cb1-18"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Returns</span></span>
-<span id="cb1-19"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    -------</span></span>
-<span id="cb1-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    float</span></span>
-<span id="cb1-21"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Straight-line distance between p0 and p1. </span></span>
-<span id="cb1-22"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb1-23">    x0: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p0.x</span>
-<span id="cb1-24">    y0: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p0.y</span>
-<span id="cb1-25">    x1: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p1.x</span>
-<span id="cb1-26">    y1: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p1.y</span>
-<span id="cb1-27">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> sqrt((x1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> x0)<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> (y1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> y0)<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)</span>
-<span id="cb1-28"></span>
-<span id="cb1-29"></span>
-<span id="cb1-30"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Define two points.</span></span>
-<span id="cb1-31">p0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> Point(<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2.</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3.</span>)</span>
-<span id="cb1-32">p1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> Point(<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">4.</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7.</span>)</span>
-<span id="cb1-33"></span>
-<span id="cb1-34"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute distances using point2point and shapely. </span></span>
-<span id="cb1-35">p2p <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> point2point(p0, p1)</span>
-<span id="cb1-36">shp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p0.distance(p1)</span>
-<span id="cb1-37"></span>
-<span id="cb1-38"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Distance using point2point: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>p2p<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb1-39"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Distance using shapely    : </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>shp<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Distance using point2point: 4.47214
-Distance using shapely    : 4.47214</code></pre>
-</div>
-</div>
-<p><br></p>
-<p>If it is necessary to compute distance between two points on a sphere separated by a large extent, using <code>point2point</code> will not be accurate. We can instead opt for the haversine formula, which calculates the great-circle distance between two points on the Earth’s surface. It is especially suited for applications where accuracy over large distances is critical. The <code>haversine</code> function in the next cell accepts two points, with <code>x</code> representing longitude and <code>y</code> latitude, and returns the great circle distance between them. To use the haversine formula, it is necessary to specify a value for the radius of the Earth. We use 6,371 km, a generally accepted value for the Earth’s mean radius (see <a href="https://www.movable-type.co.uk/scripts/latlong.html">here</a>):</p>
-<div id="cell-5" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"></span>
-<span id="cb3-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> math <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> asin, cos, sin, radians</span>
-<span id="cb3-3"></span>
-<span id="cb3-4"></span>
-<span id="cb3-5"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> get_haversine(p0, p1):</span>
-<span id="cb3-6">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb3-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Calculate the great circle distance between two points on the earth </span></span>
-<span id="cb3-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    (specified in decimal degrees).</span></span>
-<span id="cb3-9"></span>
-<span id="cb3-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Parameters</span></span>
-<span id="cb3-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    ----------</span></span>
-<span id="cb3-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        p0: shapely.geometry.point.Point</span></span>
-<span id="cb3-13"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        First point with x = longitude and y = latitude.</span></span>
-<span id="cb3-14"></span>
-<span id="cb3-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    p1: shapely.geometry.point.Point</span></span>
-<span id="cb3-16"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Second point with x = longitude and y = latitude.</span></span>
-<span id="cb3-17"></span>
-<span id="cb3-18"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Returns</span></span>
-<span id="cb3-19"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    -------</span></span>
-<span id="cb3-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    float</span></span>
-<span id="cb3-21"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Great circle distance between p0 and p1 in km.</span></span>
-<span id="cb3-22"></span>
-<span id="cb3-23"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    References</span></span>
-<span id="cb3-24"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    ----------</span></span>
-<span id="cb3-25"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    http://www.movable-type.co.uk/scripts/latlong.html</span></span>
-<span id="cb3-26"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb3-27">    R: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6371.</span></span>
-<span id="cb3-28">    lon0: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p0.x</span>
-<span id="cb3-29">    lat0: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p0.y</span>
-<span id="cb3-30">    lon1: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p1.x</span>
-<span id="cb3-31">    lat1: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p1.y</span>
-<span id="cb3-32">    </span>
-<span id="cb3-33">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Convert lat and lon degrees to radians.</span></span>
-<span id="cb3-34">    rlon0, rlat0, rlon1, rlat1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">map</span>(radians, (lon0, lat0, lon1, lat1))</span>
-<span id="cb3-35">    dlon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> rlon1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> rlon0</span>
-<span id="cb3-36">    dlat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> rlat1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> rlat0</span>
-<span id="cb3-37">    a <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> sin(dlat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> cos(rlat0) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> cos(rlat1) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> sin(dlon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb3-38">    c <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> asin(sqrt(a))</span>
-<span id="cb3-39">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> R <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> c</span></code></pre></div>
-</div>
-<p><br></p>
-<p>The pyproj library can be used to validate our haversine distance calculation. <code>p0</code> represents Chicago, Illinois and <code>p1</code> Burlington, Vermont. <code>pyproj.inv</code> returns the distance in meters, so we divide by 1000 to covert to km:</p>
-<div id="cell-7" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
-<span id="cb4-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pyproj</span>
-<span id="cb4-3"></span>
-<span id="cb4-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># p0 = Chicago, IL, p1 = Burlington, VT. </span></span>
-<span id="cb4-5">p0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> Point(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">87.6298</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.8781</span>)</span>
-<span id="cb4-6">p1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> Point(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">73.2121</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">44.4759</span>) </span>
-<span id="cb4-7"></span>
-<span id="cb4-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compute distances using get_haversine and geopy. </span></span>
-<span id="cb4-9">get_haversine_dist <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_haversine(p0, p1)</span>
-<span id="cb4-10">geodesic <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pyproj.Geod(ellps<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"WGS84"</span>)</span>
-<span id="cb4-11">_, _, pyproj_dist <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> geodesic.inv(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span>p0.coords[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>], <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span>p1.coords[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>])</span>
-<span id="cb4-12"></span>
-<span id="cb4-13"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Distance (km) via get_haversine: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>get_haversine_dist<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,.0f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb4-14"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"Distance (km) via pyproj       : </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>pyproj_dist <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1000</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:,.0f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Distance (km) via get_haversine: 1,203
-Distance (km) via pyproj       : 1,205</code></pre>
-</div>
-</div>
-<p>The results are very close. We could get them to match exactly by tweaking the value used for the Earth’s radius.</p>
-<p><br></p>
-</section>
-<section id="point-to-line-distance" class="level2">
-<h2 class="anchored" data-anchor-id="point-to-line-distance">Point-to-Line Distance</h2>
-<p>In Chapter 2 of <em>GIS Algorithms</em>, a general expression for the distance from a point to a line in rectilinear coordinates is presented. The distance <img src="https://latex.codecogs.com/png.latex?D"> is defined as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AD%20=%20%5Cfrac%7B%7Cax_%7B0%7D%20+%20by_%7B0%7D%20+%20c%7C%7D%7B%5Csqrt%7Ba%5E%7B2%7D%20+%20b%5E%7B2%7D%7D%7D,%0A"></p>
-<p>where <img src="https://latex.codecogs.com/png.latex?ax_%7B0%7D%20+%20by_%7B0%7D%20+%20c"> is a line on the 2-D plane where <img src="https://latex.codecogs.com/png.latex?a,%20b"> and <img src="https://latex.codecogs.com/png.latex?c"> are constants. To obtain this expression, we calculate the distance from the point to the intersection point <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> between the line and a perpendicular line passing through <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)">.</p>
-<p>Let <img src="https://latex.codecogs.com/png.latex?L%20=%20ax_%7B0%7D%20+%20by_%7B0%7D%20+%20c">. The slope of the line perpendicular to <img src="https://latex.codecogs.com/png.latex?L"> is <img src="https://latex.codecogs.com/png.latex?b%20/%20a">, therefore</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cfrac%7By_%7B1%7D%20-%20y_%7B0%7D%7D%7Bx_%7B1%7D%20-%20x_%7B0%7D%7D%20=%20%5Cfrac%7Bb%7D%7Ba%7D,%0A"></p>
-<p>resulting in</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Aa(y_%7B1%7D%20-%20y_%7B0%7D)%20-%20b(x_%7B1%7D%20-%20x_%7B0%7D)%20=%200.%0A"></p>
-<p>Squaring both sides and rearranging yields</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Aa%5E%7B2%7D(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20b%5E%7B2%7D(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%20=%202ab(x_%7B1%7D%20-%20x_%7B0%7D)(y_%7B1%7D%20-%20y_%7B0%7D).%0A"></p>
-<p>After adding <img src="https://latex.codecogs.com/png.latex?a%5E%7B2%7D(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%20+%20b%5E%7B2%7D(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D"> to both sides, the L.H.S. can be rewritten as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A(a%5E%7B2%7D%20+%20b%5E%7B2%7D)%5Cbig((y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%5Cbig),%0A"></p>
-<p>and the R.H.S. as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A(ax_%7B1%7D%20+%20by_%7B1%7D%20-%20ax_%7B0%7D%20-%20by_%7B0%7D)%5E%7B2%7D.%0A"></p>
-<p>Since the intersection point <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> also falls on the original line <img src="https://latex.codecogs.com/png.latex?L">, <img src="https://latex.codecogs.com/png.latex?ax_%7B1%7D%20+%20by_%7B1%7D%20=%20-c">. Substituting this result within the R.H.S expression above gives us</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A(a%5E%7B2%7D%20+%20b%5E%7B2%7D)%5Cbig((y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D%5Cbig)%20=%20(ax_%7B0%7D%20+%20by_%7B0%7D%20+%20c)%5E%7B2%7D.%0A"></p>
-<p><img src="https://latex.codecogs.com/png.latex?(y_%7B1%7D%20-%20y_%7B0%7D)%5E%7B2%7D%20+%20(x_%7B1%7D%20-%20x_%7B0%7D)%5E%7B2%7D"> is the square of the distance between <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)"> and <img src="https://latex.codecogs.com/png.latex?L">. Rearranging, we obtain the original expression for <img src="https://latex.codecogs.com/png.latex?D">:</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0AD%20=%20%5Cfrac%7B%7Cax_%7B0%7D%20+%20by_%7B0%7D%20+%20c%7C%7D%7B%5Csqrt%7Ba%5E%7B2%7D%20+%20b%5E%7B2%7D%7D%7D.%0A"></p>
-<p><br></p>
-<p>In order to obtain the values for <img src="https://latex.codecogs.com/png.latex?a,%20b"> and <img src="https://latex.codecogs.com/png.latex?c">, we assume two endpoints that define a line segment <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> and <img src="https://latex.codecogs.com/png.latex?(x_%7B2%7D,%20y_%7B2%7D)">. Let</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Adx%20&amp;=%20x_%7B1%7D%20-%20x_%7B2%7D%5C%5C%0Ady%20&amp;=%20y_%7B1%7D%20-%20y_%7B2%7D%5C%5C%0Ay%20&amp;=%20%5Cfrac%7Bdy%7D%7Bdx%7Dx%20+%20n,%0A%5Cend%7Balign*%7D%0A"></p>
-<p>where <img src="https://latex.codecogs.com/png.latex?n"> is a constant we need to compute. Plugging <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> into the last equation and solving for <img src="https://latex.codecogs.com/png.latex?n"> yields</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0An%20=%20y_%7B1%7D%20-%20%5Cfrac%7Bdy%7D%7Bdx%7Dx_%7B1%7D.%0A"></p>
-<p>Thus, a general form for the line can be expressed as</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Ay%20=%20%5Cfrac%7Bdy%7D%7Bdx%7Dx%20+%20y_%7B1%7D%20-%20%5Cfrac%7Bdy%7D%7Bdx%7Dx_%7B1%7D.%0A"></p>
-<p>Multiplying through by <img src="https://latex.codecogs.com/png.latex?dx"> and rearranging results in</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0Axdy%20-%20ydx%20+%20y_%7B1%7Ddx%20-x_%7B1%7Ddy%20=%200.%0A"></p>
-<p>Referring back to our original expression for <img src="https://latex.codecogs.com/png.latex?L">, it is easy to see that</p>
-<p><img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0Aa%20&amp;=%20dy%5C%5C%0Ab%20&amp;=%20-dx%5C%5C%0Ac%20&amp;=%20y_%7B1%7Ddx%20-%20x_%7B1%7Ddy.%0A%5Cend%7Balign*%7D%0A"></p>
-<p><br></p>
-<p>Given a point <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)"> and a line segment <img src="https://latex.codecogs.com/png.latex?L"> defined by two endpoints <img src="https://latex.codecogs.com/png.latex?(x_%7B1%7D,%20y_%7B1%7D)"> and <img src="https://latex.codecogs.com/png.latex?(x_%7B2%7D,%20y_%7B2%7D)">, we can now determine the distance from <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)"> to the intersection point between <img src="https://latex.codecogs.com/png.latex?L"> and the perpendicular line passing through <img src="https://latex.codecogs.com/png.latex?(x_%7B0%7D,%20y_%7B0%7D)">:</p>
-<div id="cell-9" class="cell">
-<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
-<span id="cb6-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> shapely.geometry <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> LineString</span>
-<span id="cb6-3"></span>
-<span id="cb6-4"></span>
-<span id="cb6-5"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> point2line(p, l):</span>
-<span id="cb6-6">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb6-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Compute distance between point p and line l.</span></span>
-<span id="cb6-8"></span>
-<span id="cb6-9"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Parameters</span></span>
-<span id="cb6-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    ----------</span></span>
-<span id="cb6-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    p: shapely.geometry.point.Point</span></span>
-<span id="cb6-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Point of interest.</span></span>
-<span id="cb6-13"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    l: shapely.geometry.linestring.LineString</span></span>
-<span id="cb6-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Line defined by two end points. </span></span>
-<span id="cb6-15"></span>
-<span id="cb6-16"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Returns</span></span>
-<span id="cb6-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    -------</span></span>
-<span id="cb6-18"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    float</span></span>
-<span id="cb6-19"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Distance from p to l. </span></span>
-<span id="cb6-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb6-21">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get endpoints from l. </span></span>
-<span id="cb6-22">    p1, p2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> l.coords[:<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>]</span>
-<span id="cb6-23">    x0: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p.x</span>
-<span id="cb6-24">    y0: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p.y</span>
-<span id="cb6-25">    x1: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p1[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span>
-<span id="cb6-26">    y1: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p1[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>]</span>
-<span id="cb6-27">    x2: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p2[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span>
-<span id="cb6-28">    y2: <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">float</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p2[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>]</span>
-<span id="cb6-29">    dx <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> x1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> x2</span>
-<span id="cb6-30">    dy <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> y1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> y2</span>
-<span id="cb6-31">    a <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dy</span>
-<span id="cb6-32">    b <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span>dx</span>
-<span id="cb6-33">    c <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> y1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> dx <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> x1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> dy</span>
-<span id="cb6-34">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">abs</span>(a <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> x0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> b <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> y0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> c) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> sqrt(a<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> b<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">**</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>)</span></code></pre></div>
-</div>
-<p><br></p>
-<p>We create a line and point and use <code>point2line</code> to calculate the distance. The distance is also calculated using shapely for verification:</p>
-<div id="cell-11" class="cell" data-execution_count="28">
-<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"></span>
-<span id="cb7-2">p <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> Point(<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8.</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3.</span>)</span>
-<span id="cb7-3">l <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> LineString([[<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1.</span>], [<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5.</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10.</span>]])</span>
-<span id="cb7-4"></span>
-<span id="cb7-5">point2line_dist <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> point2line(p, l)</span>
-<span id="cb7-6">shapely_dist <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p.distance(l)</span>
-<span id="cb7-7"></span>
-<span id="cb7-8"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"point2line distance: </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>point2line_dist<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb7-9"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"shapely distance   : </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>shapely_dist<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.5f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>point2line distance: 5.58440
-shapely distance   : 5.58440</code></pre>
-</div>
-</div>
-<p><br></p>
-<p>Let’s visualize <code>p</code> and <code>l</code>, along with the line perpendicular to <code>l</code> passing through <code>p</code>:</p>
-<div id="cell-13" class="cell" data-execution_count="61">
-<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"></span>
-<span id="cb9-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> plt</span>
-<span id="cb9-3"></span>
-<span id="cb9-4"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Determine slope and intercept of line perpendicular to l passing through p.</span></span>
-<span id="cb9-5">x0, y0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> p.coords[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span>
-<span id="cb9-6">(x1, y1), (x2, y2) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> l.coords[:<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>]</span>
-<span id="cb9-7"></span>
-<span id="cb9-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get slope and intercept of l.</span></span>
-<span id="cb9-9">m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (y2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> y1) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> (x2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> x1)</span>
-<span id="cb9-10">b <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> y1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> x1</span>
-<span id="cb9-11"></span>
-<span id="cb9-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get slope of line perpendicular to l.</span></span>
-<span id="cb9-13">mp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> m</span>
-<span id="cb9-14"></span>
-<span id="cb9-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get intercept of line perpendicular to l that passes through (x0, y0).</span></span>
-<span id="cb9-16">bp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> y0 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> mp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> x0</span>
-<span id="cb9-17"></span>
-<span id="cb9-18"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Determine x and y where l and line perpendicular to l intersect. </span></span>
-<span id="cb9-19"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># The two points that define the line perpendicular to l are (x0, y0) </span></span>
-<span id="cb9-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># and (x_intersect, y_intersect).</span></span>
-<span id="cb9-21">x_intersect <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (bp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> b) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> (m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> mp)</span>
-<span id="cb9-22">y_intersect <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> x_intersect <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> b</span>
-<span id="cb9-23"></span>
-<span id="cb9-24"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Group coordinates for plotting.</span></span>
-<span id="cb9-25">xx, yy <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [x1, x2], [y1, y2]</span>
-<span id="cb9-26">xxp, yyp <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [x0, x_intersect], [y0, y_intersect]</span>
-<span id="cb9-27"></span>
-<span id="cb9-28"></span>
-<span id="cb9-29">fig, ax <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> plt.subplots(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, figsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7.5</span>, <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5.</span>), tight_layout<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>) </span>
-<span id="cb9-30"></span>
-<span id="cb9-31"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Plot point p.</span></span>
-<span id="cb9-32">ax.plot(x0, y0, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"o"</span>, markersize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"original point"</span>)</span>
-<span id="cb9-33"></span>
-<span id="cb9-34"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Plot line segment l.</span></span>
-<span id="cb9-35">ax.plot(xx, yy, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2.0</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"blue"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"original line"</span>)</span>
-<span id="cb9-36"></span>
-<span id="cb9-37"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Plot line segment perpendicular to l.</span></span>
-<span id="cb9-38">ax.plot(xxp, yyp, linewidth<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2.0</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"green"</span>, linestyle<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"--"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"perpendicular line"</span>)</span>
-<span id="cb9-39"></span>
-<span id="cb9-40"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Plot intersection point.</span></span>
-<span id="cb9-41">ax.plot(x_intersect, y_intersect, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"o"</span>, markersize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">8</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"green"</span>, label<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"intersection point"</span>)</span>
-<span id="cb9-42"></span>
-<span id="cb9-43">ax.annotate(</span>
-<span id="cb9-44">    <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"(</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>x0<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">, </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>y0<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">)"</span>, xy<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(x0, y0), xycoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>, ha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bottom"</span>, </span>
-<span id="cb9-45">    textcoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"offset points"</span>, xytext<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>), fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, rotation<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"normal"</span>, </span>
-<span id="cb9-46">    color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span></span>
-<span id="cb9-47">) </span>
-<span id="cb9-48"></span>
-<span id="cb9-49">ax.annotate(</span>
-<span id="cb9-50">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"p"</span>, xy<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(x0, y0), xycoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>, ha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bottom"</span>, textcoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"offset points"</span>, </span>
-<span id="cb9-51">    xytext<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">12</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">12</span>), fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, rotation<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span></span>
-<span id="cb9-52">) </span>
-<span id="cb9-53"></span>
-<span id="cb9-54">ax.annotate(</span>
-<span id="cb9-55">    <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"(</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>x_intersect<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">, </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>y_intersect<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">)"</span>, xy<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(x_intersect, y_intersect), </span>
-<span id="cb9-56">    xycoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"data"</span>, ha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"left"</span>, va<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bottom"</span>, textcoords<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"offset points"</span>, </span>
-<span id="cb9-57">    xytext<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>), fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">10</span>, rotation<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, weight<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"normal"</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"#000000"</span></span>
-<span id="cb9-58">) </span>
-<span id="cb9-59"></span>
-<span id="cb9-60">ax.axis(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'equal'</span>)</span>
-<span id="cb9-61">ax.tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"x"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb9-62">ax.tick_params(axis<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"y"</span>, which<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"major"</span>, direction<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'in'</span>, labelsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">7</span>)</span>
-<span id="cb9-63">ax.xaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb9-64">ax.yaxis.set_ticks_position(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"none"</span>)</span>
-<span id="cb9-65">ax.legend(loc<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"upper right"</span>, fancybox<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, framealpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, fontsize<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"small"</span>)</span>
-<span id="cb9-66">plt.show()</span></code></pre></div>
-<div class="cell-output cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="https://www.jtrive.com/posts/gis-algorithms-in-python-1/gis-algorithms-in-python-1_files/figure-html/cell-7-output-1.png" class="img-fluid figure-img"></p>
-</figure>
-</div>
-</div>
-</div>
-<p><br></p>
-<p>Since we have the endpoints of the line perpendicular to <code>l</code> passing through <code>p</code>, we can show that <code>point2point</code> returns the same distance as <code>point2line</code>:</p>
-<div id="cell-15" class="cell">
-<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
-<span id="cb10-2">p1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> Point(x0, y0)</span>
-<span id="cb10-3">p2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> Point(x_intersect, y_intersect)</span>
-<span id="cb10-4"></span>
-<span id="cb10-5">point2point(p1, p2)</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="60">
-<pre><code>5.584403908234904</code></pre>
-</div>
-</div>
-
-
-</section>
-
- ]]></description>
-  <category>Geospatial</category>
-  <category>Python</category>
-  <guid>https://www.jtrive.com/posts/gis-algorithms-in-python-1/gis-algorithms-in-python-1.html</guid>
-  <pubDate>Fri, 22 Nov 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
