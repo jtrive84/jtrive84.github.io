@@ -10,7 +10,653 @@
 <atom:link href="https://www.jtrive.com/index-python.xml" rel="self" type="application/rss+xml"/>
 <description>A technical blog by James Triveri&quot;</description>
 <generator>quarto-1.5.57</generator>
-<lastBuildDate>Sat, 05 Sep 2026 05:00:00 GMT</lastBuildDate>
+<lastBuildDate>Mon, 07 Sep 2026 05:00:00 GMT</lastBuildDate>
+<item>
+  <title>Practical NLP for Risk Modeling Supplement - Mean Pooling With an Attention Mask</title>
+  <link>https://www.jtrive.com/posts/practical-nlp-for-risk-modeling-supplement/mean-pooling-attention-mask.html</link>
+  <description><![CDATA[ 
+
+
+
+
+
+<p>In <a href="https://www.jtrive.com/posts/practical-nlp-for-risk-modeling-part-1/practical-nlp-for-risk-modeling-part-1.html">Part I</a> of the Practical NLP for Risk Modeling series, we used mean pooling to turn the token-level output of a pre-trained transformer into a single vector representing an a single text sample. In this supplement, we’ll walkthrough how any padding tokens added to a sample are excluded from the mean pooling operation.</p>
+<p>The basic idea is:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7Bpooled%20embedding%7D%20=%5Cfrac%7B%5Csum_t%20m_t%20h_t%7D%7B%5Csum_t%20m_t%7D%0A"></p>
+<p>where <img src="https://latex.codecogs.com/png.latex?h_t"> is the transformer embedding for token <img src="https://latex.codecogs.com/png.latex?t">, and <img src="https://latex.codecogs.com/png.latex?m_t"> is the corresponding attention-mask value: 1 for a real token and 0 for padding.</p>
+<p>It is easiest to see why masking matters when a batch contains texts of different lengths. We’ll use three short examples and ask the tokenizer to pad every sequence to the length of the longest one.</p>
+<div id="61fe2eff" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"></span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> torch</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> transformers <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> AutoTokenizer, AutoModel</span>
+<span id="cb1-5"></span>
+<span id="cb1-6">model_name <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"distilbert-base-uncased"</span></span>
+<span id="cb1-7"></span>
+<span id="cb1-8">tokenizer <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> AutoTokenizer.from_pretrained(model_name)</span>
+<span id="cb1-9">model <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> AutoModel.from_pretrained(model_name)</span>
+<span id="cb1-10"></span>
+<span id="cb1-11">texts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb1-12">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"The price I have paid, to live and to learn"</span>,</span>
+<span id="cb1-13">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"It's too late"</span>,</span>
+<span id="cb1-14">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"The windows are filled with frost"</span>,</span>
+<span id="cb1-15">]</span>
+<span id="cb1-16"></span>
+<span id="cb1-17">enc_input <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tokenizer(</span>
+<span id="cb1-18">    texts,</span>
+<span id="cb1-19">    return_tensors<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pt"</span>,</span>
+<span id="cb1-20">    padding<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb1-21">    truncation<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>,</span>
+<span id="cb1-22">)</span>
+<span id="cb1-23"></span>
+<span id="cb1-24"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">with</span> torch.no_grad():</span>
+<span id="cb1-25">    out <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> model(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>enc_input)</span>
+<span id="cb1-26"></span>
+<span id="cb1-27">    </span>
+<span id="cb1-28">input_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> enc_input[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"input_ids"</span>]</span>
+<span id="cb1-29">attention_mask <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> enc_input[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"attention_mask"</span>]</span>
+<span id="cb1-30">last_hidden_state <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> out.last_hidden_state</span>
+<span id="cb1-31"></span>
+<span id="cb1-32"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f'input_ids.shape      : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>input_ids<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'</span>)</span>
+<span id="cb1-33"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f'attention_mask.shape : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>attention_mask<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'</span>)</span>
+<span id="cb1-34"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f'last_hidden_state    : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>last_hidden_state<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>c:\Users\jtriv\miniforge3\envs\gnlp\Lib\site-packages\tqdm\auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights: 100%|██████████| 100/100 [00:00&lt;00:00, 457.12it/s, Materializing param=transformer.layer.5.sa_layer_norm.weight]   
+DistilBertModel LOAD REPORT from: distilbert-base-uncased
+Key                     | Status     |  | 
+------------------------+------------+--+-
+vocab_projector.bias    | UNEXPECTED |  | 
+vocab_layer_norm.bias   | UNEXPECTED |  | 
+vocab_transform.weight  | UNEXPECTED |  | 
+vocab_transform.bias    | UNEXPECTED |  | 
+vocab_layer_norm.weight | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED    :can be ignored when loading from different task/architecture; not ok if you expect identical arch.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>input_ids.shape      : torch.Size([3, 13])
+attention_mask.shape : torch.Size([3, 13])
+last_hidden_state    : torch.Size([3, 13, 768])</code></pre>
+</div>
+</div>
+<p>For this batch, <code>input_ids</code> and <code>attention_mask</code> both have shape <code>(B, T)</code>, and the transformer output <code>last_hidden_state</code> has shape <code>(B, T, H)</code>, where:</p>
+<ul>
+<li><code>B</code> is the number of texts in the batch.</li>
+<li><code>T</code> is the padded sequence length.</li>
+<li><code>H</code> is the transformer embedding dimension.</li>
+</ul>
+<p>For our example, B = 3, T = 13 and H = 768.</p>
+<p>At this point we do not yet have one embedding per text. We have one embedding per token. The objective of mean pooling is to take the one embedding per token and collapse it to one embedding per text.</p>
+<p>The tokenizer pads the shorter examples so that all three sequences have the same length. The attention mask records which positions contain actual tokens. A value of 1 means keep this position. A value of 0 means this position is padding.</p>
+<div id="1b834e32" class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"></span>
+<span id="cb4-2">tokens <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb4-3">    tokenizer.convert_ids_to_tokens(row)</span>
+<span id="cb4-4">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> row <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> enc_input[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"input_ids"</span>]</span>
+<span id="cb4-5">]</span>
+<span id="cb4-6"></span>
+<span id="cb4-7">token_table <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(</span>
+<span id="cb4-8">    {</span>
+<span id="cb4-9">        <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"text_</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>i <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>: [</span>
+<span id="cb4-10">            <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>token<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> (</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>mask<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">)"</span></span>
+<span id="cb4-11">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> token, mask <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(token_row, mask_row.tolist())</span>
+<span id="cb4-12">        ]</span>
+<span id="cb4-13">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">for</span> i, (token_row, mask_row) <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(</span>
+<span id="cb4-14">            <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(tokens, enc_input[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"attention_mask"</span>])</span>
+<span id="cb4-15">        )</span>
+<span id="cb4-16">    }</span>
+<span id="cb4-17">).T</span>
+<span id="cb4-18"></span>
+<span id="cb4-19">token_table</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<div>
+
+
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">0</th>
+<th data-quarto-table-cell-role="th">1</th>
+<th data-quarto-table-cell-role="th">2</th>
+<th data-quarto-table-cell-role="th">3</th>
+<th data-quarto-table-cell-role="th">4</th>
+<th data-quarto-table-cell-role="th">5</th>
+<th data-quarto-table-cell-role="th">6</th>
+<th data-quarto-table-cell-role="th">7</th>
+<th data-quarto-table-cell-role="th">8</th>
+<th data-quarto-table-cell-role="th">9</th>
+<th data-quarto-table-cell-role="th">10</th>
+<th data-quarto-table-cell-role="th">11</th>
+<th data-quarto-table-cell-role="th">12</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">text_1</td>
+<td>[CLS] (1)</td>
+<td>the (1)</td>
+<td>price (1)</td>
+<td>i (1)</td>
+<td>have (1)</td>
+<td>paid (1)</td>
+<td>, (1)</td>
+<td>to (1)</td>
+<td>live (1)</td>
+<td>and (1)</td>
+<td>to (1)</td>
+<td>learn (1)</td>
+<td>[SEP] (1)</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">text_2</td>
+<td>[CLS] (1)</td>
+<td>it (1)</td>
+<td>' (1)</td>
+<td>s (1)</td>
+<td>too (1)</td>
+<td>late (1)</td>
+<td>[SEP] (1)</td>
+<td>[PAD] (0)</td>
+<td>[PAD] (0)</td>
+<td>[PAD] (0)</td>
+<td>[PAD] (0)</td>
+<td>[PAD] (0)</td>
+<td>[PAD] (0)</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">text_3</td>
+<td>[CLS] (1)</td>
+<td>the (1)</td>
+<td>windows (1)</td>
+<td>are (1)</td>
+<td>filled (1)</td>
+<td>with (1)</td>
+<td>frost (1)</td>
+<td>[SEP] (1)</td>
+<td>[PAD] (0)</td>
+<td>[PAD] (0)</td>
+<td>[PAD] (0)</td>
+<td>[PAD] (0)</td>
+<td>[PAD] (0)</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>Each entry in the DataFrame above is shown as <code>token (attention_mask)</code>.</p>
+<p>Conceptually, the second example looks like this:</p>
+<pre class="text"><code>tokens:  [CLS]   it   '   s   too   late   [SEP]   [PAD]  [PAD] ...
+mask:      1      1   1   1    1      1      1       0      0   ...
+        |--------------- include ----------------| |----- ignore -- ... --|</code></pre>
+<p>The model receives the attention mask as part of its forward pass, which prevents padded positions from being treated as meaningful during self-attention. However, the model can still return non-zero hidden-state vectors at padded positions. That is why we use the same mask again when we pool the token embeddings.</p>
+<div id="85738f08" class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"></span>
+<span id="cb6-2">H_out <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> last_hidden_state</span>
+<span id="cb6-3">M <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> attention_mask</span>
+<span id="cb6-4">B, T, H <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> H_out.shape</span>
+<span id="cb6-5"></span>
+<span id="cb6-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"H_out.shape           : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">tuple</span>(H_out.shape)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb6-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"M.shape               : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">tuple</span>(M.shape)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb6-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Valid tokens per text : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>M<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(dim<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>tolist()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb6-9"></span>
+<span id="cb6-10"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">M:</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>M<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>H_out.shape           : (3, 13, 768)
+M.shape               : (3, 13)
+Valid tokens per text : [13, 7, 8]
+
+M:
+tensor([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]])</code></pre>
+</div>
+</div>
+<p>The three texts contain different numbers of valid tokens even though they all occupy the same padded length <code>T</code>. Notice that the counts include special tokens such as <code>[CLS]</code> and <code>[SEP]</code>. The pooling described here includes DistilBERT’s special tokens (<code>[CLS]</code> and <code>[SEP]</code>) because their attention mask values are 1. If a particular embedding recipe calls for averaging only the ordinary text tokens, those special token positions can also be excluded by modifying the pooling mask.</p>
+<p><code>H_out</code> has shape <code>(B, T, H)</code>, while the attention mask <code>M</code> has shape <code>(B, T)</code>. We add a trailing dimension to the mask so PyTorch can broadcast it across all <code>H</code> embedding dimensions.</p>
+<div id="1035b615" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"></span>
+<span id="cb8-2">M_expanded <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> M.unsqueeze(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># (B, T, 1)</span></span>
+<span id="cb8-3">H_masked <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> H_out <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> M_expanded  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># (B, T, H)</span></span>
+<span id="cb8-4"></span>
+<span id="cb8-5"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"M_expanded shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>M_expanded<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb8-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"H_masked shape   : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>H_masked<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>M_expanded shape: torch.Size([3, 13, 1])
+H_masked shape   : torch.Size([3, 13, 768])</code></pre>
+</div>
+</div>
+<p><code>H_out * M_expanded</code> represents element-by-element multiplication, not matrix multiplication.</p>
+<p>For a real token, the mask value is 1:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A1%20%5Ctimes%20h_t%20=%20h_t%0A"></p>
+<p>For a padded token, the mask value is 0:</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A0%20%5Ctimes%20h_t%20=%20%5Cmathbf%7B0%7D%0A"></p>
+<p>So every padded 768-dimensional token vector becomes a vector of zeros.</p>
+<div id="a8c51911" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
+<span id="cb10-2">padding_vectors <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> H_masked[M <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb10-3"></span>
+<span id="cb10-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Number of padded token positions: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>padding_vectors<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb10-5"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"All padded embeddings are zero  : </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>torch<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">all</span>(padding_vectors <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>item()<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Number of padded token positions: 11
+All padded embeddings are zero  : True</code></pre>
+</div>
+</div>
+<p>11 is the total number of padded token positions across the entire batch of 3, which is what we expect.</p>
+<p>Now we sum across the token dimension, <code>T</code>. Since the padded vectors have already been zeroed out, they contribute nothing to the sum.</p>
+<div id="59ea6271" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1">S <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> H_masked.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(dim<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)   <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># (B, H)</span></span>
+<span id="cb12-2"></span>
+<span id="cb12-3"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"S shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">tuple</span>(S.shape)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>S shape: (3, 768)</code></pre>
+</div>
+</div>
+<p>We’ve summed over the sequence dimension. We now have one 768-dimensional vector per text. To get the mean, each row needs to be divided by the number of valid tokens in that text.</p>
+<div id="72659328" class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
+<span id="cb14-2">n_valid_tokens <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> M.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>(dim<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>).unsqueeze(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># (B, 1)</span></span>
+<span id="cb14-3"></span>
+<span id="cb14-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"n_valid_tokens shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">tuple</span>(n_valid_tokens.shape)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb14-5"></span>
+<span id="cb14-6">n_valid_tokens</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n_valid_tokens shape: (3, 1)</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="7">
+<pre><code>tensor([[13],
+        [ 7],
+        [ 8]])</code></pre>
+</div>
+</div>
+<p>Dividing the summed embedding by the number of valid tokens gives the mean-pooled representation.</p>
+<div id="a7ef6a3b" class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"></span>
+<span id="cb17-2">pooled_masked <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> S <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> n_valid_tokens</span>
+<span id="cb17-3"></span>
+<span id="cb17-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"pooled_masked shape: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">tuple</span>(pooled_masked.shape)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>pooled_masked shape: (3, 768)</code></pre>
+</div>
+</div>
+<p>We started with a tensor of shape <code>(B, T, 768)</code>, representing one length 768 vector per token, and ended with <code>(B, 768)</code>, one vector per text.</p>
+<p>Max pooling is conceptually similar, except padded positions are typically replaced with <img src="https://latex.codecogs.com/png.latex?-%5Cinfty"> rather than 0 so they cannot become the maximum.</p>
+
+
+
+ ]]></description>
+  <category>Python</category>
+  <category>Machine Learning</category>
+  <category>Transformers</category>
+  <guid>https://www.jtrive.com/posts/practical-nlp-for-risk-modeling-supplement/mean-pooling-attention-mask.html</guid>
+  <pubDate>Mon, 07 Sep 2026 05:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Why Numerical Solvers Use Matrix Decompositions for Linear Regression</title>
   <link>https://www.jtrive.com/posts/mat-fact-lin-reg/mat-fact-lin-reg.html</link>
@@ -862,7 +1508,7 @@ SVD solution:         [ 1.  2. -2.]</code></pre>
 </tbody>
 </table>
 <p>Overall, Cholesky is the fastest but least numerically stable. SVD is the most robust but also the most computationally expensive. QR offers a good balance between these extremes, which explains its frequent use in least-squares solvers.</p>
-<p>To learn more about how the QR decomposition is used in R specifically, check out <a href="https://madrury.github.io/jekyll/update/statistics/2016/07/20/lm-in-R.html"><em>A Deep Dive Into How R Fits a Linear Model</em></a>, an excellent post by Matthew Drury that is exceptionally well-written and highly illuminating.</p>
+<p>To learn more about how the QR decomposition is used in R specifically, check out <a href="https://madrury.github.io/jekyll/update/statistics/2016/07/20/lm-in-R.html"><em>A Deep Dive Into How R Fits a Linear Model</em></a>, an excellent post by Matthew Drury that I found to be highly illuminating.</p>
 
 
 </section>
@@ -1934,6 +2580,7 @@ weighted avg    0.92870   0.92980   0.92900       641</code></pre>
 
  ]]></description>
   <category>Python</category>
+  <category>Machine Learning</category>
   <category>Transformers</category>
   <guid>https://www.jtrive.com/posts/practical-nlp-for-risk-modeling-part-4/practical-nlp-for-risk-modeling-part-4.html</guid>
   <pubDate>Tue, 25 Aug 2026 05:00:00 GMT</pubDate>
@@ -10306,6 +10953,7 @@ weighted avg    0.78822   0.71763   0.73750       641
  ]]></description>
   <category>Python</category>
   <category>Machine Learning</category>
+  <category>Transformers</category>
   <guid>https://www.jtrive.com/posts/practical-nlp-for-risk-modeling-part-2/practical-nlp-for-risk-modeling-part-2.html</guid>
   <pubDate>Sat, 07 Feb 2026 06:00:00 GMT</pubDate>
 </item>
@@ -12756,6 +13404,7 @@ weighted avg    0.78822   0.71763   0.73750       641
  ]]></description>
   <category>Python</category>
   <category>Machine Learning</category>
+  <category>Transformers</category>
   <guid>https://www.jtrive.com/posts/practical-nlp-for-risk-modeling-part-1/practical-nlp-for-risk-modeling-part-1.html</guid>
   <pubDate>Mon, 26 Jan 2026 06:00:00 GMT</pubDate>
 </item>
@@ -58046,1774 +58695,6 @@ font-style: inherit;">=</span> valid_loss</span></code></pre></div>
   <category>Python</category>
   <guid>https://www.jtrive.com/posts/mulitmodal-neural-networks/multimodal-neural-networks.html</guid>
   <pubDate>Sat, 14 Dec 2024 06:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Geohashing for Fun and Profit</title>
-  <link>https://www.jtrive.com/posts/geohash-python/geohash-python.html</link>
-  <description><![CDATA[ 
-
-
-
-
-
-<p>I recently became interested in geohashing and wanted to develop an understanding of the algorithm with the aim of implementing it myself. I was surprised to find it to be quite simple and intuitive. In this article, I’ll demonstrate how to generate geohashes for a given latitude and longitude and compare results against <code>pygeohash</code>, a Python library for all things geohash-related. I’ll also walkthrough an approach that can be used to find neighboring cells of a given geohash, and render them on a map using folium.</p>
-<p>A geohash is a unique identifier of a specific region on the Earth. The basic idea is the Earth gets divided into rectangular regions of user-defined size, and each region is assigned a unique id which is called its geohash. For a given location on earth, the algorithm converts an arbitrary precision latitude and longitude into a string, the idea being that regions with a similar string prefix will be closer together. Conceptually, geohashing reduces proximity search to string prefix matching. As each character encodes additional precision, shared prefixes denote geographic proximity. But the converse is not true: Two points may be close in terms of relative proximity, but have no common geohash characters (think of two points on opposite sides of the prime meridian).</p>
-<p>Geohashes offer a level of anonymity by avoiding the need to share precise GPS coordinates. Instead, they represent a location within a specific bounding box at a chosen level of precision.</p>
-<p>Before we begin, it is important to note that geohash libraries in the wild use a more efficient generating mechanism than what is presented here. My goal is to demonstrate the concept with maximum clarity as opposed to maximum efficiency. If you decide to use geohashing in a real-world application, use an existing library.</p>
-<p><br></p>
-<section id="algorithm" class="level3">
-<h3 class="anchored" data-anchor-id="algorithm">Algorithm</h3>
-<p>A geohash is a hierarchical spatial index: In order to represent a point, the world is recursively divided into smaller and smaller grid cells with each additional bit until the desired precision is reached. Functionally, the algorithm works by storing the intermediate results of two binary searches. In the resulting bit string, even-indexed bits represent longitude, while odd-indexed bits represent latitude. The user specifies a level of precision, usually between 1 and 12, and a geohash of that length is returned. The table below gives the dimensions of geohashes at each level of precision (taken from <a href="https://www.movable-type.co.uk/scripts/geohash.html">here</a>):</p>
-<pre class="text"><code>Precision          Dimension     
-        1: 5,000km x 5,000km
-        2:   1,250km x 625km
-        3:     156km x 156km
-        4:   31.9km x 19.5km
-        5:   4.89km x 4.89km
-        6:   1.22km x 0.61km
-        7:       153m x 153m
-        8:     38.2m x 19.1m
-        9:     4.77m x 4.77m
-       10:    1.19m x 0.596m 
-       11:     149mm x 149mm
-       12:   37.2mm x 18.6mm</code></pre>
-<p>The values in the table represent the maximum dimension at each level of precision: As locations move away from the equator, the dimensions of each cell get smaller.</p>
-<p>For a geohash of length 12, the coordinate can be found in a cell having dimension 37.2mm x 18.6mm, which is an impressive level of precision for a 12 character string!</p>
-<p>The geohash symbol map consists of 32 characters:</p>
-<pre><code>base32 = "0123456789bcdefghjkmnpqrstuvwxyz"</code></pre>
-<p><code>base32</code> consists of digits 0 thru 9 plus all lowercase letters excluding <code>a, i, l, o</code>. As the search space is recursively partitioned, each group of 5 bits, when converted to a decimal integer, maps to one of the values in <code>base32</code>.</p>
-<p>I’ll present the algorithm first then walkthrough it step-by-step. What follows is a basic implementation of geohashing, which takes as input the latitude and longitude for a point of interest and returns the geohash and bounding box to the specified level of precision:</p>
-<div id="cell-2" class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb3-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">Very inefficient geohashing subroutine. For demonstration purposes only. </span></span>
-<span id="cb3-3"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb3-4"></span>
-<span id="cb3-5"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> get_geohash(lat, lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">12</span>):</span>
-<span id="cb3-6">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb3-7"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Generate geohash of lat/lon at specified precision.</span></span>
-<span id="cb3-8"></span>
-<span id="cb3-9"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Parameters</span></span>
-<span id="cb3-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    ----------</span></span>
-<span id="cb3-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    lat: float</span></span>
-<span id="cb3-12"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Latitude of point of interest.</span></span>
-<span id="cb3-13"></span>
-<span id="cb3-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    lon: float</span></span>
-<span id="cb3-15"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Longitude of point of interest</span></span>
-<span id="cb3-16"></span>
-<span id="cb3-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    precision: int</span></span>
-<span id="cb3-18"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Precision of geohash. Higher values result in </span></span>
-<span id="cb3-19"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        smaller bounding regions.</span></span>
-<span id="cb3-20"></span>
-<span id="cb3-21"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Returns</span></span>
-<span id="cb3-22"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    -------</span></span>
-<span id="cb3-23"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    geohash, bbox as list</span></span>
-<span id="cb3-24"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb3-25">    base32 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"0123456789bcdefghjkmnpqrstuvwxyz"</span></span>
-<span id="cb3-26">    bits <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> []</span>
-<span id="cb3-27"></span>
-<span id="cb3-28">    min_lat, max_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">90</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">90</span></span>
-<span id="cb3-29">    min_lon, max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">180</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">180</span></span>
-<span id="cb3-30"></span>
-<span id="cb3-31">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> precision):</span>
-<span id="cb3-32"></span>
-<span id="cb3-33">        <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> ii <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">%</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>:</span>
-<span id="cb3-34">            <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Bisect longitude (E-W).</span></span>
-<span id="cb3-35">            mid_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb3-36">            <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&gt;=</span> mid_lon:</span>
-<span id="cb3-37">                bits.append(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb3-38">                min_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> mid_lon</span>
-<span id="cb3-39">            <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span>:</span>
-<span id="cb3-40">                bits.append(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>)</span>
-<span id="cb3-41">                max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> mid_lon</span>
-<span id="cb3-42"></span>
-<span id="cb3-43">        <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span>:</span>
-<span id="cb3-44">            <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Bisect latitude (N-S).</span></span>
-<span id="cb3-45">            mid_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lat) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb3-46">            <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">if</span> lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&gt;=</span> mid_lat:</span>
-<span id="cb3-47">                bits.append(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb3-48">                min_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> mid_lat</span>
-<span id="cb3-49">            <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">else</span>:</span>
-<span id="cb3-50">                bits.append(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>)</span>
-<span id="cb3-51">                max_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> mid_lat</span>
-<span id="cb3-52"></span>
-<span id="cb3-53">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Create single bit string from list of 0/1s. </span></span>
-<span id="cb3-54">    bitstr <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>.join([<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">str</span>(ii) <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> bits])</span>
-<span id="cb3-55"></span>
-<span id="cb3-56">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Partition bitstr into groups of 5 bits. </span></span>
-<span id="cb3-57">    quints <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [bitstr[(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> ii):(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">*</span> (ii <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>))] <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">range</span>(precision)]</span>
-<span id="cb3-58"></span>
-<span id="cb3-59">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Convert binary digits to decimal digits to get indices into base32. </span></span>
-<span id="cb3-60">    indices <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">int</span>(ii, base<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span>) <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> quints]</span>
-<span id="cb3-61"></span>
-<span id="cb3-62">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Lookup characters associated with each index and concatenate.</span></span>
-<span id="cb3-63">    geohash <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">""</span>.join([base32[ii] <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> indices]) </span>
-<span id="cb3-64"></span>
-<span id="cb3-65">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># geohash bounding box is just the final, min_lat, min_lon, max_lat, max_lon.</span></span>
-<span id="cb3-66">    bbox <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [min_lat, min_lon, max_lat, max_lon]</span>
-<span id="cb3-67"></span>
-<span id="cb3-68">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> geohash, bbox</span></code></pre></div>
-</div>
-<p><br></p>
-<p>Within <code>get_geohash</code>, <code>base32</code> represents the 32 character map and <code>bits</code> gets set to an empty list to hold 0s and 1s. The initial minimum and maximum latitudes and longitudes define the bounds of the search space.</p>
-<p>The range of iteration is specified as <code>range(5 * precision)</code>. For a geohash having precision=6, the <code>bits</code> list will contain 5 * 6 = 30 values. We multiply by 5 since the <code>base32</code> character map has length 32, and 2^5 bit arrangements cover each of the 32 indices.</p>
-<p>If <code>ii</code> is even, we bisect longitude. If <code>lon &gt;= mid_lon</code> we append 1 to <code>bits</code> and update <code>min_lat</code>. Otherwise we append 0 and update <code>max_lon</code>. If <code>ii</code> is odd, we execute the same logic but for latitude. In this way, the final bit string represents interleaved longitude and latitude bits.</p>
-<p>Once iteration completes, the individual elements of <code>bits</code> are concatenated into a single bit string <code>bitstr</code>. Next, we partition <code>bitstr</code> into groups of 5 bits (<code>quints</code>), which are converted to decimal integers, which are then used as indices to lookup elements from <code>base32</code>. These characters are concatenated into a single string representing the geohash.</p>
-<p>Let’s use <code>get_geohash</code> to determine the level 6 geohash for The Mutual Group home office in West Des Moines, IA (41.58538, -93.71946). <code>bits</code> will consist of 30 1s and 0s:</p>
-<pre><code>[0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0]</code></pre>
-<p>Which get combined into a single bit string:</p>
-<pre><code>'010011111110011100100110100110'</code></pre>
-<p>Partitioned into groups of 5 bits:</p>
-<pre><code>['01001', '11111', '10011', '10010', '01101', '00110']</code></pre>
-<p>Converted to decimal integers:</p>
-<pre><code>[9, 31, 19, 18, 13, 6]</code></pre>
-<p>Which serve as indices into <code>base32</code>, whose corresponding elements and are concatenated into the geohash:</p>
-<pre><code>'9zmke6'</code></pre>
-<p><code>get_geohash</code> also returns the bounding box of the precision = 6 geohash:</p>
-<pre><code>[41.583251953125, -93.724365234375, 41.5887451171875, -93.71337890625]</code></pre>
-<p><br></p>
-<p>Let’s compare the results of our implementation against pygeohash to ensure consistency:</p>
-<div id="cell-4" class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"></span>
-<span id="cb10-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> pygeohash</span>
-<span id="cb10-3"></span>
-<span id="cb10-4">lat, lon, precision <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.58538</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">93.71946</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span></span>
-<span id="cb10-5">gh1 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(lat, lon, precision)[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]</span>
-<span id="cb10-6">gh2 <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> pygeohash.encode(latitude<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>lat, longitude<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb10-7"></span>
-<span id="cb10-8"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"get_geohash level-6 geohash : </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>gh1<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb10-9"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"pygeohash level-6 geohash   : </span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>gh2<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>get_geohash level-6 geohash : 9zmke6
-pygeohash level-6 geohash   : 9zmke6</code></pre>
-</div>
-</div>
-<p><br></p>
-<p>We can visualize the precision = 6 geohash using folium:</p>
-<div id="cell-6" class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"></span>
-<span id="cb12-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> folium </span>
-<span id="cb12-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> folium.features <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> DivIcon</span>
-<span id="cb12-4"></span>
-<span id="cb12-5"></span>
-<span id="cb12-6">lat, lon, precision <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.58538</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">93.71946</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span></span>
-<span id="cb12-7"></span>
-<span id="cb12-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Use our subroutine to get geohash and bounding box. </span></span>
-<span id="cb12-9">geohash, bbox <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(lat, lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb12-10"></span>
-<span id="cb12-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Unpack bbox.</span></span>
-<span id="cb12-12">min_lat, min_lon, max_lat, max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bbox</span>
-<span id="cb12-13"></span>
-<span id="cb12-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get mid_lat and mid_lon for geohash id placement. </span></span>
-<span id="cb12-15">mid_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lat) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb12-16">mid_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb12-17"></span>
-<span id="cb12-18">m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> folium.Map(</span>
-<span id="cb12-19">    location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat, lon], </span>
-<span id="cb12-20">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#width=900, </span></span>
-<span id="cb12-21">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">#height=600, </span></span>
-<span id="cb12-22">    zoom_start<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">15</span>, </span>
-<span id="cb12-23">    zoom_control<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, </span>
-<span id="cb12-24">    no_touch<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>,</span>
-<span id="cb12-25">    tiles<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"OpenStreetMap"</span></span>
-<span id="cb12-26">    )</span>
-<span id="cb12-27"></span>
-<span id="cb12-28"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># precision = 6 geohash bounding box. </span></span>
-<span id="cb12-29">folium.Rectangle(</span>
-<span id="cb12-30">    [(min_lat, min_lon), (max_lat, max_lon)], </span>
-<span id="cb12-31">    fill_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"blue"</span>, fill_opacity<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.15</span></span>
-<span id="cb12-32">    ).add_to(m)</span>
-<span id="cb12-33"></span>
-<span id="cb12-34"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Red dot at Merchandise Mart. </span></span>
-<span id="cb12-35">folium.CircleMarker(</span>
-<span id="cb12-36">    location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat, lon], radius<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">5</span>, color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, fill_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"red"</span>, </span>
-<span id="cb12-37">    fill_opacity<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb12-38">    ).add_to(m)</span>
-<span id="cb12-39"></span>
-<span id="cb12-40"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># precision = 6 geohash id.</span></span>
-<span id="cb12-41">folium.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">map</span>.Marker(</span>
-<span id="cb12-42">    [mid_lat, mid_lon],</span>
-<span id="cb12-43">    icon<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>DivIcon(</span>
-<span id="cb12-44">        icon_size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">250</span>,<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">36</span>),</span>
-<span id="cb12-45">        icon_anchor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">100</span>,<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">50</span>),</span>
-<span id="cb12-46">        html<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f'&lt;div style="font-size: 40pt"&gt;</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>geohash<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">&lt;/div&gt;'</span>,</span>
-<span id="cb12-47">        )</span>
-<span id="cb12-48">    ).add_to(m)</span>
-<span id="cb12-49"></span>
-<span id="cb12-50">m</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="3">
-<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
-<html>
-<head>
-    
-    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
-    
-        <script>
-            L_NO_TOUCH = true;
-            L_DISABLE_3D = false;
-        </script>
-    
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
-    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
-    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
-    
-            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
-                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
-            <style>
-                #map_1723606a2a68b8dda75030a21465026a {
-                    position: relative;
-                    width: 100.0%;
-                    height: 100.0%;
-                    left: 0.0%;
-                    top: 0.0%;
-                }
-                .leaflet-container { font-size: 1rem; }
-            </style>
-        
-</head>
-<body>
-    
-    
-            <div class=&quot;folium-map&quot; id=&quot;map_1723606a2a68b8dda75030a21465026a&quot; ></div>
-        
-</body>
-<script>
-    
-    
-            var map_1723606a2a68b8dda75030a21465026a = L.map(
-                &quot;map_1723606a2a68b8dda75030a21465026a&quot;,
-                {
-                    center: [41.58538, -93.71946],
-                    crs: L.CRS.EPSG3857,
-                    zoom: 15,
-                    zoomControl: true,
-                    preferCanvas: false,
-                }
-            );
-
-            
-
-        
-    
-            var tile_layer_b408470fe7956aed4ead3726576ce38e = L.tileLayer(
-                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
-                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
-            );
-        
-    
-            tile_layer_b408470fe7956aed4ead3726576ce38e.addTo(map_1723606a2a68b8dda75030a21465026a);
-        
-    
-            var rectangle_988d6c89ee773a4eb8aa31092cc999bf = L.rectangle(
-                [[41.583251953125, -93.724365234375], [41.5887451171875, -93.71337890625]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;blue&quot;, &quot;fillOpacity&quot;: 0.15, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_1723606a2a68b8dda75030a21465026a);
-        
-    
-            var circle_marker_6a9a646ea218648c4d32e3c3ae4a018c = L.circleMarker(
-                [41.58538, -93.71946],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;red&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;red&quot;, &quot;fillOpacity&quot;: 1, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;opacity&quot;: 1.0, &quot;radius&quot;: 5, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_1723606a2a68b8dda75030a21465026a);
-        
-    
-            var marker_64882f5e3848da7a72426c2234469af8 = L.marker(
-                [41.58599853515625, -93.7188720703125],
-                {}
-            ).addTo(map_1723606a2a68b8dda75030a21465026a);
-        
-    
-            var div_icon_53dccdd8c168ef17d28c71a0bac848db = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 40pt\&quot;\u003e9zmke6\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [100, 50], &quot;iconSize&quot;: [250, 36]});
-            marker_64882f5e3848da7a72426c2234469af8.setIcon(div_icon_53dccdd8c168ef17d28c71a0bac848db);
-        
-</script>
-</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
-</div>
-</div>
-<p><br></p>
-</section>
-<section id="identify-neighboring-cells" class="level3">
-<h3 class="anchored" data-anchor-id="identify-neighboring-cells">Identify Neighboring Cells</h3>
-<p><code>get_geohash</code> can be used to help identify cells that neighbor a given geohash. Once the bounding box for the target geohash is known we simply increment those coordinates by a small amount, then lookup the geohash and bounding box associated with the new coordinate:</p>
-<div id="cell-8" class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"></span>
-<span id="cb13-2">lat, lon, precision <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.58538</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">93.71946</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span></span>
-<span id="cb13-3"></span>
-<span id="cb13-4">eps <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1e-10</span></span>
-<span id="cb13-5"></span>
-<span id="cb13-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Center geohash id and bounding box.</span></span>
-<span id="cb13-7">geohash, bbox <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(lat, lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb13-8"></span>
-<span id="cb13-9">min_lat, min_lon, max_lat, max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bbox</span>
-<span id="cb13-10"></span>
-<span id="cb13-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get geohash id and bounding box for Northwest cell.</span></span>
-<span id="cb13-12">gh_nw, bb_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(max_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> eps, min_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> eps, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb13-13"></span>
-<span id="cb13-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get geohash id and bounding box for Northeast cell.</span></span>
-<span id="cb13-15">gh_ne, bb_ne <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(max_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> eps, max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> eps, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb13-16"></span>
-<span id="cb13-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get geohash id and bounding box for Southeast cell.</span></span>
-<span id="cb13-18">gh_se, bb_se <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(min_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> eps, max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> eps, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb13-19"></span>
-<span id="cb13-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get geohash id and bounding box for Southwest cell.</span></span>
-<span id="cb13-21">gh_sw, bb_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(min_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> eps, min_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> eps, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span></code></pre></div>
-</div>
-<p><br></p>
-<p>Using the results from the NW, NE, SE and SW directions, we obtain the geohashes in the N, S, E and W directions:</p>
-<div id="cell-10" class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"></span>
-<span id="cb14-2"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># For N, get mid point between NE and NW cells.</span></span>
-<span id="cb14-3">min_lat_nw, min_lon_nw, max_lat_nw, max_lon_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bb_nw</span>
-<span id="cb14-4">min_lat_ne, min_lon_ne, max_lat_ne, max_lon_ne <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bb_ne</span>
-<span id="cb14-5">n_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lat_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lat_nw) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb14-6">n_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon_ne) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb14-7"></span>
-<span id="cb14-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># For S, get mid point between SE and SW cells.</span></span>
-<span id="cb14-9">min_lat_sw, min_lon_sw, max_lat_sw, max_lon_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bb_sw</span>
-<span id="cb14-10">min_lat_se, min_lon_se, max_lat_se, max_lon_se <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bb_se</span>
-<span id="cb14-11">s_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lat_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lat_sw) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb14-12">s_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon_se) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb14-13"></span>
-<span id="cb14-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># For E, get mid point between SE and NE cells.</span></span>
-<span id="cb14-15">min_lat_ne, min_lon_ne, max_lat_ne, max_lon_ne <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bb_ne</span>
-<span id="cb14-16">min_lat_se, min_lon_se, max_lat_se, max_lon_se <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bb_se</span>
-<span id="cb14-17">e_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (max_lat_ne <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> min_lat_se) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb14-18">e_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon_se <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon_se) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb14-19"></span>
-<span id="cb14-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># For W, get mid point between SW and NW cells.</span></span>
-<span id="cb14-21">min_lat_nw, min_lon_nw, max_lat_nw, max_lon_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bb_nw</span>
-<span id="cb14-22">min_lat_sw, min_lon_sw, max_lat_sw, max_lon_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bb_sw</span>
-<span id="cb14-23">w_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (max_lat_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> min_lat_sw) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb14-24">w_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon_sw) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span></code></pre></div>
-</div>
-<p><img src="https://www.jtrive.com/posts/geohash-python/image01.png" class="img-fluid"></p>
-<p><br></p>
-<p>This logic can be encapsulated within a function identified as <code>get_neighbors</code>:</p>
-<div id="cell-13" class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"></span>
-<span id="cb15-2"></span>
-<span id="cb15-3"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">def</span> get_neighbors(lat, lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">12</span>):</span>
-<span id="cb15-4">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">"""</span></span>
-<span id="cb15-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Find 8 adjacent neighbors to geohash associated</span></span>
-<span id="cb15-6"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    with (lat, lon) at specified precision.</span></span>
-<span id="cb15-7"></span>
-<span id="cb15-8"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Parameters</span></span>
-<span id="cb15-9"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    ----------</span></span>
-<span id="cb15-10"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    lat: float</span></span>
-<span id="cb15-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Latitude of point of interest.</span></span>
-<span id="cb15-12"></span>
-<span id="cb15-13"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    lon: float</span></span>
-<span id="cb15-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Longitude of point of interest</span></span>
-<span id="cb15-15"></span>
-<span id="cb15-16"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    precision: int</span></span>
-<span id="cb15-17"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        Precision of geohash. Higher values result in </span></span>
-<span id="cb15-18"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">        smaller bounding regions.</span></span>
-<span id="cb15-19"></span>
-<span id="cb15-20"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    Returns</span></span>
-<span id="cb15-21"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    -------</span></span>
-<span id="cb15-22"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    dict</span></span>
-<span id="cb15-23"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">    """</span></span>
-<span id="cb15-24">    dneighbors <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {}</span>
-<span id="cb15-25">    eps <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1e-10</span></span>
-<span id="cb15-26"></span>
-<span id="cb15-27">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Center geohash id and bounding box.</span></span>
-<span id="cb15-28">    geohash, bbox <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(lat, lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb15-29">    min_lat, min_lon, max_lat, max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bbox</span>
-<span id="cb15-30"></span>
-<span id="cb15-31">    dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"center"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"geohash"</span>: geohash, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>: bbox}</span>
-<span id="cb15-32"></span>
-<span id="cb15-33">    dcorners <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {</span>
-<span id="cb15-34">        <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"nw"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lat"</span>: max_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> eps, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lon"</span>: min_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> eps},</span>
-<span id="cb15-35">        <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"ne"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lat"</span>: max_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> eps, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lon"</span>: max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> eps},</span>
-<span id="cb15-36">        <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"sw"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lat"</span>: min_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> eps, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lon"</span>: min_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> eps},</span>
-<span id="cb15-37">        <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"se"</span>: {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lat"</span>: min_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> eps, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lon"</span>: max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> eps},</span>
-<span id="cb15-38">        }</span>
-<span id="cb15-39"></span>
-<span id="cb15-40">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> kk <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> dcorners:</span>
-<span id="cb15-41">        lat_, lon_ <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dcorners[kk][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lat"</span>], dcorners[kk][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"lon"</span>]</span>
-<span id="cb15-42">        gh, bb <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(lat_, lon_, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb15-43">        dneighbors[kk] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"geohash"</span>: gh, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>: bb}</span>
-<span id="cb15-44"></span>
-<span id="cb15-45">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Find geohash for N, S, E and W directions.</span></span>
-<span id="cb15-46">    min_lat_nw, min_lon_nw, max_lat_nw, max_lon_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"nw"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb15-47">    min_lat_ne, min_lon_ne, max_lat_ne, max_lon_ne <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"ne"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb15-48">    n_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lat_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lat_nw) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb15-49">    n_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon_ne) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb15-50">    n_gh, n_bb <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(n_lat, n_lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb15-51">    dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"n"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"geohash"</span>: n_gh, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>: n_bb}</span>
-<span id="cb15-52"></span>
-<span id="cb15-53">    min_lat_sw, min_lon_sw, max_lat_sw, max_lon_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"sw"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb15-54">    min_lat_se, min_lon_se, max_lat_se, max_lon_se <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"se"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb15-55">    s_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lat_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lat_sw) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb15-56">    s_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon_se) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb15-57">    s_gh, s_bb <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(s_lat, s_lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb15-58">    dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"s"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"geohash"</span>: s_gh, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>: s_bb}</span>
-<span id="cb15-59"></span>
-<span id="cb15-60">    min_lat_ne, min_lon_ne, max_lat_ne, max_lon_ne <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"ne"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb15-61">    min_lat_se, min_lon_se, max_lat_se, max_lon_se <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"se"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb15-62">    e_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (max_lat_ne <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> min_lat_se) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb15-63">    e_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon_se <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon_se) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb15-64">    e_gh, e_bb <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(e_lat, e_lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb15-65">    dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"e"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"geohash"</span>: e_gh, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>: e_bb}</span>
-<span id="cb15-66"></span>
-<span id="cb15-67">    min_lat_nw, min_lon_nw, max_lat_nw, max_lon_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"nw"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb15-68">    min_lat_sw, min_lon_sw, max_lat_sw, max_lon_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"sw"</span>][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb15-69">    w_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (max_lat_nw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> min_lat_sw) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb15-70">    w_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon_sw <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon_sw) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb15-71">    w_gh, w_bb <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_geohash(w_lat, w_lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb15-72">    dneighbors[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"w"</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> {<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"geohash"</span>: w_gh, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>: w_bb}</span>
-<span id="cb15-73"></span>
-<span id="cb15-74">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">return</span> dneighbors</span></code></pre></div>
-</div>
-<p>Running <code>get_neighbors</code> and iterating over the results yields:</p>
-<div id="cell-15" class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"></span>
-<span id="cb16-2">lat, lon, precision <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.58538</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">93.71946</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span></span>
-<span id="cb16-3"></span>
-<span id="cb16-4">dn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_neighbors(lat, lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>precision)</span>
-<span id="cb16-5"></span>
-<span id="cb16-6"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> kk <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> dn:</span>
-<span id="cb16-7">    gh, bb <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dn[kk][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"geohash"</span>], dn[kk][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb16-8">    <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>[kk]<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">: geohash=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>gh<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">, bbox=</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>bb<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb16-9">    </span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>['center']: geohash=9zmke6, bbox=[41.583251953125, -93.724365234375, 41.5887451171875, -93.71337890625]
-['nw']: geohash=9zmke5, bbox=[41.5887451171875, -93.7353515625, 41.59423828125, -93.724365234375]
-['ne']: geohash=9zmkee, bbox=[41.5887451171875, -93.71337890625, 41.59423828125, -93.702392578125]
-['sw']: geohash=9zmke1, bbox=[41.5777587890625, -93.7353515625, 41.583251953125, -93.724365234375]
-['se']: geohash=9zmke9, bbox=[41.5777587890625, -93.71337890625, 41.583251953125, -93.702392578125]
-['n']: geohash=9zmke7, bbox=[41.5887451171875, -93.724365234375, 41.59423828125, -93.71337890625]
-['s']: geohash=9zmke3, bbox=[41.5777587890625, -93.724365234375, 41.583251953125, -93.71337890625]
-['e']: geohash=9zmked, bbox=[41.583251953125, -93.71337890625, 41.5887451171875, -93.702392578125]
-['w']: geohash=9zmke4, bbox=[41.583251953125, -93.7353515625, 41.5887451171875, -93.724365234375]</code></pre>
-</div>
-</div>
-<p><br></p>
-<p>Finally, we can visualize a geohash with its 8 surrounding neighbors:</p>
-<div id="cell-17" class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"></span>
-<span id="cb18-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> folium </span>
-<span id="cb18-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> folium.features <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> DivIcon</span>
-<span id="cb18-4"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> mpl</span>
-<span id="cb18-5"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> matplotlib.pyplot <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> plt</span>
-<span id="cb18-6"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> numpy <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">as</span> np</span>
-<span id="cb18-7"></span>
-<span id="cb18-8"></span>
-<span id="cb18-9">lat, lon, precision <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">41.58538</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">93.71946</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span></span>
-<span id="cb18-10"></span>
-<span id="cb18-11"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Get  geohashes and bounding boxes. </span></span>
-<span id="cb18-12">dn <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> get_neighbors(lat, lon, precision<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">6</span>)</span>
-<span id="cb18-13"></span>
-<span id="cb18-14"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Separate color for each cell.</span></span>
-<span id="cb18-15">fcolors <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> mpl.colormaps[<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"gist_rainbow"</span>]</span>
-<span id="cb18-16">colors_rgba <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [fcolors(ii) <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> np.linspace(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>, <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">len</span>(dn))]</span>
-<span id="cb18-17">colors_hex <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [mpl.colors.to_hex(ii, keep_alpha<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span>) <span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> colors_rgba]</span>
-<span id="cb18-18"></span>
-<span id="cb18-19"></span>
-<span id="cb18-20">m <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> folium.Map(</span>
-<span id="cb18-21">    location<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>[lat, lon], </span>
-<span id="cb18-22">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># width=900, </span></span>
-<span id="cb18-23">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># height=600, </span></span>
-<span id="cb18-24">    zoom_start<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">15</span>, </span>
-<span id="cb18-25">    zoom_control<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>, </span>
-<span id="cb18-26">    no_touch<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>,</span>
-<span id="cb18-27">    tiles<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"OpenStreetMap"</span></span>
-<span id="cb18-28">    )</span>
-<span id="cb18-29"></span>
-<span id="cb18-30"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">for</span> ii, kk <span class="kw" style="color: #003B4F;
-background-color: null;
-font-weight: bold;
-font-style: inherit;">in</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">enumerate</span>(dn.keys()):</span>
-<span id="cb18-31">    color <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> colors_hex[ii]</span>
-<span id="cb18-32">    geohash, bbox <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> dn[kk][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"geohash"</span>], dn[kk][<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"bbox"</span>]</span>
-<span id="cb18-33">    min_lat, min_lon, max_lat, max_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> bbox</span>
-<span id="cb18-34">    mid_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lat <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lat) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb18-35">    mid_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (min_lon <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> max_lon) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb18-36">    </span>
-<span id="cb18-37">    <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># geohash bounding box. </span></span>
-<span id="cb18-38">    folium.Rectangle(</span>
-<span id="cb18-39">        [(min_lat, min_lon), (max_lat, max_lon)], </span>
-<span id="cb18-40">        fill_color<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>color, fill_opacity<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">.25</span></span>
-<span id="cb18-41">        ).add_to(m)</span>
-<span id="cb18-42">    </span>
-<span id="cb18-43">    folium.<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">map</span>.Marker(</span>
-<span id="cb18-44">        [mid_lat, mid_lon],</span>
-<span id="cb18-45">        icon<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>DivIcon(</span>
-<span id="cb18-46">            icon_size<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">250</span>,<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">36</span>),</span>
-<span id="cb18-47">            icon_anchor<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">75</span>,<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">25</span>),</span>
-<span id="cb18-48">            html<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f'&lt;div style="font-size: 30pt"&gt;</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>geohash<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">&lt;/div&gt;'</span>,</span>
-<span id="cb18-49">            )</span>
-<span id="cb18-50">        ).add_to(m)</span>
-<span id="cb18-51"></span>
-<span id="cb18-52">m</span></code></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="9">
-<div style="width:100%;"><div style="position:relative;width:100%;height:0;padding-bottom:60%;"><span style="color:#565656">Make this Notebook Trusted to load map: File -&gt; Trust Notebook</span><iframe srcdoc="<!DOCTYPE html>
-<html>
-<head>
-    
-    <meta http-equiv=&quot;content-type&quot; content=&quot;text/html; charset=UTF-8&quot; />
-    
-        <script>
-            L_NO_TOUCH = true;
-            L_DISABLE_3D = false;
-        </script>
-    
-    <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
-    <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js&quot;></script>
-    <script src=&quot;https://code.jquery.com/jquery-3.7.1.min.js&quot;></script>
-    <script src=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js&quot;></script>
-    <script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js&quot;></script>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css&quot;/>
-    <link rel=&quot;stylesheet&quot; href=&quot;https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css&quot;/>
-    
-            <meta name=&quot;viewport&quot; content=&quot;width=device-width,
-                initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot; />
-            <style>
-                #map_f8fb5a97424b241040995d41e8a6e427 {
-                    position: relative;
-                    width: 100.0%;
-                    height: 100.0%;
-                    left: 0.0%;
-                    top: 0.0%;
-                }
-                .leaflet-container { font-size: 1rem; }
-            </style>
-        
-</head>
-<body>
-    
-    
-            <div class=&quot;folium-map&quot; id=&quot;map_f8fb5a97424b241040995d41e8a6e427&quot; ></div>
-        
-</body>
-<script>
-    
-    
-            var map_f8fb5a97424b241040995d41e8a6e427 = L.map(
-                &quot;map_f8fb5a97424b241040995d41e8a6e427&quot;,
-                {
-                    center: [41.58538, -93.71946],
-                    crs: L.CRS.EPSG3857,
-                    zoom: 15,
-                    zoomControl: true,
-                    preferCanvas: false,
-                }
-            );
-
-            
-
-        
-    
-            var tile_layer_3fef21eabb61d706ffbde836d81c0130 = L.tileLayer(
-                &quot;https://tile.openstreetmap.org/{z}/{x}/{y}.png&quot;,
-                {&quot;attribution&quot;: &quot;\u0026copy; \u003ca href=\&quot;https://www.openstreetmap.org/copyright\&quot;\u003eOpenStreetMap\u003c/a\u003e contributors&quot;, &quot;detectRetina&quot;: false, &quot;maxNativeZoom&quot;: 19, &quot;maxZoom&quot;: 19, &quot;minZoom&quot;: 0, &quot;noWrap&quot;: false, &quot;opacity&quot;: 1, &quot;subdomains&quot;: &quot;abc&quot;, &quot;tms&quot;: false}
-            );
-        
-    
-            tile_layer_3fef21eabb61d706ffbde836d81c0130.addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var rectangle_31d58377817bb867e3371d8e3a03a8b0 = L.rectangle(
-                [[41.583251953125, -93.724365234375], [41.5887451171875, -93.71337890625]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff0029&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var marker_57f3c603961c89d2a8f99f28df4457de = L.marker(
-                [41.58599853515625, -93.7188720703125],
-                {}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var div_icon_15485c038cf2114f540a146af3bc50fb = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003e9zmke6\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
-            marker_57f3c603961c89d2a8f99f28df4457de.setIcon(div_icon_15485c038cf2114f540a146af3bc50fb);
-        
-    
-            var rectangle_c48f5140b16fd215159d5dbcf4a7bd14 = L.rectangle(
-                [[41.5887451171875, -93.7353515625], [41.59423828125, -93.724365234375]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff8400&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var marker_c4f7107b8182386b852a765a4e8451cc = L.marker(
-                [41.59149169921875, -93.7298583984375],
-                {}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var div_icon_a29326a4bc63088a642d3d2f304cd13f = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003e9zmke5\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
-            marker_c4f7107b8182386b852a765a4e8451cc.setIcon(div_icon_a29326a4bc63088a642d3d2f304cd13f);
-        
-    
-            var rectangle_14c8de7e469c7ed87f8af988ff25ae97 = L.rectangle(
-                [[41.5887451171875, -93.71337890625], [41.59423828125, -93.702392578125]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#cdff00&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var marker_098086474863e7baee0a7ad9339f0091 = L.marker(
-                [41.59149169921875, -93.7078857421875],
-                {}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var div_icon_b918a6f13877540d0b53d3497cc88e5e = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003e9zmkee\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
-            marker_098086474863e7baee0a7ad9339f0091.setIcon(div_icon_b918a6f13877540d0b53d3497cc88e5e);
-        
-    
-            var rectangle_ee99db82cfed962f0f64a8ca97b6cee6 = L.rectangle(
-                [[41.5777587890625, -93.7353515625], [41.583251953125, -93.724365234375]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#20ff00&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var marker_bd32acf064cf22cfc123b97253d86659 = L.marker(
-                [41.58050537109375, -93.7298583984375],
-                {}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var div_icon_4df6bfbe655c80d7353db04a491c40e6 = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003e9zmke1\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
-            marker_bd32acf064cf22cfc123b97253d86659.setIcon(div_icon_4df6bfbe655c80d7353db04a491c40e6);
-        
-    
-            var rectangle_a0e466eb8595ce6556103c7cf7ce371f = L.rectangle(
-                [[41.5777587890625, -93.71337890625], [41.583251953125, -93.702392578125]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#00ff8c&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var marker_cfb530d6520f78808cf7a27afad59a5f = L.marker(
-                [41.58050537109375, -93.7078857421875],
-                {}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var div_icon_ba3beb3418ba40b33e31955d9e8bdf03 = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003e9zmke9\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
-            marker_cfb530d6520f78808cf7a27afad59a5f.setIcon(div_icon_ba3beb3418ba40b33e31955d9e8bdf03);
-        
-    
-            var rectangle_5a7d7280781d3abf44b022572258557c = L.rectangle(
-                [[41.5887451171875, -93.724365234375], [41.59423828125, -93.71337890625]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#00c6ff&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var marker_954e6740890bb6f873f58bcba5f25552 = L.marker(
-                [41.59149169921875, -93.7188720703125],
-                {}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var div_icon_10713f695521a133b034b7e1a935219d = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003e9zmke7\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
-            marker_954e6740890bb6f873f58bcba5f25552.setIcon(div_icon_10713f695521a133b034b7e1a935219d);
-        
-    
-            var rectangle_8fac6ead9d8f27c8bcd00fa4255fedc5 = L.rectangle(
-                [[41.5777587890625, -93.724365234375], [41.583251953125, -93.71337890625]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#0018ff&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var marker_2a41c2b15f590dfb871e5223965bf65c = L.marker(
-                [41.58050537109375, -93.7188720703125],
-                {}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var div_icon_3694dad7fb144f9cc970f4b63a9afe40 = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003e9zmke3\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
-            marker_2a41c2b15f590dfb871e5223965bf65c.setIcon(div_icon_3694dad7fb144f9cc970f4b63a9afe40);
-        
-    
-            var rectangle_380c45b4d2882b3932ab75ba3eb7fb4a = L.rectangle(
-                [[41.583251953125, -93.71337890625], [41.5887451171875, -93.702392578125]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#9600ff&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var marker_9316c9fe8891caaf523ef4af7c6458a8 = L.marker(
-                [41.58599853515625, -93.7078857421875],
-                {}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var div_icon_d7c34fd89aecaccbec520df4442069bb = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003e9zmked\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
-            marker_9316c9fe8891caaf523ef4af7c6458a8.setIcon(div_icon_d7c34fd89aecaccbec520df4442069bb);
-        
-    
-            var rectangle_5e1dc083272b898fe575d32f4468b63e = L.rectangle(
-                [[41.583251953125, -93.7353515625], [41.5887451171875, -93.724365234375]],
-                {&quot;bubblingMouseEvents&quot;: true, &quot;color&quot;: &quot;#3388ff&quot;, &quot;dashArray&quot;: null, &quot;dashOffset&quot;: null, &quot;fill&quot;: true, &quot;fillColor&quot;: &quot;#ff00bf&quot;, &quot;fillOpacity&quot;: 0.25, &quot;fillRule&quot;: &quot;evenodd&quot;, &quot;lineCap&quot;: &quot;round&quot;, &quot;lineJoin&quot;: &quot;round&quot;, &quot;noClip&quot;: false, &quot;opacity&quot;: 1.0, &quot;smoothFactor&quot;: 1.0, &quot;stroke&quot;: true, &quot;weight&quot;: 3}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var marker_5d1392b9afca153520a2fb641f8d3aa4 = L.marker(
-                [41.58599853515625, -93.7298583984375],
-                {}
-            ).addTo(map_f8fb5a97424b241040995d41e8a6e427);
-        
-    
-            var div_icon_02e98006b9ce518bb3cd9fc527c7f781 = L.divIcon({&quot;className&quot;: &quot;empty&quot;, &quot;html&quot;: &quot;\u003cdiv style=\&quot;font-size: 30pt\&quot;\u003e9zmke4\u003c/div\u003e&quot;, &quot;iconAnchor&quot;: [75, 25], &quot;iconSize&quot;: [250, 36]});
-            marker_5d1392b9afca153520a2fb641f8d3aa4.setIcon(div_icon_02e98006b9ce518bb3cd9fc527c7f781);
-        
-</script>
-</html>" style="position:absolute;width:100%;height:100%;left:0;top:0;border:none !important;" allowfullscreen="" webkitallowfullscreen="" mozallowfullscreen=""></iframe></div></div>
-</div>
-</div>
-<p><br></p>
-<p>As we’ve demonstrated, geohashes are useful because they compactly encode geographic coordinates into strings, enabling efficient location-based indexing and searches. This is useful for data aggregation and protects privacy by providing only approximate locations without revealing exact coordinates.</p>
-
-
-</section>
-
- ]]></description>
-  <category>Python</category>
-  <category>Geospatial</category>
-  <guid>https://www.jtrive.com/posts/geohash-python/geohash-python.html</guid>
-  <pubDate>Wed, 04 Dec 2024 06:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
